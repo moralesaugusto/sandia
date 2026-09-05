@@ -25,6 +25,7 @@ from .routers import (
     leases_router,
     raw_config,
     reservations,
+    search,
     service,
     subnets,
     users,
@@ -97,6 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(users.router)
     app.include_router(audit_router.router)
     app.include_router(about.router)
+    app.include_router(search.router)
 
     return app
 

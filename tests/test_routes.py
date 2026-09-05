@@ -13,6 +13,27 @@ def test_login_wrong_password_shows_error(client):
     assert b"Invalid username or password" in response.content
 
 
+def test_flash_messages_render_as_toast_data_attribute(operator_client):
+    response = operator_client.post(
+        "/subnets/new",
+        data={
+            "network": "172.31.0.0",
+            "netmask": "255.255.255.0",
+            "range_start": "172.31.0.10",
+            "range_end": "172.31.0.50",
+        },
+    )
+    assert response.status_code == 303
+    listing = operator_client.get("/subnets")
+    assert b'data-flash-message="Subnet created' in listing.content
+    assert b'data-flash-kind="success"' in listing.content
+    assert b'id="toast-container"' in listing.content
+
+    # the flash is one-shot: a second request must not re-show the same toast
+    second = operator_client.get("/subnets")
+    assert b"data-flash-message" not in second.content
+
+
 def test_login_locks_out_after_repeated_failures(client):
     from sandia import rate_limit
 
@@ -91,6 +112,103 @@ def test_operator_can_create_reservation(operator_client):
     assert b"de:ad:be:ef:00:01" in listing.content
 
 
+def test_reservation_client_options_round_trip(operator_client, settings):
+    operator_client.post(
+        "/reservations/new",
+        data={
+            "name": "pxe-client",
+            "mac": "aa:bb:cc:dd:ee:ff",
+            "fixed_address": "192.168.1.80",
+            "subnet_key": "",
+            "client_hostname": "pxeclient",
+            "next_server": "192.168.1.5",
+            "boot_filename": "pxelinux.0",
+            "extra_options": 'option domain-name-servers 1.1.1.1;',
+        },
+    )
+    conf = settings.dhcpd_conf_path.read_text()
+    assert 'option host-name "pxeclient";' in conf
+    assert "next-server 192.168.1.5;" in conf
+    assert 'filename "pxelinux.0";' in conf
+    assert "option domain-name-servers 1.1.1.1;" in conf
+
+    edit_page = operator_client.get("/reservations/pxe-client/edit")
+    assert b"pxeclient" in edit_page.content
+    assert b"192.168.1.5" in edit_page.content
+    assert b"pxelinux.0" in edit_page.content
+
+    # clearing a field on edit must remove it, not leave it stale
+    operator_client.post(
+        "/reservations/pxe-client/edit",
+        data={
+            "mac": "aa:bb:cc:dd:ee:ff",
+            "fixed_address": "192.168.1.80",
+            "client_hostname": "",
+            "next_server": "",
+            "boot_filename": "",
+            "extra_options": "",
+        },
+    )
+    conf_after = settings.dhcpd_conf_path.read_text()
+    assert "host-name" not in conf_after
+    assert "next-server" not in conf_after
+    assert "domain-name-servers 1.1.1.1" not in conf_after
+
+
+def test_subnet_client_options_round_trip(operator_client, settings):
+    operator_client.post(
+        "/subnets/new",
+        data={
+            "network": "10.9.0.0",
+            "netmask": "255.255.255.0",
+            "range_start": "10.9.0.10",
+            "range_end": "10.9.0.50",
+            "ntp_servers": "pool.ntp.org",
+            "next_server": "10.9.0.5",
+            "boot_filename": "pxelinux.0",
+            "default_lease_time": "300",
+            "max_lease_time": "3600",
+            "extra_options": 'option tftp-server-name "tftp.local";',
+        },
+    )
+    conf = settings.dhcpd_conf_path.read_text()
+    assert "option ntp-servers pool.ntp.org;" in conf
+    assert "next-server 10.9.0.5;" in conf
+    assert "default-lease-time 300;" in conf
+    assert "max-lease-time 3600;" in conf
+    assert 'option tftp-server-name "tftp.local";' in conf
+
+
+def test_bulk_delete_reservations(operator_client, settings):
+    operator_client.post(
+        "/reservations/new",
+        data={"name": "bulk-a", "mac": "aa:aa:aa:aa:aa:01", "fixed_address": "192.168.1.71", "subnet_key": ""},
+    )
+    operator_client.post(
+        "/reservations/new",
+        data={"name": "bulk-b", "mac": "aa:aa:aa:aa:aa:02", "fixed_address": "192.168.1.72", "subnet_key": ""},
+    )
+
+    response = operator_client.post("/reservations/bulk-delete", data={"names": ["bulk-a", "bulk-b"]})
+    assert response.status_code == 303
+
+    conf = settings.dhcpd_conf_path.read_text()
+    assert "bulk-a" not in conf
+    assert "bulk-b" not in conf
+
+
+def test_bulk_delete_with_no_selection_shows_error(operator_client):
+    response = operator_client.post("/reservations/bulk-delete", data={})
+    assert response.status_code == 303
+    listing = operator_client.get("/reservations")
+    assert b"No reservations selected" in listing.content
+
+
+def test_viewer_cannot_bulk_delete(viewer_client):
+    response = viewer_client.post("/reservations/bulk-delete", data={"names": ["whatever"]})
+    assert response.status_code == 403
+
+
 def test_duplicate_reservation_name_is_rejected(operator_client):
     operator_client.post(
         "/reservations/new",
@@ -152,10 +270,45 @@ def test_leases_search_filters_table(admin_client):
     assert b"192.168.1.51" not in response.content
 
 
+def test_global_search_matches_reservation_and_lease(admin_client):
+    response = admin_client.get("/search/suggest", params={"q": "printer"})
+    assert response.status_code == 200
+    assert b"Reservations" in response.content
+    assert b"/reservations/printer/edit" in response.content
+    assert b"Leases" in response.content
+
+
+def test_global_search_matches_by_ip(admin_client):
+    response = admin_client.get("/search/suggest", params={"q": "192.168.1.50"})
+    assert response.status_code == 200
+    assert b"printer" in response.content
+
+
+def test_global_search_no_match(admin_client):
+    response = admin_client.get("/search/suggest", params={"q": "no-such-thing-xyz"})
+    assert response.status_code == 200
+    assert b"No matches" in response.content
+
+
+def test_global_search_empty_query_returns_nothing(admin_client):
+    response = admin_client.get("/search/suggest", params={"q": ""})
+    assert response.status_code == 200
+    assert response.content.strip() == b""
+
+
 def test_lease_context_menu_offers_reserve_action(admin_client):
     response = admin_client.get("/leases/192.168.1.51/menu")
     assert response.status_code == 200
     assert b"Reserve this lease" in response.content
+
+
+def test_lease_context_menu_links_to_edit_when_already_reserved(admin_client):
+    # 192.168.1.50's MAC (00:11:22:33:44:55) matches the fixture's "printer" reservation.
+    response = admin_client.get("/leases/192.168.1.50/menu")
+    assert response.status_code == 200
+    assert b"Edit reservation" in response.content
+    assert b"/reservations/printer/edit" in response.content
+    assert b"Reserve this lease" not in response.content
 
 
 def test_reserve_from_lease_prefills_form(operator_client):

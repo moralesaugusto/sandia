@@ -20,6 +20,12 @@ def serialize(config: DhcpdConfig) -> str:
     return _serialize_nodes(config.nodes, 0) + "\n"
 
 
+def serialize_nodes(nodes: list[Node], level: int = 0) -> str:
+    """Serialize a bare list of nodes (e.g. a host/subnet body) without the
+    surrounding DhcpdConfig - used for the free-form "extra options" field."""
+    return _serialize_nodes(nodes, level)
+
+
 def _serialize_nodes(nodes: list[Node], level: int) -> str:
     pad = INDENT * level
     lines: list[str] = []

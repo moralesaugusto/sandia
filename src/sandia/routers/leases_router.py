@@ -83,8 +83,10 @@ async def lease_menu(
     leases = load_leases(settings.leases_path)
     lease = next((lease for lease in leases if lease.ip == ip), None)
     config = load_live_config(settings)
-    already_reserved = bool(lease and lease.mac and lease.mac in {h.mac for h in config.all_hosts if h.mac})
-    return render(request, "leases/_menu.html", user=user, lease=lease, already_reserved=already_reserved)
+    reserved_host = None
+    if lease and lease.mac:
+        reserved_host = next((h for h in config.all_hosts if h.mac == lease.mac), None)
+    return render(request, "leases/_menu.html", user=user, lease=lease, reserved_host=reserved_host)
 
 
 @router.post("/leases/{ip}/deny")

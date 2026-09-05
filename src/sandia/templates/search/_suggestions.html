@@ -1,0 +1,34 @@
+{% from "base.html" import icon %}
+{% if reservations or leases or subnets %}
+<div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden text-sm max-h-80 overflow-y-auto">
+  {% if reservations %}
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Reservations</div>
+  {% for r in reservations %}
+  <a href="/reservations/{{ r.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
+    {{ icon(r.icon, 'w-4 h-4 text-emerald-400') }}
+    <span>{{ r.name }} <span class="text-slate-500">{{ r.fixed_address or '' }}</span></span>
+  </a>
+  {% endfor %}
+  {% endif %}
+  {% if leases %}
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Leases</div>
+  {% for lease in leases %}
+  <a href="/leases?q={{ lease.ip }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
+    {{ icon('leases', 'w-4 h-4 text-slate-500') }}
+    <span>{{ lease.ip }} <span class="text-slate-500">{{ lease.hostname or lease.mac or '' }}</span></span>
+  </a>
+  {% endfor %}
+  {% endif %}
+  {% if subnets %}
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Subnets</div>
+  {% for subnet in subnets %}
+  <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
+    {{ icon('subnets', 'w-4 h-4 text-slate-500') }}
+    <span>{{ subnet.network }}/{{ subnet.netmask }}</span>
+  </a>
+  {% endfor %}
+  {% endif %}
+</div>
+{% elif query %}
+<div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl px-3 py-2 text-sm text-slate-500">No matches for "{{ query }}"</div>
+{% endif %}

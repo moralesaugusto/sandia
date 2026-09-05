@@ -8,6 +8,7 @@ from ..config_store import load_live_config
 from ..db import get_session
 from ..dhcpd import Subnet, serialize
 from ..dhcpd.apply import apply_new_config
+from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
@@ -15,6 +16,79 @@ from ..security import require_login, require_role
 from ..utilization import subnet_utilization
 
 router = APIRouter()
+
+# Fields the form manages explicitly - anything else in a subnet's body
+# (besides nested host reservations) is shown/edited as free-form "extra
+# options" (see dhcpd/extra_options.py).
+MANAGED_SUBNET_FIELDS = {
+    "range",
+    "routers",
+    "broadcast-address",
+    "domain-name-servers",
+    "ntp-servers",
+    "next-server",
+    "filename",
+    "default-lease-time",
+    "max-lease-time",
+}
+
+
+def _unquote(value: str | None) -> str:
+    return (value or "").strip('"')
+
+
+def _apply_subnet_fields(
+    subnet: Subnet,
+    range_start: str,
+    range_end: str,
+    routers: str,
+    broadcast_address: str,
+    domain_name_servers: str,
+    ntp_servers: str,
+    next_server: str,
+    boot_filename: str,
+    default_lease_time: str,
+    max_lease_time: str,
+    extra_options: str,
+) -> None:
+    subnet.set("range", f"{range_start} {range_end}")
+
+    def _set_or_clear(name: str, value: str, as_option: bool = False) -> None:
+        if value:
+            subnet.set(name, value, as_option=as_option)
+        else:
+            subnet.body = [n for n in subnet.body if not (hasattr(n, "name") and n.name == name)]
+
+    _set_or_clear("routers", routers, as_option=True)
+    _set_or_clear("broadcast-address", broadcast_address, as_option=True)
+    _set_or_clear("domain-name-servers", domain_name_servers, as_option=True)
+    _set_or_clear("ntp-servers", ntp_servers, as_option=True)
+    _set_or_clear("next-server", next_server)
+    _set_or_clear("filename", f'"{boot_filename}"' if boot_filename else "")
+    _set_or_clear("default-lease-time", default_lease_time)
+    _set_or_clear("max-lease-time", max_lease_time)
+
+    subnet.body = apply_extra_options(subnet.body, MANAGED_SUBNET_FIELDS, extra_options)
+
+
+def _subnet_form_fields(subnet: Subnet | None) -> dict:
+    if subnet is None:
+        return {
+            "ntp_servers": "",
+            "next_server": "",
+            "boot_filename": "",
+            "default_lease_time": "",
+            "max_lease_time": "",
+            "extra_options": "",
+        }
+    return {
+        "ntp_servers": subnet.get("ntp-servers") or "",
+        "next_server": subnet.get("next-server") or "",
+        "boot_filename": _unquote(subnet.get("filename")),
+        "default_lease_time": subnet.get("default-lease-time") or "",
+        "max_lease_time": subnet.get("max-lease-time") or "",
+        "extra_options": get_extra_options(subnet.body, MANAGED_SUBNET_FIELDS),
+    }
 
 
 @router.get("/subnets")
@@ -34,7 +108,7 @@ async def list_subnets(
 
 @router.get("/subnets/new")
 async def new_subnet_form(request: Request, user: User = Depends(require_role("operator"))):
-    return render(request, "subnets/form.html", user=user, subnet=None, is_new=True)
+    return render(request, "subnets/form.html", user=user, subnet=None, is_new=True, prefill=_subnet_form_fields(None))
 
 
 @router.post("/subnets/new")
@@ -50,6 +124,12 @@ async def create_subnet(
     routers: str = Form(""),
     broadcast_address: str = Form(""),
     domain_name_servers: str = Form(""),
+    ntp_servers: str = Form(""),
+    next_server: str = Form(""),
+    boot_filename: str = Form(""),
+    default_lease_time: str = Form(""),
+    max_lease_time: str = Form(""),
+    extra_options: str = Form(""),
 ):
     config = load_live_config(settings)
     if config.find_subnet(f"{network}_{netmask}") is not None:
@@ -57,13 +137,20 @@ async def create_subnet(
         return RedirectResponse("/subnets/new", status_code=303)
 
     subnet = Subnet(network=network, netmask=netmask, body=[])
-    subnet.set("range", f"{range_start} {range_end}")
-    if routers:
-        subnet.set("routers", routers, as_option=True)
-    if broadcast_address:
-        subnet.set("broadcast-address", broadcast_address, as_option=True)
-    if domain_name_servers:
-        subnet.set("domain-name-servers", domain_name_servers, as_option=True)
+    _apply_subnet_fields(
+        subnet,
+        range_start,
+        range_end,
+        routers,
+        broadcast_address,
+        domain_name_servers,
+        ntp_servers,
+        next_server,
+        boot_filename,
+        default_lease_time,
+        max_lease_time,
+        extra_options,
+    )
     config.nodes.append(subnet)
 
     result = await apply_new_config(settings, serialize(config))
@@ -89,7 +176,7 @@ async def edit_subnet_form(
     if subnet is None:
         set_flash(request, "Subnet not found.", kind="error")
         return RedirectResponse("/subnets", status_code=303)
-    return render(request, "subnets/form.html", user=user, subnet=subnet, is_new=False)
+    return render(request, "subnets/form.html", user=user, subnet=subnet, is_new=False, prefill=_subnet_form_fields(subnet))
 
 
 @router.post("/subnets/{key}/edit")
@@ -104,6 +191,12 @@ async def update_subnet(
     routers: str = Form(""),
     broadcast_address: str = Form(""),
     domain_name_servers: str = Form(""),
+    ntp_servers: str = Form(""),
+    next_server: str = Form(""),
+    boot_filename: str = Form(""),
+    default_lease_time: str = Form(""),
+    max_lease_time: str = Form(""),
+    extra_options: str = Form(""),
 ):
     config = load_live_config(settings)
     subnet = config.find_subnet(key)
@@ -111,13 +204,20 @@ async def update_subnet(
         set_flash(request, "Subnet not found.", kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
-    subnet.set("range", f"{range_start} {range_end}")
-    if routers:
-        subnet.set("routers", routers, as_option=True)
-    if broadcast_address:
-        subnet.set("broadcast-address", broadcast_address, as_option=True)
-    if domain_name_servers:
-        subnet.set("domain-name-servers", domain_name_servers, as_option=True)
+    _apply_subnet_fields(
+        subnet,
+        range_start,
+        range_end,
+        routers,
+        broadcast_address,
+        domain_name_servers,
+        ntp_servers,
+        next_server,
+        boot_filename,
+        default_lease_time,
+        max_lease_time,
+        extra_options,
+    )
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:

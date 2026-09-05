@@ -4,15 +4,22 @@
 
 Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 
-- Edit `dhcpd.conf` - global settings, subnets/scopes, static reservations,
-  or the raw file directly (with a diff preview before applying).
+- Edit `dhcpd.conf` - global settings, subnets/scopes, static reservations
+  (including Webmin-style client options: hostname, PXE boot server/file,
+  lease-time overrides, and a free-form "extra options" field for anything
+  else), or the raw file directly (with a diff preview before applying).
 - Browse and search leases, with MAC vendor identification, CSV export,
   and a right-click menu to reserve or deny a client from an observed
-  lease.
+  lease (or jump straight to editing the reservation if it's already
+  reserved).
+- A global search box (in the sidebar, on every page) that matches IP,
+  MAC, or hostname across reservations, leases, and subnets at once.
+- Bulk-select and delete reservations, in addition to one at a time.
 - Restart/enable/disable/check the `isc-dhcp-server` service.
 - Back up and restore config, with a diff shown before any apply.
 - Manage users with role-based access (admin / operator / viewer),
   audit logging, and login rate-limiting.
+- Toast notifications for every config change, success or failure.
 
 All config changes go through the same path: stage the new config,
 validate it (`dhcpd -t`), back up the live file, then install it - so a
@@ -217,11 +224,13 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-65+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+85+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
-`--set-password`), MAC vendor lookup, the config diff, login
-rate-limiting, and the full HTTP route layer (login, RBAC boundaries,
+`--set-password`), MAC vendor lookup, device-icon assignment, the extra
+DHCP client options round-trip, the config diff, login rate-limiting,
+global search, bulk reservation delete, and the full HTTP route layer
+(login, RBAC boundaries,
 subnet/reservation CRUD, self-service password change, the "reserve from
 lease" flow, and config-validation failure paths).
 

@@ -16,32 +16,45 @@
   <a href="/reservations/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
 </div>
 
-<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
-  {% for row in rows %}
-  <div class="px-4 py-3 flex items-center justify-between">
-    <div class="flex items-start gap-2.5">
-      {{ icon('reservations', 'w-4 h-4 text-slate-600 mt-0.5') }}
-      <div>
-        <div class="font-medium">{{ row.host.name }}</div>
-        <div class="text-sm text-slate-500">
-          {{ row.host.mac or 'no MAC' }}
-          {% set v = row.host.mac | vendor %}
-          {% if v %}<span class="text-slate-600">({{ v }})</span>{% endif %}
-          &rarr; {{ row.host.fixed_address or 'no IP' }} &middot; {% if row.subnet %}{{ row.subnet.network }}/{{ row.subnet.netmask }}{% else %}global{% endif %}
+<form method="post">
+  {% if user.role in ('admin', 'operator') %}
+  <div class="flex items-center justify-between mb-3">
+    <label class="flex items-center gap-2 text-sm text-slate-400">
+      <input type="checkbox" id="select-all" class="rounded bg-slate-800 border-slate-700" onchange="document.querySelectorAll('.reservation-checkbox').forEach(cb => cb.checked = this.checked)">
+      Select all
+    </label>
+    <button type="submit" formaction="/reservations/bulk-delete" onclick="return confirm('Delete all selected reservations?');" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} Delete selected</button>
+  </div>
+  {% endif %}
+
+  <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
+    {% for row in rows %}
+    <div class="px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        {% if user.role in ('admin', 'operator') %}
+        <input type="checkbox" name="names" value="{{ row.host.name }}" class="reservation-checkbox rounded bg-slate-800 border-slate-700 shrink-0">
+        {% endif %}
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(row.icon, 'w-4 h-4') }}</div>
+        <div>
+          <div class="font-medium">{{ row.host.name }}</div>
+          <div class="text-sm text-slate-500">
+            {{ row.host.mac or 'no MAC' }}
+            {% set v = row.host.mac | vendor %}
+            {% if v %}<span class="text-slate-600">({{ v }})</span>{% endif %}
+            &rarr; {{ row.host.fixed_address or 'no IP' }} &middot; {% if row.subnet %}{{ row.subnet.network }}/{{ row.subnet.netmask }}{% else %}global{% endif %}
+          </div>
         </div>
       </div>
+      {% if user.role in ('admin', 'operator') %}
+      <div class="flex gap-3 text-sm shrink-0">
+        <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
+        <button type="submit" formaction="/reservations/{{ row.host.name }}/delete" onclick="return confirm('Delete this reservation?');" class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
+      </div>
+      {% endif %}
     </div>
-    {% if user.role in ('admin', 'operator') %}
-    <div class="flex gap-3 text-sm shrink-0">
-      <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
-      <form method="post" action="/reservations/{{ row.host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
-        <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
-      </form>
-    </div>
-    {% endif %}
+    {% else %}
+    <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No reservations found.</div>
+    {% endfor %}
   </div>
-  {% else %}
-  <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No reservations found.</div>
-  {% endfor %}
-</div>
+</form>
 {% endblock %}

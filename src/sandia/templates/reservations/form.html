@@ -2,7 +2,7 @@
 {% block title %}{% if is_new %}New Reservation{% else %}Edit Reservation{% endif %} - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-6">{% if is_new %}New Reservation{% else %}Edit Reservation {{ host.name }}{% endif %}</h1>
-<form method="post" action="{% if is_new %}/reservations/new{% else %}/reservations/{{ host.name }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+<form method="post" action="{% if is_new %}/reservations/new{% else %}/reservations/{{ host.name }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg">
   <div>
     <label class="block text-sm text-slate-400 mb-1">Name</label>
     {% if is_new %}
@@ -30,6 +30,31 @@
     </select>
   </div>
   {% endif %}
+
+  <div class="pt-2 border-t border-slate-800">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Client options</div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Client hostname <span class="text-slate-600">(option host-name)</span></label>
+        <input name="client_hostname" value="{{ prefill.client_hostname }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="printer">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">PXE boot server <span class="text-slate-600">(next-server)</span></label>
+          <input name="next_server" value="{{ prefill.next_server }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.5">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-400 mb-1">Boot filename <span class="text-slate-600">(filename)</span></label>
+          <input name="boot_filename" value="{{ prefill.boot_filename }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="pxelinux.0">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm text-slate-400 mb-1">Extra options <span class="text-slate-600">(one dhcpd statement per line, e.g. Webmin-style "client options")</span></label>
+        <textarea name="extra_options" rows="4" class="w-full font-mono text-sm rounded-md bg-slate-800 border border-slate-700 px-3 py-2" placeholder='option domain-name-servers 1.1.1.1;&#10;ddns-hostname &quot;printer&quot;;'>{{ prefill.extra_options }}</textarea>
+      </div>
+    </div>
+  </div>
+
   <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Save</button>
 </form>
 {% endblock %}

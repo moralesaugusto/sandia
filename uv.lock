@@ -653,7 +653,7 @@ wheels = [
 
 [[package]]
 name = "sandia"
-version = "0.1.0"
+version = "1.0.3"
 source = { editable = "." }
 dependencies = [
     { name = "argon2-cffi" },

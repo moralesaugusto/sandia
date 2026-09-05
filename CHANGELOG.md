@@ -2,27 +2,52 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 1.0.3
 
 ### Added
 
+- Toast notifications: config-change results (create/update/delete/apply/
+  restart/etc.) now surface as auto-dismissing corner toasts instead of an
+  inline page banner, colored by success/error, with a manual dismiss and
+  a 5s auto-fade. Built with safe DOM text insertion (no `innerHTML`), so
+  arbitrary command output in an error toast can't execute as script.
+- Extended per-client and per-subnet DHCP options, Webmin-style: a
+  "Client options" section on both the reservation and subnet forms adds
+  structured fields for client hostname (`option host-name`), PXE boot
+  (`next-server`/`filename`), and per-subnet lease-time overrides, plus a
+  free-form "extra options" textarea (one dhcpd statement per line) for
+  anything not modeled explicitly. Fields are additive/removable - clearing
+  one on save removes it from the config rather than leaving it stale.
+- Reservations now show an automatically-assigned device icon (printer,
+  phone, laptop, TV, camera, server, IoT chip, network gear, game console,
+  or generic) inferred from the hostname and MAC vendor - no manual
+  tagging needed.
+- Bulk actions on Reservations: select-all/individual checkboxes plus a
+  "Delete selected" action, in addition to per-row delete.
+- Global search: a search box in the sidebar (present on every page)
+  live-matches IP/MAC/hostname across reservations, leases, and subnets,
+  with a dropdown of results linking straight to the relevant page.
+- An already-reserved lease's context menu now links directly to editing
+  that reservation ("Edit reservation ...") instead of just saying
+  "Already reserved" - closes the loop on discovering *and* modifying the
+  static entry behind an active lease.
 - Default port changed to `7001` (was `8443`).
 - Modern visual redesign: a logo mark (favicon + sidebar + login page),
   gradient accents on primary actions and the active nav item, Inter
   typeface, and general spacing/polish pass. A hand-authored inline SVG
-  icon set (no external icon font/dependency) is now used throughout: every
+  icon set (no external icon font/dependency) is used throughout: every
   sidebar item, every primary action button (New subnet/reservation/user,
   Edit, Delete, Save, Export CSV, Validate, Show diff, Apply, Restart,
   Enable/Disable, Restore), the dashboard stat tiles, the lease context
-  menu (Reserve/Deny/Copy MAC), search inputs, and empty states.
+  menu, search inputs, and empty states.
 - Watermelon branding: "Sandía" is Spanish for watermelon, so the logo is
-  now a watermelon-slice mark (rind/pith/flesh/seeds) and the accent
-  palette moved from blue/indigo to pink and green throughout - primary
-  buttons, the active nav item, links, focus rings, avatars, and the
-  "healthy" utilization color (green, replacing blue - also a clearer
+  a watermelon-slice mark (rind/pith/flesh/seeds) and the accent palette
+  moved from blue/indigo to pink and green throughout - primary buttons,
+  the active nav item, links, focus rings, avatars, and the "healthy"
+  utilization color (green, replacing blue - also a clearer
   green/amber/red progression). The login page has a small tagline and a
   softened pink radial glow to match.
-- MAC vendor lookup: leases and reservations now show the manufacturer for
+- MAC vendor lookup: leases and reservations show the manufacturer for
   recognized MAC address prefixes (Apple, Samsung, Raspberry Pi Foundation,
   Ubiquiti, TP-Link, Espressif, and 40+ others), via a small self-contained
   OUI table - no network calls.
@@ -33,14 +58,25 @@ All notable changes to this project are documented here.
 - Config diff preview on the Raw Config page: "Show diff" renders a
   unified diff between the live config and the staged edit before you
   apply it.
-- Subnet utilization bars are now color-coded (green / amber at 70% /
-  red at 90%+), and the dashboard shows a "subnets at risk" count.
+- Subnet utilization bars are color-coded (green / amber at 70% / red at
+  90%+), and the dashboard shows a "subnets at risk" count.
 - Login rate-limiting: 5 failed attempts for the same username locks it
   out for 5 minutes (in-memory, per-process - this is a standalone app,
   not a multi-instance service).
 - About page (`/about`, linked from the version number in the sidebar and
   login page) showing version, uptime, Python/FastAPI/Uvicorn versions,
   and key configuration paths.
+- Dummy mode now bootstraps a fixed, well-known testing login (`admin` /
+  `admin`) instead of a random password, so there's nothing to copy from
+  stdout before trying the UI. Real (non-dummy) mode is unaffected and
+  still generates a random admin password on first run.
+- Self-service password change: any logged-in user (any role) can change
+  their own password from a "Change password" link in the sidebar
+  (`/account/password`), given their current password.
+- `sandia --set-password USERNAME`: set any user's password from the
+  command line (prompts for it, doesn't start the server) - useful to
+  change the dummy-mode default or recover access without going through
+  the UI.
 
 ### Removed
 
@@ -58,27 +94,14 @@ All notable changes to this project are documented here.
 - Renamed the project and web app from "dhcpweb" to **Sandia** (package
   `sandia`, console command `sandia`, all `DHCPWEB_*` environment variables
   renamed to `SANDIA_*`, default paths moved from `/var/lib/dhcpweb` etc. to
-  `/var/lib/sandia` etc., systemd unit/service account/deploy scripts
-  renamed to match). The web UI title and browser tab now show "Sandia"
-  along with the running version.
+  `/var/lib/sandia` etc.). The web UI title and browser tab now show
+  "Sandia" along with the running version.
 - Dummy mode is now also available as a CLI flag, `sandia --dummy`
   (equivalent to `SANDIA_DUMMY_DATA=1`), instead of only an environment
   variable.
 - Added `sandia --version` to print the installed version and exit; the
   version (read from the package's own metadata, so it never drifts from
   `pyproject.toml`) is also shown in the UI sidebar and login page.
-
-- Dummy mode now bootstraps a fixed, well-known testing login (`admin` /
-  `admin`) instead of a random password, so there's nothing to copy from
-  stdout before trying the UI. Real (non-dummy) mode is unaffected and
-  still generates a random admin password on first run.
-- Self-service password change: any logged-in user (any role) can change
-  their own password from a "Change password" link in the sidebar
-  (`/account/password`), given their current password.
-- `sandia --set-password USERNAME`: set any user's password from the
-  command line (prompts for it, doesn't start the server) - useful to
-  change the dummy-mode default or recover access without going through
-  the UI.
 
 ### Fixed
 

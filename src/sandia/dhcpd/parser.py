@@ -21,6 +21,12 @@ def parse(text: str) -> DhcpdConfig:
     return _Scanner(text).parse_config()
 
 
+def parse_body_fragment(text: str) -> list:
+    """Parse a snippet of statements (e.g. free-form "extra options" from a
+    form) into nodes, without requiring a full dhcpd.conf document."""
+    return _Scanner(text)._parse_body()
+
+
 def _find_matching_brace(text: str, start: int) -> int:
     """start points just after an opening '{'. Returns the index of the matching '}'."""
     depth = 1
