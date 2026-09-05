@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}New Reservation{% else %}Edit Reservation{% endif %} - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">{% if is_new %}New Reservation{% else %}Edit Reservation {{ host.name }}{% endif %}</h1>
+<form method="post" action="{% if is_new %}/reservations/new{% else %}/reservations/{{ host.name }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Name</label>
+    {% if is_new %}
+    <input name="name" required value="{{ prefill.name }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="printer">
+    {% else %}
+    <input value="{{ host.name }}" disabled class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-500">
+    {% endif %}
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">MAC address</label>
+    <input name="mac" required value="{{ (host.mac if host else prefill.mac) or '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono" placeholder="00:11:22:33:44:55">
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Fixed IP address</label>
+    <input name="fixed_address" required value="{{ (host.fixed_address if host else prefill.fixed_address) or '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.50">
+  </div>
+  {% if is_new %}
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Subnet (optional)</label>
+    <select name="subnet_key" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+      <option value="">Global (not nested in a subnet)</option>
+      {% for subnet in subnets %}
+      <option value="{{ subnet.key }}" {% if prefill.subnet_key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-md px-4 py-2">Save</button>
+</form>
+{% endblock %}

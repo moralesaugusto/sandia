@@ -1,0 +1,31 @@
+<table class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="text-left px-4 py-2">IP address</th>
+      <th class="text-left px-4 py-2">MAC address</th>
+      <th class="text-left px-4 py-2">Vendor</th>
+      <th class="text-left px-4 py-2">Hostname</th>
+      <th class="text-left px-4 py-2">State</th>
+      <th class="text-left px-4 py-2">Ends</th>
+      <th class="text-left px-4 py-2"></th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for lease in leases %}
+    <tr oncontextmenu="showLeaseMenu(event, '{{ lease.ip }}')" class="hover:bg-slate-800/60 cursor-context-menu">
+      <td class="px-4 py-2 font-mono">{{ lease.ip }}</td>
+      <td class="px-4 py-2 font-mono text-slate-400">{{ lease.mac or '-' }}</td>
+      <td class="px-4 py-2 text-slate-500">{{ lease.mac | vendor or '-' }}</td>
+      <td class="px-4 py-2">{{ lease.hostname or '-' }}</td>
+      <td class="px-4 py-2">
+        <span class="px-2 py-0.5 rounded-full text-xs {% if lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ lease.binding_state or 'unknown' }}</span>
+        {% if lease.mac in reserved_macs %}<span class="px-2 py-0.5 rounded-full text-xs bg-sky-950 text-sky-400 ml-1">reserved</span>{% endif %}
+      </td>
+      <td class="px-4 py-2 text-slate-500">{{ lease.ends or '-' }}</td>
+      <td class="px-4 py-2 text-right text-slate-500">&#8942;</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">No leases found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

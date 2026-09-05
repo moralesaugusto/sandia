@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Users - Sandia{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold">Users</h1>
+  <a href="/users/new" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-md px-4 py-2">New user</a>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-lg divide-y divide-slate-800">
+  {% for u in users %}
+  <div class="px-4 py-3 flex items-center justify-between">
+    <div>
+      <div class="font-medium">{{ u.username }} <span class="text-xs uppercase text-slate-500">({{ u.role }})</span> {% if not u.is_active %}<span class="text-xs text-red-400">inactive</span>{% endif %}</div>
+      <div class="text-sm text-slate-500">last login: {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else 'never' }}</div>
+    </div>
+    <div class="flex gap-3 text-sm">
+      <a href="/users/{{ u.id }}/edit" class="text-sky-400 hover:underline">Edit</a>
+      {% if u.id != user.id %}
+      <form method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm('Delete this user?');">
+        <button class="text-red-400 hover:underline">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Global Settings - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">Global Settings</h1>
+<form method="post" action="/settings" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" name="authoritative" {% if fields.authoritative %}checked{% endif %} class="rounded bg-slate-800 border-slate-700">
+    Authoritative
+  </label>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Default lease time (s)</label>
+      <input name="default_lease_time" value="{{ fields.default_lease_time }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Max lease time (s)</label>
+      <input name="max_lease_time" value="{{ fields.max_lease_time }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+    </div>
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Domain name</label>
+    <input name="domain_name" value="{{ fields.domain_name }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Domain name servers (comma separated)</label>
+    <input name="domain_name_servers" value="{{ fields.domain_name_servers }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">NTP servers (comma separated)</label>
+    <input name="ntp_servers" value="{{ fields.ntp_servers }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
+  </div>
+  <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-md px-4 py-2">Save</button>
+</form>
+{% endblock %}

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sandia{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100">
+{% macro icon(name, css="w-5 h-5") %}
+{% if name == "dashboard" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+{% elif name == "subnets" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="19" r="2.2"/><path d="M12 7.2v3M12 10.2l-5.5 6.8M12 10.2l5.5 6.8"/></svg>
+{% elif name == "reservations" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h9a1.5 1.5 0 0 1 1.5 1.5v15.5L12 16.5 6 20.5V5A1.5 1.5 0 0 1 7.5 3.5"/></svg>
+{% elif name == "leases" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h10"/></svg>
+{% elif name == "settings" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.5-2-3.4-2.3.7a7.7 7.7 0 0 0-2.6-1.5L14 2h-4l-.4 2.3a7.7 7.7 0 0 0-2.6 1.5l-2.3-.7-2 3.4L4.6 10a7.6 7.6 0 0 0 0 3l-1.9 1.5 2 3.4 2.3-.7c.75.65 1.63 1.16 2.6 1.5L10 22h4l.4-2.3c.97-.34 1.85-.85 2.6-1.5l2.3.7 2-3.4z"/></svg>
+{% elif name == "raw" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8 4 12l4.5 4M15.5 8l4.5 4-4.5 4M13 5l-2 14"/></svg>
+{% elif name == "service" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M6.5 6.5a7.5 7.5 0 1 0 11 0"/></svg>
+{% elif name == "backups" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M4.5 8.5v9A1.5 1.5 0 0 0 6 19h12a1.5 1.5 0 0 0 1.5-1.5v-9"/><path d="M10 12.5h4"/></svg>
+{% elif name == "users" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c.7-3.5 3.4-5.5 7-5.5s6.3 2 7 5.5"/></svg>
+{% elif name == "audit" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M9 3v3h6V3M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg>
+{% elif name == "key" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14.5" r="3.5"/><path d="M10.8 12 18 4.8M15.5 7.3l2.2 2.2M13.2 9.6l1.8 1.8"/></svg>
+{% elif name == "logout" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H6a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 6 20h3M15 16l4-4-4-4M19 12H9"/></svg>
+{% elif name == "info" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 8v.01"/></svg>
+{% endif %}
+{% endmacro %}
+{% if user %}
+  <div class="min-h-full flex">
+    <nav class="w-60 shrink-0 bg-slate-900/80 border-r border-slate-800 flex flex-col backdrop-blur">
+      <a href="/" class="flex items-center gap-2.5 px-4 py-4 border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-8 h-8 shrink-0">
+          <rect width="32" height="32" rx="8" fill="url(#logo-g)"/>
+          <circle cx="16" cy="9" r="3" fill="white"/>
+          <circle cx="8" cy="23" r="3" fill="white"/>
+          <circle cx="24" cy="23" r="3" fill="white"/>
+          <path d="M16 12v4M16 16l-8 6M16 16l8 6" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="logo-g" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38bdf8"/>
+              <stop offset="1" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div>
+          <div class="text-base font-semibold tracking-tight leading-tight">Sandia</div>
+          <a href="/about" onclick="event.stopPropagation()" class="text-xs text-slate-500 hover:text-sky-400">v{{ app_version }}</a>
+        </div>
+      </a>
+      <div class="flex-1 py-3 flex flex-col gap-0.5 px-2.5 overflow-y-auto">
+        {% for href, label, icon_name in [
+          ('/', 'Dashboard', 'dashboard'),
+          ('/subnets', 'Subnets', 'subnets'),
+          ('/reservations', 'Reservations', 'reservations'),
+          ('/leases', 'Leases', 'leases'),
+          ('/settings', 'Global Settings', 'settings'),
+          ('/config/raw', 'Raw Config', 'raw'),
+          ('/service', 'Service', 'service'),
+          ('/backups', 'Backups', 'backups'),
+        ] %}
+        <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-sky-600/20 to-indigo-600/20 text-white ring-1 ring-inset ring-sky-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          {{ icon(icon_name) }}
+          {{ label }}
+        </a>
+        {% endfor %}
+        {% if user.role == 'admin' %}
+        <div class="mt-2 pt-2 border-t border-slate-800"></div>
+        <a href="/users" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/users' %}bg-gradient-to-r from-sky-600/20 to-indigo-600/20 text-white ring-1 ring-inset ring-sky-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          {{ icon('users') }} Users
+        </a>
+        {% endif %}
+        {% if user.role in ('admin', 'operator') %}
+        <a href="/audit" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/audit' %}bg-gradient-to-r from-sky-600/20 to-indigo-600/20 text-white ring-1 ring-inset ring-sky-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          {{ icon('audit') }} Audit Log
+        </a>
+        {% endif %}
+      </div>
+      <div class="px-4 py-3 border-t border-slate-800 text-sm space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">{{ user.username[0] }}</div>
+          <div class="min-w-0">
+            <div class="text-slate-200 truncate">{{ user.username }}</div>
+            <div class="text-xs uppercase text-slate-500">{{ user.role }}</div>
+          </div>
+        </div>
+        <a href="/account/password" class="flex items-center gap-2 text-slate-400 hover:text-sky-400 text-sm transition-colors">{{ icon('key', 'w-4 h-4') }} Change password</a>
+        <form method="post" action="/logout">
+          <button class="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition-colors">{{ icon('logout', 'w-4 h-4') }} Log out</button>
+        </form>
+      </div>
+    </nav>
+    <main class="flex-1 p-8 max-w-5xl">
+      {% if flash %}
+      <div class="mb-6 rounded-lg px-4 py-3 text-sm {% if flash.kind == 'error' %}bg-red-950 text-red-300 border border-red-900{% else %}bg-emerald-950 text-emerald-300 border border-emerald-900{% endif %}">
+        {{ flash.message }}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+{% else %}
+  {% block guest_content %}{% endblock %}
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}New Subnet{% else %}Edit Subnet{% endif %} - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">{% if is_new %}New Subnet{% else %}Edit Subnet {{ subnet.network }}/{{ subnet.netmask }}{% endif %}</h1>
+<form method="post" action="{% if is_new %}/subnets/new{% else %}/subnets/{{ subnet.key }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Network</label>
+      {% if is_new %}
+      <input name="network" required class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.0">
+      {% else %}
+      <input value="{{ subnet.network }}" disabled class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-500">
+      {% endif %}
+    </div>
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Netmask</label>
+      {% if is_new %}
+      <input name="netmask" required class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="255.255.255.0">
+      {% else %}
+      <input value="{{ subnet.netmask }}" disabled class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-500">
+      {% endif %}
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Pool range start</label>
+      <input name="range_start" required value="{{ (subnet.get('range') or '').split(' ')[0] if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.100">
+    </div>
+    <div>
+      <label class="block text-sm text-slate-400 mb-1">Pool range end</label>
+      <input name="range_end" required value="{{ (subnet.get('range') or ' ').split(' ')[1] if subnet and ' ' in (subnet.get('range') or '') else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.200">
+    </div>
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Router (gateway)</label>
+    <input name="routers" value="{{ subnet.get('routers') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.1">
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Broadcast address</label>
+    <input name="broadcast_address" value="{{ subnet.get('broadcast-address') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.255">
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">DNS servers (comma separated)</label>
+    <input name="domain_name_servers" value="{{ subnet.get('domain-name-servers') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="8.8.8.8, 8.8.4.4">
+  </div>
+  <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-md px-4 py-2">Save</button>
+</form>
+{% endblock %}

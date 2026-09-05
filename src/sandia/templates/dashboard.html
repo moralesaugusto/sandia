@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">Dashboard</h1>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="text-xs uppercase text-slate-500 mb-1">Service status</div>
+    <div class="text-lg font-medium flex items-center gap-2">
+      <span class="h-2 w-2 rounded-full {% if service_status == 'active' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+      <span class="{% if service_status == 'active' %}text-emerald-400{% else %}text-red-400{% endif %}">{{ service_status }}</span>
+    </div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="text-xs uppercase text-slate-500 mb-1">Active leases</div>
+    <div class="text-lg font-medium">{{ active_lease_count }} <span class="text-slate-500 text-sm">/ {{ lease_count }} total</span></div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="text-xs uppercase text-slate-500 mb-1">Static reservations</div>
+    <div class="text-lg font-medium">{{ reservation_count }}</div>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="text-xs uppercase text-slate-500 mb-1">Subnets at risk</div>
+    <div class="text-lg font-medium {% if at_risk_count %}text-amber-400{% else %}text-slate-200{% endif %}">{{ at_risk_count }} <span class="text-slate-500 text-sm">&ge;90% used</span></div>
+  </div>
+</div>
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Subnet utilization</h2>
+<div class="space-y-3 mb-8">
+  {% for row in subnet_rows %}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="flex justify-between text-sm mb-2">
+      <span class="font-medium">{{ row.subnet.network }}/{{ row.subnet.netmask }}</span>
+      <span class="text-slate-400">{{ row.used }} / {{ row.total }} used</span>
+    </div>
+    {% if row.total %}
+    <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+      <div class="h-full {{ utilization_color(row.used, row.total) }} transition-all" style="width: {{ (row.used / row.total * 100) | round(1) }}%"></div>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-500">No subnets configured yet. <a href="/subnets/new" class="text-sky-400 hover:underline">Create one</a>.</p>
+  {% endfor %}
+</div>
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Recent activity</h2>
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
+  {% for entry in recent_audit %}
+  <div class="px-4 py-2 text-sm flex justify-between">
+    <span><span class="text-slate-400">{{ entry.username }}</span> {{ entry.action }} <span class="text-slate-500">{{ entry.detail }}</span></span>
+    <span class="text-slate-500">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+  </div>
+  {% else %}
+  <div class="px-4 py-3 text-sm text-slate-500">No activity yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Leases - Sandia{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold">Leases</h1>
+  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="text-sm text-sky-400 hover:text-sky-300">Export CSV</a>
+</div>
+
+<input
+  type="search"
+  name="q"
+  value="{{ q }}"
+  placeholder="Search by IP, MAC or hostname..."
+  class="w-full max-w-sm mb-4 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+  hx-get="/leases/table"
+  hx-trigger="keyup changed delay:300ms, search"
+  hx-target="#leases-table"
+  hx-swap="innerHTML"
+>
+
+<div id="leases-table">
+  {% include "leases/_table.html" %}
+</div>
+
+<div id="context-menu" class="hidden fixed z-50 bg-slate-800 border border-slate-700 rounded-md shadow-lg text-sm py-1 min-w-44"></div>
+
+<script>
+function showLeaseMenu(evt, ip) {
+  evt.preventDefault();
+  const menu = document.getElementById('context-menu');
+  htmx.ajax('GET', `/leases/${ip}/menu`, {target: '#context-menu', swap: 'innerHTML'}).then(() => {
+    menu.style.left = evt.pageX + 'px';
+    menu.style.top = evt.pageY + 'px';
+    menu.classList.remove('hidden');
+    document.addEventListener('click', hideLeaseMenu, {once: true});
+  });
+}
+function hideLeaseMenu() {
+  document.getElementById('context-menu').classList.add('hidden');
+}
+</script>
+{% endblock %}

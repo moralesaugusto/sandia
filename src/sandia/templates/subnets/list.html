@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Subnets - Sandia{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold">Subnets</h1>
+  {% if user.role in ('admin', 'operator') %}
+  <a href="/subnets/new" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">New subnet</a>
+  {% endif %}
+</div>
+
+<div class="space-y-3">
+  {% for row in rows %}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <div class="flex items-center justify-between mb-2">
+      <div class="font-medium">{{ row.subnet.network }} / {{ row.subnet.netmask }}</div>
+      {% if user.role in ('admin', 'operator') %}
+      <div class="flex gap-3 text-sm">
+        <a href="/subnets/{{ row.subnet.key }}/edit" class="text-sky-400 hover:underline">Edit</a>
+        <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm('Delete this subnet?');">
+          <button class="text-red-400 hover:underline">Delete</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    <div class="text-sm text-slate-500 mb-2">range {{ row.subnet.get('range') or 'none' }} &middot; {{ row.used }}/{{ row.total }} used &middot; {{ row.subnet.hosts | length }} reservations</div>
+    {% if row.total %}
+    <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+      <div class="h-full {{ utilization_color(row.used, row.total) }}" style="width: {{ (row.used / row.total * 100) | round(1) }}%"></div>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">No subnets configured yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

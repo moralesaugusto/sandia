@@ -1,0 +1,4 @@
+<div class="rounded-md px-3 py-2 text-sm {% if ok %}bg-emerald-950 text-emerald-300 border border-emerald-900{% else %}bg-red-950 text-red-300 border border-red-900{% endif %}">
+  {% if ok %}Configuration is valid.{% else %}Validation failed:{% endif %}
+  {% if output %}<pre class="mt-1 whitespace-pre-wrap font-mono text-xs">{{ output }}</pre>{% endif %}
+</div>

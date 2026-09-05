@@ -1,0 +1,7 @@
+<div class="flex items-center gap-4">
+  <div class="flex items-center gap-2">
+    <span class="h-2.5 w-2.5 rounded-full {% if status == 'active' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+    <span class="font-medium">{{ status }}</span>
+  </div>
+  <div class="text-sm text-slate-500">{% if enabled %}enabled at boot{% else %}disabled at boot{% endif %}</div>
+</div>

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Reservations - Sandia{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold">Reservations</h1>
+  {% if user.role in ('admin', 'operator') %}
+  <a href="/reservations/new" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">New reservation</a>
+  {% endif %}
+</div>
+
+<div class="flex items-center gap-3 mb-4">
+  <form method="get" action="/reservations" class="flex-1 max-w-sm">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+  </form>
+  <a href="/reservations/export.csv{% if q %}?q={{ q }}{% endif %}" class="text-sm text-sky-400 hover:text-sky-300 whitespace-nowrap">Export CSV</a>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
+  {% for row in rows %}
+  <div class="px-4 py-3 flex items-center justify-between">
+    <div>
+      <div class="font-medium">{{ row.host.name }}</div>
+      <div class="text-sm text-slate-500">
+        {{ row.host.mac or 'no MAC' }}
+        {% set v = row.host.mac | vendor %}
+        {% if v %}<span class="text-slate-600">({{ v }})</span>{% endif %}
+        &rarr; {{ row.host.fixed_address or 'no IP' }} &middot; {% if row.subnet %}{{ row.subnet.network }}/{{ row.subnet.netmask }}{% else %}global{% endif %}
+      </div>
+    </div>
+    {% if user.role in ('admin', 'operator') %}
+    <div class="flex gap-3 text-sm">
+      <a href="/reservations/{{ row.host.name }}/edit" class="text-sky-400 hover:underline">Edit</a>
+      <form method="post" action="/reservations/{{ row.host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
+        <button class="text-red-400 hover:underline">Delete</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="px-4 py-6 text-sm text-slate-500">No reservations found.</div>
+  {% endfor %}
+</div>
+{% endblock %}

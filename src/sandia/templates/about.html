@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}About - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-6">About Sandia</h1>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
+  {% for label, value in [
+    ('Version', info.version),
+    ('Uptime', info.uptime),
+    ('Python', info.python_version),
+    ('Platform', info.platform),
+    ('FastAPI', info.fastapi_version),
+    ('Uvicorn', info.uvicorn_version),
+    ('DHCP service', info.service_name),
+    ('Dummy mode', 'enabled' if info.dummy_mode else 'disabled'),
+    ('HTTPS', 'enabled' if info.https_enabled else 'disabled'),
+    ('dhcpd.conf path', info.dhcpd_conf_path),
+    ('leases path', info.leases_path),
+    ('Data directory', info.data_dir),
+  ] %}
+  <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
+    <span class="text-slate-500">{{ label }}</span>
+    <span class="text-slate-200 font-mono text-right break-all">{{ value }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="text-sm text-slate-500 mt-6 max-w-lg">
+  Sandia is a standalone web UI for managing an ISC isc-dhcp-server instance.
+  See <code class="text-slate-400">INSTRUCTIONS.md</code> in the project directory for setup and usage.
+</p>
+{% endblock %}

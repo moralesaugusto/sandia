@@ -1,0 +1,32 @@
+lease 192.168.1.50 {
+  starts 3 2026/09/02 10:00:00;
+  ends 3 2026/09/02 22:00:00;
+  tstp 3 2026/09/02 22:00:00;
+  cltt 3 2026/09/02 10:00:00;
+  binding state active;
+  next binding state free;
+  rewind binding state free;
+  hardware ethernet 00:11:22:33:44:55;
+  uid "\001\000\021\"3DUf";
+  client-hostname "printer";
+}
+lease 192.168.1.51 {
+  starts 3 2026/09/02 09:00:00;
+  ends 3 2026/09/02 09:30:00;
+  binding state free;
+  hardware ethernet aa:bb:cc:dd:ee:01;
+}
+lease 192.168.1.52 {
+  starts 4 2026/09/03 08:00:00;
+  ends 4 2026/09/03 20:00:00;
+  binding state active;
+  hardware ethernet aa:bb:cc:dd:ee:02;
+}
+# 192.168.1.50 renewed later - this later block should win over the first
+lease 192.168.1.50 {
+  starts 3 2026/09/02 22:00:01;
+  ends 4 2026/09/03 10:00:01;
+  binding state active;
+  hardware ethernet 00:11:22:33:44:55;
+  client-hostname "printer";
+}
