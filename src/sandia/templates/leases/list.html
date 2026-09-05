@@ -3,7 +3,7 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Leases</h1>
-  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-sky-400 hover:text-sky-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
 </div>
 
 <div class="relative w-full max-w-sm mb-4">
@@ -13,7 +13,7 @@
     name="q"
     value="{{ q }}"
     placeholder="Search by IP, MAC or hostname..."
-    class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+    class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
     hx-get="/leases/table"
     hx-trigger="keyup changed delay:300ms, search"
     hx-target="#leases-table"

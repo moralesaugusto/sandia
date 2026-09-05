@@ -1,6 +1,8 @@
 # Sandia
 
-A standalone web UI for managing an ISC isc-dhcp-server instance: edit
+*Sandía* is Spanish for watermelon - the theme (logo, color palette) runs
+with it. Under the fruit, it's a standalone web UI for managing an ISC
+isc-dhcp-server instance: edit
 dhcpd.conf (scopes, options, static reservations), browse and search
 leases (with MAC vendor lookup, CSV export, and a right-click reserve/deny
 menu), restart and check the service, diff/back up/restore config, and

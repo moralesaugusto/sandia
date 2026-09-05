@@ -47,4 +47,4 @@ def utilization_color(used: int, total: int) -> str:
         return "bg-red-500"
     if pct >= 70:
         return "bg-amber-500"
-    return "bg-sky-600"
+    return "bg-emerald-600"

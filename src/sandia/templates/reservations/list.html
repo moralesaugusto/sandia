@@ -4,16 +4,16 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Reservations</h1>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/reservations/new" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New reservation</a>
+  <a href="/reservations/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New reservation</a>
   {% endif %}
 </div>
 
 <div class="flex items-center gap-3 mb-4">
   <form method="get" action="/reservations" class="flex-1 max-w-sm relative">
     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
-    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
   </form>
-  <a href="/reservations/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-sky-400 hover:text-sky-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <a href="/reservations/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
 </div>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
@@ -33,7 +33,7 @@
     </div>
     {% if user.role in ('admin', 'operator') %}
     <div class="flex gap-3 text-sm shrink-0">
-      <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-sky-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
+      <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
       <form method="post" action="/reservations/{{ row.host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
         <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
       </form>

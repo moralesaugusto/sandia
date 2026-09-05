@@ -3,21 +3,21 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Users</h1>
-  <a href="/users/new" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New user</a>
+  <a href="/users/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New user</a>
 </div>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for u in users %}
   <div class="px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">{{ u.username[0] }}</div>
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-emerald-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">{{ u.username[0] }}</div>
       <div>
         <div class="font-medium">{{ u.username }} <span class="text-xs uppercase text-slate-500">({{ u.role }})</span> {% if not u.is_active %}<span class="text-xs text-red-400">inactive</span>{% endif %}</div>
         <div class="text-sm text-slate-500">last login: {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else 'never' }}</div>
       </div>
     </div>
     <div class="flex gap-3 text-sm">
-      <a href="/users/{{ u.id }}/edit" class="flex items-center gap-1 text-sky-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
+      <a href="/users/{{ u.id }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
       {% if u.id != user.id %}
       <form method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm('Delete this user?');">
         <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>

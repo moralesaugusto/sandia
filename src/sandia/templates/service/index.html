@@ -12,7 +12,7 @@
 {% if user.role in ('admin', 'operator') %}
 <div class="flex gap-3">
   <form method="post" action="/service/restart">
-    <button class="flex items-center gap-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('refresh', 'w-4 h-4') }} Restart</button>
+    <button class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('refresh', 'w-4 h-4') }} Restart</button>
   </form>
   {% if user.role == 'admin' %}
   {% if enabled %}

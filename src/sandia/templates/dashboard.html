@@ -12,14 +12,14 @@
     </div>
   </div>
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
-    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-500/20 to-sky-500/5 text-sky-400 flex items-center justify-center shrink-0">{{ icon('leases', 'w-5 h-5') }}</div>
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-400 flex items-center justify-center shrink-0">{{ icon('leases', 'w-5 h-5') }}</div>
     <div>
       <div class="text-xs uppercase text-slate-500 mb-1">Active leases</div>
       <div class="text-lg font-medium">{{ active_lease_count }} <span class="text-slate-500 text-sm">/ {{ lease_count }}</span></div>
     </div>
   </div>
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
-    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 text-indigo-400 flex items-center justify-center shrink-0">{{ icon('reservations', 'w-5 h-5') }}</div>
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-pink-500/20 to-pink-500/5 text-pink-400 flex items-center justify-center shrink-0">{{ icon('reservations', 'w-5 h-5') }}</div>
     <div>
       <div class="text-xs uppercase text-slate-500 mb-1">Static reservations</div>
       <div class="text-lg font-medium">{{ reservation_count }}</div>
@@ -51,7 +51,7 @@
   {% else %}
   <div class="flex items-center gap-3 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl p-4">
     {{ icon('inbox', 'w-5 h-5 text-slate-600') }}
-    <span>No subnets configured yet. <a href="/subnets/new" class="text-sky-400 hover:underline">Create one</a>.</span>
+    <span>No subnets configured yet. <a href="/subnets/new" class="text-emerald-400 hover:underline">Create one</a>.</span>
   </div>
   {% endfor %}
 </div>

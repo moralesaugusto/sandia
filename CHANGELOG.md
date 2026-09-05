@@ -15,6 +15,13 @@ All notable changes to this project are documented here.
   Edit, Delete, Save, Export CSV, Validate, Show diff, Apply, Restart,
   Enable/Disable, Restore), the dashboard stat tiles, the lease context
   menu (Reserve/Deny/Copy MAC), search inputs, and empty states.
+- Watermelon branding: "Sandía" is Spanish for watermelon, so the logo is
+  now a watermelon-slice mark (rind/pith/flesh/seeds) and the accent
+  palette moved from blue/indigo to pink and green throughout - primary
+  buttons, the active nav item, links, focus rings, avatars, and the
+  "healthy" utilization color (green, replacing blue - also a clearer
+  green/amber/red progression). The login page has a small tagline and a
+  softened pink radial glow to match.
 - MAC vendor lookup: leases and reservations now show the manufacturer for
   recognized MAC address prefixes (Apple, Samsung, Raspberry Pi Foundation,
   Ubiquiti, TP-Link, Espressif, and 40+ others), via a small self-contained
