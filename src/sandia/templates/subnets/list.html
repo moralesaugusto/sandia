@@ -4,7 +4,7 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Subnets</h1>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/subnets/new" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">New subnet</a>
+  <a href="/subnets/new" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New subnet</a>
   {% endif %}
 </div>
 
@@ -12,12 +12,12 @@
   {% for row in rows %}
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
     <div class="flex items-center justify-between mb-2">
-      <div class="font-medium">{{ row.subnet.network }} / {{ row.subnet.netmask }}</div>
+      <div class="flex items-center gap-2 font-medium">{{ icon('subnets', 'w-4 h-4 text-slate-500') }} {{ row.subnet.network }} / {{ row.subnet.netmask }}</div>
       {% if user.role in ('admin', 'operator') %}
       <div class="flex gap-3 text-sm">
-        <a href="/subnets/{{ row.subnet.key }}/edit" class="text-sky-400 hover:underline">Edit</a>
+        <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-sky-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
         <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm('Delete this subnet?');">
-          <button class="text-red-400 hover:underline">Delete</button>
+          <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
         </form>
       </div>
       {% endif %}
@@ -30,7 +30,9 @@
     {% endif %}
   </div>
   {% else %}
-  <div class="px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">No subnets configured yet.</div>
+  <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">
+    {{ icon('inbox', 'w-5 h-5 text-slate-600') }} No subnets configured yet.
+  </div>
   {% endfor %}
 </div>
 {% endblock %}

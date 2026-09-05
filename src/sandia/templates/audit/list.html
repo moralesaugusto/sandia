@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Audit Log - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-6">Audit Log</h1>
-<table class="w-full text-sm bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-  <thead class="bg-slate-800 text-slate-400 text-xs uppercase">
+<h1 class="text-xl font-semibold mb-6 flex items-center gap-2">{{ icon('audit', 'w-5 h-5 text-slate-500') }} Audit Log</h1>
+<table class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
       <th class="text-left px-4 py-2">Time</th>
       <th class="text-left px-4 py-2">User</th>
@@ -15,16 +15,16 @@
   </thead>
   <tbody class="divide-y divide-slate-800">
     {% for entry in entries %}
-    <tr>
+    <tr class="hover:bg-slate-800/40">
       <td class="px-4 py-2 text-slate-500">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
       <td class="px-4 py-2">{{ entry.username }}</td>
       <td class="px-4 py-2 font-mono text-xs">{{ entry.action }}</td>
       <td class="px-4 py-2 text-slate-400">{{ entry.detail }}</td>
       <td class="px-4 py-2 text-slate-500">{{ entry.ip_address }}</td>
-      <td class="px-4 py-2">{% if entry.success %}<span class="text-emerald-400">ok</span>{% else %}<span class="text-red-400">failed</span>{% endif %}</td>
+      <td class="px-4 py-2">{% if entry.success %}<span class="flex items-center gap-1 text-emerald-400">{{ icon('check', 'w-3.5 h-3.5') }} ok</span>{% else %}<span class="flex items-center gap-1 text-red-400">{{ icon('block', 'w-3.5 h-3.5') }} failed</span>{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">No audit entries yet.</td></tr>
+    <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No audit entries yet.</span></td></tr>
     {% endfor %}
   </tbody>
 </table>

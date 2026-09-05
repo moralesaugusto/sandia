@@ -43,6 +43,6 @@
     <label class="block text-sm text-slate-400 mb-1">DNS servers (comma separated)</label>
     <input name="domain_name_servers" value="{{ subnet.get('domain-name-servers') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="8.8.8.8, 8.8.4.4">
   </div>
-  <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-md px-4 py-2">Save</button>
+  <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Save</button>
 </form>
 {% endblock %}

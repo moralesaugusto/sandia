@@ -1,16 +1,17 @@
+{% from "base.html" import icon %}
 {% if lease %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ lease.ip }}</div>
 {% if user.role in ('admin', 'operator') %}
   {% if not already_reserved %}
-  <a href="/reservations/new?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="block px-3 py-2 hover:bg-slate-700">Reserve this lease</a>
+  <a href="/reservations/new?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this lease</a>
   {% else %}
   <div class="px-3 py-2 text-slate-500">Already reserved</div>
   {% endif %}
   <form method="post" action="/leases/{{ lease.ip }}/deny" onsubmit="return confirm('Deny this client from obtaining a lease?');">
-    <button type="submit" class="block w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">Deny this client</button>
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} Deny this client</button>
   </form>
 {% endif %}
-<button type="button" onclick="navigator.clipboard.writeText('{{ lease.mac or '' }}')" class="block w-full text-left px-3 py-2 hover:bg-slate-700">Copy MAC address</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ lease.mac or '' }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
 {% else %}
 <div class="px-3 py-2 text-slate-500">Lease not found</div>
 {% endif %}

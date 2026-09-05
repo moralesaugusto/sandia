@@ -3,20 +3,23 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Leases</h1>
-  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="text-sm text-sky-400 hover:text-sky-300">Export CSV</a>
+  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-sky-400 hover:text-sky-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
 </div>
 
-<input
-  type="search"
-  name="q"
-  value="{{ q }}"
-  placeholder="Search by IP, MAC or hostname..."
-  class="w-full max-w-sm mb-4 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-  hx-get="/leases/table"
-  hx-trigger="keyup changed delay:300ms, search"
-  hx-target="#leases-table"
-  hx-swap="innerHTML"
->
+<div class="relative w-full max-w-sm mb-4">
+  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
+  <input
+    type="search"
+    name="q"
+    value="{{ q }}"
+    placeholder="Search by IP, MAC or hostname..."
+    class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+    hx-get="/leases/table"
+    hx-trigger="keyup changed delay:300ms, search"
+    hx-target="#leases-table"
+    hx-swap="innerHTML"
+  >
+</div>
 
 <div id="leases-table">
   {% include "leases/_table.html" %}

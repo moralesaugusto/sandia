@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}About - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-6">About Sandia</h1>
+<h1 class="text-xl font-semibold mb-6 flex items-center gap-2">{{ icon('info', 'w-5 h-5 text-slate-500') }} About Sandia</h1>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
   {% for label, value in [

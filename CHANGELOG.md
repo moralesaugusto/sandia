@@ -8,8 +8,13 @@ All notable changes to this project are documented here.
 
 - Default port changed to `7001` (was `8443`).
 - Modern visual redesign: a logo mark (favicon + sidebar + login page),
-  an icon for every sidebar item, gradient accents on primary actions and
-  the active nav item, Inter typeface, and general spacing/polish pass.
+  gradient accents on primary actions and the active nav item, Inter
+  typeface, and general spacing/polish pass. A hand-authored inline SVG
+  icon set (no external icon font/dependency) is now used throughout: every
+  sidebar item, every primary action button (New subnet/reservation/user,
+  Edit, Delete, Save, Export CSV, Validate, Show diff, Apply, Restart,
+  Enable/Disable, Restore), the dashboard stat tiles, the lease context
+  menu (Reserve/Deny/Copy MAC), search inputs, and empty states.
 - MAC vendor lookup: leases and reservations now show the manufacturer for
   recognized MAC address prefixes (Apple, Samsung, Raspberry Pi Foundation,
   Ubiquiti, TP-Link, Espressif, and 40+ others), via a small self-contained

@@ -4,24 +4,33 @@
 <h1 class="text-xl font-semibold mb-6">Dashboard</h1>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-    <div class="text-xs uppercase text-slate-500 mb-1">Service status</div>
-    <div class="text-lg font-medium flex items-center gap-2">
-      <span class="h-2 w-2 rounded-full {% if service_status == 'active' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
-      <span class="{% if service_status == 'active' %}text-emerald-400{% else %}text-red-400{% endif %}">{{ service_status }}</span>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br {% if service_status == 'active' %}from-emerald-500/20 to-emerald-500/5 text-emerald-400{% else %}from-red-500/20 to-red-500/5 text-red-400{% endif %} flex items-center justify-center shrink-0">{{ icon('power', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Service status</div>
+      <div class="text-lg font-medium {% if service_status == 'active' %}text-emerald-400{% else %}text-red-400{% endif %}">{{ service_status }}</div>
     </div>
   </div>
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-    <div class="text-xs uppercase text-slate-500 mb-1">Active leases</div>
-    <div class="text-lg font-medium">{{ active_lease_count }} <span class="text-slate-500 text-sm">/ {{ lease_count }} total</span></div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-500/20 to-sky-500/5 text-sky-400 flex items-center justify-center shrink-0">{{ icon('leases', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Active leases</div>
+      <div class="text-lg font-medium">{{ active_lease_count }} <span class="text-slate-500 text-sm">/ {{ lease_count }}</span></div>
+    </div>
   </div>
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-    <div class="text-xs uppercase text-slate-500 mb-1">Static reservations</div>
-    <div class="text-lg font-medium">{{ reservation_count }}</div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 text-indigo-400 flex items-center justify-center shrink-0">{{ icon('reservations', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Static reservations</div>
+      <div class="text-lg font-medium">{{ reservation_count }}</div>
+    </div>
   </div>
-  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-    <div class="text-xs uppercase text-slate-500 mb-1">Subnets at risk</div>
-    <div class="text-lg font-medium {% if at_risk_count %}text-amber-400{% else %}text-slate-200{% endif %}">{{ at_risk_count }} <span class="text-slate-500 text-sm">&ge;90% used</span></div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br {% if at_risk_count %}from-amber-500/20 to-amber-500/5 text-amber-400{% else %}from-slate-500/20 to-slate-500/5 text-slate-400{% endif %} flex items-center justify-center shrink-0">{{ icon('warning', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Subnets at risk</div>
+      <div class="text-lg font-medium {% if at_risk_count %}text-amber-400{% else %}text-slate-200{% endif %}">{{ at_risk_count }} <span class="text-slate-500 text-sm">&ge;90%</span></div>
+    </div>
   </div>
 </div>
 
@@ -40,7 +49,10 @@
     {% endif %}
   </div>
   {% else %}
-  <p class="text-sm text-slate-500">No subnets configured yet. <a href="/subnets/new" class="text-sky-400 hover:underline">Create one</a>.</p>
+  <div class="flex items-center gap-3 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl p-4">
+    {{ icon('inbox', 'w-5 h-5 text-slate-600') }}
+    <span>No subnets configured yet. <a href="/subnets/new" class="text-sky-400 hover:underline">Create one</a>.</span>
+  </div>
   {% endfor %}
 </div>
 

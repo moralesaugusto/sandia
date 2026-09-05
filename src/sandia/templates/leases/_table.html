@@ -1,3 +1,4 @@
+{% from "base.html" import icon %}
 <table class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
@@ -25,7 +26,7 @@
       <td class="px-4 py-2 text-right text-slate-500">&#8942;</td>
     </tr>
     {% else %}
-    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">No leases found.</td></tr>
+    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No leases found.</span></td></tr>
     {% endfor %}
   </tbody>
 </table>
