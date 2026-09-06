@@ -10,3 +10,6 @@ wheels/
 .venv
 
 .pytest_cache/
+
+# Secrets
+.env
