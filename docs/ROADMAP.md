@@ -81,3 +81,17 @@ deferred: at the current cell-count cap the grid already fits on screen
 without it, and adding it would be complexity without a concrete need yet
 (see `CLAUDE.md`'s "avoid premature generalization"). Revisit if usage shows
 people working with pools consistently near the cap.
+
+## Phase 5 - Wall of Shame (done, this pass)
+
+- `wall_of_shame.py`: top-10 lists (DHCPNAKs, real IP changes, abandoned
+  addresses) computed directly from `leases.py`/`diagnostics/dhcp_log.py`
+  data already parsed elsewhere - three small functions, no new event
+  store, no scoring. See `DECISIONS.md` for the syslog-year-assumption and
+  "IP change vs. renewal" definitions.
+- `/diagnostics/wall-of-shame`, reachable from the Diagnostics submenu
+  and the Diagnostics overview page. Reuses the Devices context menu
+  (`/devices/<mac>/menu`) - no new menu code.
+- "Diagnostics" became a collapsible sidebar submenu (Overview, Wall of
+  Shame) using the same `nav_group()` macro Advanced Settings already
+  used, factored out once a second real use existed.

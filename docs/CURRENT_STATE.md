@@ -40,7 +40,10 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
   DHCP activity, embedded diagnostics, related links), and a "Lease IP"
   pre-action page that suggests the next free address before handing off
   to the existing reservation form.
-- 297 tests, all passing as of the end of this pass.
+- Wall of Shame (`/diagnostics/wall-of-shame`, `wall_of_shame.py`, a
+  Diagnostics submenu): top-10 DHCPNAK/IP-change/abandoned-lease lists,
+  three time ranges, pure aggregation over existing leases/log data.
+- 339 tests, all passing as of the end of this pass.
 
 ## Gaps identified and closed across recent passes
 

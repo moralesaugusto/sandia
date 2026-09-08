@@ -138,3 +138,40 @@ existing `/reservations/new` route - the extra `subnet_key` prefill
 parameter is the only change to that route. If the device already has a
 reservation, this route redirects straight to editing it rather than
 rendering a form that could create a conflicting second one.
+
+## Wall of Shame: syslog timestamps are assumed to be the current year
+
+dhcpd's syslog lines have no year (`Sep  2 09:00:00`), which is exactly
+why `diagnostics/dhcp_log.py`'s events were never sorted/filtered by time
+before this feature (see the "DHCP log is optional evidence" decision
+above). Wall of Shame's time-range filter needs *some* real timestamp to
+filter on, so `wall_of_shame.parse_syslog_timestamp()` assumes the
+current year and rolls back one year if that would place the event in
+the future - the same convention every standard syslog reader uses for
+this format, not a guess about the event itself. This is a reasonable
+trade-off given Sandia already only reads the tail of the log
+(`MAX_LOG_BYTES`), which in practice covers at most a few days to weeks -
+the year-boundary edge case this heuristic exists for is rare, and wrong
+only right at a rotation that happens to straddle midnight on Dec 31.
+Lease-history timestamps (used for IP changes and abandoned leases) don't
+have this problem - `starts`/`ends` in `dhcpd.leases` always include the
+year, so those two lists use exact dates, not an assumption.
+
+## Wall of Shame: what counts as an "IP change"
+
+A device's lease history is walked in chronological order; a "change" is
+counted only when a record's address differs from the *immediately
+preceding* record's address for that MAC. A renewal (dhcpd appends a new
+block for the same IP on lease refresh) never counts, because consecutive
+records share the same address. This needed no new concept - it's the
+same historical data `devices.py::Device.history`/`previous_ips` already
+expose, just walked once to count transitions instead of only listing them.
+
+## Wall of Shame: abandoned-lease device association is never invented
+
+An abandoned lease block sometimes carries `hardware ethernet` (a client
+that got denied/declined) and sometimes doesn't (e.g. dhcpd detected a
+ping conflict before ever offering the address to a client - nobody to
+blame). Rows are grouped by MAC only when the record actually has one;
+otherwise the row is the bare IP with no device link, exactly matching
+the instruction to show the address rather than fabricate a relationship.

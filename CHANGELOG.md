@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## 1.2.0
+
+### Added
+- Wall of Shame (`/diagnostics/wall-of-shame`), a submenu under Diagnostics: the top 10 devices by DHCPNAK count, the top 10 by real IP-address changes (renewals of the same address don't count), and the top 10 abandoned-lease addresses (grouped by MAC only when dhcpd actually recorded one for that abandonment - otherwise shown as the bare IP, never a guessed device). Three time ranges (last 24 hours, last 7 days, all available), defaulting to 24 hours. Pure aggregation over existing leases/DHCP-log data - no scoring, no new event store. Right-click reuses the existing Devices context menu; device/IP names link into the existing Device 360 and subnet map views.
+- Version bumped to 1.2.0.
+
+### Changed
+- "Diagnostics" in the sidebar is now a collapsible submenu (Overview, Wall of Shame), matching the pattern already used for Advanced Settings.
+
 ## 1.1.2
 
 ### Changed

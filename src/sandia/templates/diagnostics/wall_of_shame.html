@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Wall of Shame - Sandia{% endblock %}
+{% block content %}
+{% macro device_name(mac, device) %}
+<a href="/devices/{{ mac | urlencode }}" class="flex items-center gap-2 hover:text-emerald-400">
+  <span class="w-6 h-6 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(device.icon if device else 'device-generic', 'w-3 h-3') }}</span>
+  <span class="font-medium">{{ device.display_name if device else mac }}</span>
+</a>
+{% endmacro %}
+{% macro current_ip(device) %}
+{% if device and device.current_ip %}
+  {% if device.subnet %}<a href="/subnets/{{ device.subnet.key }}/map" class="hover:text-emerald-400">{{ device.current_ip }}</a>{% else %}{{ device.current_ip }}{% endif %}
+{% else %}
+-
+{% endif %}
+{% endmacro %}
+{% macro when(ts) %}{{ ts.strftime('%Y-%m-%d %H:%M') if ts else 'unknown' }}{% endmacro %}
+
+<div class="mb-6">
+  <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('diagnose', 'w-5 h-5 text-slate-500') }} Wall of Shame</h1>
+  <p class="text-sm text-slate-500 mt-1">DHCPNAK offenders, IP hoppers, and abandoned leases - a plain count of what Sandia's own DHCP data already shows, nothing inferred.</p>
+</div>
+
+<div class="flex items-center gap-2 mb-6">
+  {% for value, label in [('24h', 'Last 24 hours'), ('7d', 'Last 7 days'), ('all', 'All available')] %}
+  <a href="/diagnostics/wall-of-shame?window={{ value }}" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if window == value %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">DHCPNAK offenders</h2>
+{% if log_unavailable %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl mb-8">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} Not enough historical data available. ({{ log_unavailable }})</div>
+{% elif not naks %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl mb-8">{{ icon('inbox', 'w-5 h-5 text-slate-600 shrink-0') }} No DHCP troublemakers found.</div>
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-slate-800 mb-8">
+<table class="w-full text-sm bg-slate-900">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="text-left px-3 py-2">Device</th>
+      <th class="text-left px-3 py-2">MAC</th>
+      <th class="text-left px-3 py-2">Current IP</th>
+      <th class="text-left px-3 py-2">NAK count</th>
+      <th class="text-left px-3 py-2">Last NAK</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for entry in naks %}
+    <tr oncontextmenu="openContextMenu(event, '/devices/{{ entry.mac | urlencode }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu">
+      <td class="px-3 py-2">{{ device_name(entry.mac, entry.device) }}</td>
+      <td class="px-3 py-2 font-mono text-slate-400">{{ entry.mac }}</td>
+      <td class="px-3 py-2 font-mono">{{ current_ip(entry.device) }}</td>
+      <td class="px-3 py-2 font-medium text-red-400">{{ entry.count }}</td>
+      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ when(entry.last_nak) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">IP hoppers</h2>
+{% if not has_lease_history %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl mb-8">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} Not enough historical data available.</div>
+{% elif not ip_changes %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl mb-8">{{ icon('inbox', 'w-5 h-5 text-slate-600 shrink-0') }} No DHCP troublemakers found.</div>
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-slate-800 mb-8">
+<table class="w-full text-sm bg-slate-900">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="text-left px-3 py-2">Device</th>
+      <th class="text-left px-3 py-2">MAC</th>
+      <th class="text-left px-3 py-2">Current IP</th>
+      <th class="text-left px-3 py-2">IP change count</th>
+      <th class="text-left px-3 py-2">Last change</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for entry in ip_changes %}
+    <tr oncontextmenu="openContextMenu(event, '/devices/{{ entry.mac | urlencode }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu">
+      <td class="px-3 py-2">{{ device_name(entry.mac, entry.device) }}</td>
+      <td class="px-3 py-2 font-mono text-slate-400">{{ entry.mac }}</td>
+      <td class="px-3 py-2 font-mono">{{ current_ip(entry.device) }}</td>
+      <td class="px-3 py-2 font-medium text-amber-400">{{ entry.count }}</td>
+      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ when(entry.last_change) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Abandoned leases</h2>
+{% if not has_lease_history %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} Not enough historical data available.</div>
+{% elif not abandoned %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">{{ icon('inbox', 'w-5 h-5 text-slate-600 shrink-0') }} No DHCP troublemakers found.</div>
+{% else %}
+<div class="overflow-x-auto rounded-xl border border-slate-800">
+<table class="w-full text-sm bg-slate-900">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="text-left px-3 py-2">Device / IP</th>
+      <th class="text-left px-3 py-2">MAC</th>
+      <th class="text-left px-3 py-2">IP</th>
+      <th class="text-left px-3 py-2">Abandonment count</th>
+      <th class="text-left px-3 py-2">Last occurrence</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for entry in abandoned %}
+    <tr {% if entry.mac %}oncontextmenu="openContextMenu(event, '/devices/{{ entry.mac | urlencode }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu"{% endif %}>
+      <td class="px-3 py-2">
+        {% if entry.mac %}
+        {{ device_name(entry.mac, entry.device) }}
+        {% elif entry.subnet_key %}
+        <a href="/subnets/{{ entry.subnet_key }}/map" class="flex items-center gap-2 hover:text-emerald-400">{{ icon('warning', 'w-4 h-4 text-slate-500') }} No known device (address only)</a>
+        {% else %}
+        <span class="flex items-center gap-2 text-slate-500">{{ icon('warning', 'w-4 h-4') }} No known device (address only)</span>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2 font-mono text-slate-400">{{ entry.mac or '-' }}</td>
+      <td class="px-3 py-2 font-mono">{% if entry.subnet_key %}<a href="/subnets/{{ entry.subnet_key }}/map" class="hover:text-emerald-400">{{ entry.ip }}</a>{% else %}{{ entry.ip }}{% endif %}</td>
+      <td class="px-3 py-2 font-medium text-red-400">{{ entry.count }}</td>
+      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ when(entry.last_seen) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

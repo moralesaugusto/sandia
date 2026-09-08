@@ -21,6 +21,12 @@
   <a href="/diagnostics/server" class="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('service', 'w-4 h-4') }} Run server diagnostics</a>
 </div>
 
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg mb-6">
+  <h2 class="font-medium mb-1">Wall of Shame</h2>
+  <p class="text-sm text-slate-500 mb-4">The devices causing the most DHCPNAKs, IP churn, and abandoned leases - a plain count, nothing inferred.</p>
+  <a href="/diagnostics/wall-of-shame" class="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('diagnose', 'w-4 h-4') }} View Wall of Shame</a>
+</div>
+
 <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Subnet &amp; pool diagnostics</h2>
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
   {% for subnet in subnets %}

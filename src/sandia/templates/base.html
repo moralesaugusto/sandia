@@ -104,6 +104,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6"/><path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3"/></svg>
 {% endif %}
 {% endmacro %}
+{% macro nav_group(label, icon_name, group_paths, items, current_path) %}
+{% set active = current_path in group_paths %}
+<details class="group" {% if active %}open{% endif %}>
+  <summary class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer list-none transition-colors {% if active %}text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+    {{ icon(icon_name) }}
+    <span class="flex-1">{{ label }}</span>
+    {{ icon('chevron-right', 'w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-90') }}
+  </summary>
+  <div class="mt-0.5 mb-0.5 flex flex-col gap-0.5 ml-4 pl-3 border-l border-slate-800">
+    {% for sub_href, sub_label in items %}
+    <a href="{{ sub_href }}" class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if current_path == sub_href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+      {{ sub_label }}
+    </a>
+    {% endfor %}
+  </div>
+</details>
+{% endmacro %}
 {% if user %}
   <div class="min-h-full flex">
     <nav class="w-60 shrink-0 bg-slate-900/80 border-r border-slate-800 flex flex-col backdrop-blur">
@@ -150,35 +167,22 @@
           {{ label }}
         </a>
         {% endfor %}
-        {% set advanced_paths = ['/settings', '/config/raw', '/service', '/backups'] %}
-        <details class="group" {% if request.url.path in advanced_paths %}open{% endif %}>
-          <summary class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer list-none transition-colors {% if request.url.path in advanced_paths %}text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-            {{ icon('settings') }}
-            <span class="flex-1">Advanced Settings</span>
-            {{ icon('chevron-right', 'w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-90') }}
-          </summary>
-          <div class="mt-0.5 mb-0.5 flex flex-col gap-0.5 ml-4 pl-3 border-l border-slate-800">
-            {% for sub_href, sub_label in [
-              ('/settings', 'General'),
-              ('/config/raw', 'Raw Config'),
-              ('/service', 'Service'),
-              ('/backups', 'Backups'),
-            ] %}
-            <a href="{{ sub_href }}" class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.url.path == sub_href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-              {{ sub_label }}
-            </a>
-            {% endfor %}
-          </div>
-        </details>
-        {% for href, label, icon_name in [
-          ('/diagnostics', 'Diagnostics', 'diagnose'),
-          ('/about', 'About', 'info'),
-        ] %}
-        <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-          {{ icon(icon_name) }}
-          {{ label }}
+        {{ nav_group(
+          'Advanced Settings', 'settings',
+          ['/settings', '/config/raw', '/service', '/backups'],
+          [('/settings', 'General'), ('/config/raw', 'Raw Config'), ('/service', 'Service'), ('/backups', 'Backups')],
+          request.url.path
+        ) }}
+        {{ nav_group(
+          'Diagnostics', 'diagnose',
+          ['/diagnostics', '/diagnostics/server', '/diagnostics/client', '/diagnostics/wall-of-shame'],
+          [('/diagnostics', 'Overview'), ('/diagnostics/wall-of-shame', 'Wall of Shame')],
+          request.url.path
+        ) }}
+        <a href="/about" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/about' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          {{ icon('info') }}
+          About
         </a>
-        {% endfor %}
         {% if user.role == 'admin' %}
         <div class="mt-2 pt-2 border-t border-slate-800"></div>
         <a href="/users" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/users' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">

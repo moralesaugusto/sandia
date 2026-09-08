@@ -53,7 +53,16 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   the evidence doesn't support a conclusion, it says so explicitly rather
   than guessing. Reachable from the sidebar, or via a "Diagnose" action in
   the leases/subnet-map/reservations context menus and the Service page,
-  which carries the object's MAC/IP/hostname along automatically.
+  which carries the object's MAC/IP/hostname along automatically. The
+  Diagnostics sidebar entry is a submenu (Overview, Wall of Shame).
+- Wall of Shame (`/diagnostics/wall-of-shame`): the top 10 devices by
+  DHCPNAK count, the top 10 by real IP-address changes (lease renewals of
+  the same address don't count), and the top 10 abandoned-lease addresses
+  (shown as a bare IP, never a guessed device, when dhcpd didn't record a
+  MAC for that abandonment) - three time ranges (last 24 hours, last 7
+  days, all available; defaults to 24 hours). A plain count of existing
+  leases/DHCP-log data, no scoring or inference. Right-click reuses the
+  Devices context menu.
 - An Interfaces page to manage the real `INTERFACESv4` setting (which
   physical interfaces `isc-dhcp-server` actually listens on) - see
   "Interfaces page" below.
@@ -363,7 +372,7 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-297+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+339+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -380,7 +389,9 @@ reported without supporting evidence and a non-Unknown confidence), the
 device inventory (discovery from active/historical leases, reservation
 correlation, multi-IP history, status/problem detection, filtering, bulk
 lease-record deletion, and every device/IP/subnet cross-navigation path),
-and the full HTTP route layer
+the Wall of Shame (DHCPNAK/IP-change/abandoned-lease counts, time-range
+filtering, and that devices with zero events never appear), and the full
+HTTP route layer
 (login, RBAC boundaries, subnet/reservation CRUD, self-service
 password change, the "reserve from lease" flow, the Interfaces page, the
 OUI database refresh, and config-validation failure paths).
