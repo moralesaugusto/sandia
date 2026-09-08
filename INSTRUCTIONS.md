@@ -19,6 +19,9 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   options, and whether it currently has an active lease.
 - A global search box (in the sidebar, on every page) that matches IP,
   MAC, or hostname across reservations, leases, and subnets at once.
+- An Interfaces page to manage the real `INTERFACESv4` setting (which
+  physical interfaces `isc-dhcp-server` actually listens on) - see
+  "Interfaces page" below.
 - Bulk-select and delete reservations, in addition to one at a time.
 - Restart/enable/disable/check the `isc-dhcp-server` service.
 - Back up and restore config, with a diff shown before any apply.
@@ -122,6 +125,7 @@ All optional; defaults match a standard Debian `isc-dhcp-server` install.
 | `SANDIA_HTTPS` | `1` (enabled) | Set to `0` to serve plain HTTP instead of HTTPS - see below. |
 | `DHCPD_CONF_PATH` | `/etc/dhcp/dhcpd.conf` | The live dhcpd config file this app edits. |
 | `DHCPD_LEASES_PATH` | `/var/lib/dhcp/dhcpd.leases` | Lease database read for the Leases page. |
+| `SANDIA_INTERFACES_CONF` | `/etc/default/isc-dhcp-server` | The `INTERFACESv4` defaults file, managed from the Interfaces page. |
 | `SANDIA_DATA_DIR` | `/var/lib/sandia` | Where the app keeps its own state: SQLite DB, staged config drafts, session secret, and the TLS cert/key (under `tls/`). |
 | `SANDIA_BACKUP_DIR` | `/var/backups/sandia` | Timestamped `dhcpd.conf` backups, one taken automatically before every applied change. |
 | `SANDIA_SERVICE_NAME` | `isc-dhcp-server` | systemd unit name used for restart/enable/disable/status. |
@@ -166,6 +170,24 @@ the subnet's declaration - valid syntax dhcpd ignores, that round-trips
 safely and is editable/clearable from the form. It's there to help you
 keep track of which subnet belongs to which physical interface on a
 multi-homed server; it doesn't change dhcpd's actual behavior.
+
+## Interfaces page (the real `INTERFACESv4` mechanism)
+
+The Interfaces page (`/interfaces`) edits the actual setting that
+controls which physical interfaces `isc-dhcp-server` listens on:
+`INTERFACESv4` in `SANDIA_INTERFACES_CONF` (default
+`/etc/default/isc-dhcp-server`, a shell-sourced file read by the service's
+init script/systemd unit at startup). Only that one line is touched -
+every other line (`DHCPDv4_CONF`, `OPTIONS`, `INTERFACESv6`, comments) is
+preserved exactly. A timestamped backup is taken before every write, same
+as `dhcpd.conf`.
+
+The page also cross-references each subnet's interface tag (see above)
+against the interfaces actually listed here, flagging any subnet tagged
+with an interface dhcpd isn't configured to listen on - a common source
+of "why isn't this subnet handing out leases" confusion. Changing
+`INTERFACESv4` requires restarting `isc-dhcp-server` to take effect (the
+service does not pick it up live).
 
 ## Cleaning the leases file
 
@@ -261,15 +283,16 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-105+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+123+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup, device-icon/OS-guess assignment,
 the extra DHCP client options round-trip, subnet interface tagging, the
-leases-cleanup dedup logic, the config diff, login rate-limiting, global
-search, bulk reservation delete, and the full HTTP route layer (login,
-RBAC boundaries, subnet/reservation CRUD, self-service password change,
-the "reserve from lease" flow, and config-validation failure paths).
+`INTERFACESv4` read/write logic, the leases-cleanup dedup logic, the
+config diff, login rate-limiting, global search, bulk reservation delete,
+and the full HTTP route layer (login, RBAC boundaries, subnet/reservation
+CRUD, self-service password change, the "reserve from lease" flow, the
+Interfaces page, and config-validation failure paths).
 
 ## Running it standalone / porting to another machine
 

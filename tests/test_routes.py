@@ -229,6 +229,48 @@ def test_subnet_interface_tag_round_trip(operator_client, settings):
     assert "# interface: eth2" not in conf_after
 
 
+def test_interfaces_page_shows_empty_state_when_file_missing(admin_client, settings):
+    assert not settings.interfaces_conf_path.exists()
+    response = admin_client.get("/interfaces")
+    assert response.status_code == 200
+    assert b"doesn't exist yet" in response.content
+
+
+def test_operator_can_update_interfaces(operator_client, settings):
+    response = operator_client.post("/interfaces", data={"interfaces": "eth0, eth1"})
+    assert response.status_code == 303
+
+    text = settings.interfaces_conf_path.read_text()
+    assert 'INTERFACESv4="eth0 eth1"' in text
+
+    page = operator_client.get("/interfaces")
+    assert b'value="eth0 eth1"' in page.content
+
+
+def test_interfaces_page_flags_mismatched_subnet_tag(operator_client, settings):
+    operator_client.post("/interfaces", data={"interfaces": "eth0"})
+    operator_client.post(
+        "/subnets/192.168.1.0_255.255.255.0/edit",
+        data={"range_start": "192.168.1.100", "range_end": "192.168.1.200", "interface": "eth9"},
+    )
+    response = operator_client.get("/interfaces")
+    assert response.status_code == 200
+    assert b"not listening" in response.content
+
+
+def test_interfaces_preserves_unrelated_file_content(operator_client, settings):
+    settings.interfaces_conf_path.write_text('#DHCPDv4_CONF=/etc/dhcp/dhcpd.conf\nINTERFACESv4="eth0"\n')
+    operator_client.post("/interfaces", data={"interfaces": "eth5"})
+    text = settings.interfaces_conf_path.read_text()
+    assert "#DHCPDv4_CONF=/etc/dhcp/dhcpd.conf" in text
+    assert 'INTERFACESv4="eth5"' in text
+
+
+def test_viewer_cannot_update_interfaces(viewer_client):
+    response = viewer_client.post("/interfaces", data={"interfaces": "eth0"})
+    assert response.status_code == 403
+
+
 def test_bulk_delete_reservations(operator_client, settings):
     operator_client.post(
         "/reservations/new",

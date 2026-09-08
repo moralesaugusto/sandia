@@ -24,6 +24,7 @@ def settings(tmp_path) -> Settings:
     dhcpd_conf = tmp_path / "dhcpd.conf"
     leases = tmp_path / "dhcpd.leases"
     backup_dir = tmp_path / "backups"
+    interfaces_conf = tmp_path / "isc-dhcp-server-defaults"
     shutil.copyfile(FIXTURE_CONF, dhcpd_conf)
     shutil.copyfile(FIXTURE_LEASES, leases)
     return Settings(
@@ -31,6 +32,7 @@ def settings(tmp_path) -> Settings:
         dhcpd_conf_path=dhcpd_conf,
         leases_path=leases,
         backup_dir=backup_dir,
+        interfaces_conf_path=interfaces_conf,
     )
 
 

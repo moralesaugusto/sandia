@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Interfaces - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-2 flex items-center gap-2">{{ icon('device-network', 'w-5 h-5 text-slate-500') }} Interfaces</h1>
+<p class="text-sm text-slate-500 mb-6">
+  This is the <code class="text-slate-400">INTERFACESv4</code> setting in <code class="text-slate-400">{{ conf_path }}</code> -
+  the list of interfaces <code class="text-slate-400">isc-dhcp-server</code> actually listens on. dhcpd then serves whichever
+  subnet matches each interface's own IP address, which Sandia doesn't set - that's OS-level network configuration
+  (<code class="text-slate-400">/etc/network/interfaces</code>, netplan, etc.), done separately from this page.
+</p>
+
+{% if not file_exists %}
+<div class="mb-6 rounded-lg px-4 py-3 text-sm bg-amber-950 text-amber-300 border border-amber-900 flex items-center gap-2">
+  {{ icon('warning', 'w-4 h-4') }} <code class="text-amber-200">{{ conf_path }}</code> doesn't exist yet - saving will create it.
+</div>
+{% endif %}
+
+<form method="post" action="/interfaces" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg mb-8">
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Listening interfaces <span class="text-slate-600">(space or comma separated)</span></label>
+    <input name="interfaces" value="{{ interfaces | join(' ') }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono" placeholder="eth0 eth1" {% if user.role == 'viewer' %}disabled{% endif %}>
+  </div>
+  {% if user.role in ('admin', 'operator') %}
+  <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Save</button>
+  {% endif %}
+</form>
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Subnet interface tags vs. actual listening interfaces</h2>
+<p class="text-sm text-slate-500 mb-3">
+  Cross-check: subnets tagged with an interface (from the Subnets page) should generally match one of the
+  interfaces listed above, or that subnet's traffic won't actually reach dhcpd.
+</p>
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
+  {% for row in subnet_interfaces %}
+  <div class="px-4 py-3 flex items-center justify-between text-sm">
+    <span class="flex items-center gap-2">{{ icon('subnets', 'w-4 h-4 text-slate-500') }} {{ row.subnet.network }}/{{ row.subnet.netmask }}</span>
+    {% if row.interface %}
+      {% if row.interface in interfaces %}
+      <span class="flex items-center gap-1 text-emerald-400">{{ icon('check', 'w-3.5 h-3.5') }} {{ row.interface }}</span>
+      {% else %}
+      <span class="flex items-center gap-1 text-amber-400" title="Tagged but not in the listening interfaces list above">{{ icon('warning', 'w-3.5 h-3.5') }} {{ row.interface }} (not listening)</span>
+      {% endif %}
+    {% else %}
+    <span class="text-slate-600">no interface tag</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No subnets configured yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

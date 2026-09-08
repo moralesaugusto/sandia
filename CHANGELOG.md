@@ -34,6 +34,15 @@ All notable changes to this project are documented here.
   need DHCP options the client sent, which the lease file doesn't record),
   so it's inferred from hostname keywords and MAC vendor the same way the
   device-type icon is, and says so plainly when nothing matches.
+- New Interfaces page (`/interfaces`) to manage the real `INTERFACESv4`
+  setting in `/etc/default/isc-dhcp-server` (path configurable via
+  `SANDIA_INTERFACES_CONF`) - the setting that actually controls which
+  physical interfaces `isc-dhcp-server` listens on, as opposed to the
+  organizational-only subnet interface tag above. Only the `INTERFACESv4=`
+  line is touched; every other line in the file is preserved exactly, and
+  a timestamped backup is taken before every write. The page cross-
+  references each subnet's interface tag against the interfaces dhcpd is
+  actually configured to listen on, flagging any mismatch.
 - Version bumped to 1.0.4.
 
 ### Changed

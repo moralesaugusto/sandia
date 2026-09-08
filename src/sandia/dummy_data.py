@@ -7,6 +7,7 @@ max-lease-time 7200;
 option domain-name "example.test";
 option domain-name-servers 8.8.8.8, 1.1.1.1;
 
+# interface: eth0
 subnet 192.168.50.0 netmask 255.255.255.0 {
     range 192.168.50.100 192.168.50.200;
     option routers 192.168.50.1;
@@ -23,6 +24,7 @@ subnet 192.168.50.0 netmask 255.255.255.0 {
     }
 }
 
+# interface: eth1
 subnet 10.0.5.0 netmask 255.255.255.0 {
     range 10.0.5.50 10.0.5.150;
     option routers 10.0.5.1;
@@ -32,6 +34,17 @@ host workstation1 {
     hardware ethernet ac:de:48:11:22:33;
     fixed-address 192.168.50.60;
 }
+"""
+
+DUMMY_INTERFACES_CONF = """\
+# Defaults for isc-dhcp-server (sourced by init script / systemd unit).
+# This is dummy data - editing it here has no effect on any real service.
+
+DHCPDv4_CONF=/etc/dhcp/dhcpd.conf
+DHCPDv4_PID=/run/dhcp-server/dhcpd.pid
+
+INTERFACESv4="eth0 eth1"
+INTERFACESv6=""
 """
 
 DUMMY_LEASES = """\
@@ -83,3 +96,7 @@ def seed_dummy_data(settings: Settings) -> None:
     settings.leases_path.parent.mkdir(parents=True, exist_ok=True)
     if not settings.leases_path.exists():
         settings.leases_path.write_text(DUMMY_LEASES)
+
+    settings.interfaces_conf_path.parent.mkdir(parents=True, exist_ok=True)
+    if not settings.interfaces_conf_path.exists():
+        settings.interfaces_conf_path.write_text(DUMMY_INTERFACES_CONF)
