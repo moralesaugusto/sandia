@@ -85,6 +85,34 @@ def test_filter_by_reservation_yes(admin_client, settings):
     assert b"cc:cc:cc:cc:cc:03" not in response.content
 
 
+def test_devices_sort_by_mac_ascending(admin_client, settings):
+    _seed(settings)
+    response = admin_client.get("/devices/table", params={"sort": "mac"})
+    body = response.content
+    assert body.index(b"aa:aa:aa:aa:aa:01") < body.index(b"bb:bb:bb:bb:bb:02") < body.index(b"cc:cc:cc:cc:cc:03")
+
+
+def test_devices_sort_by_mac_descending(admin_client, settings):
+    _seed(settings)
+    response = admin_client.get("/devices/table", params={"sort": "-mac"})
+    body = response.content
+    assert body.index(b"cc:cc:cc:cc:cc:03") < body.index(b"bb:bb:bb:bb:bb:02") < body.index(b"aa:aa:aa:aa:aa:01")
+
+
+def test_devices_table_headers_are_clickable_and_show_sort_indicator(admin_client, settings):
+    _seed(settings)
+    response = admin_client.get("/devices", params={"sort": "mac"})
+    assert response.status_code == 200
+    assert b"sortTable('devices-filter-form', 'mac')" in response.content
+    assert b"&#9650;" in response.content
+
+
+def test_devices_sort_persists_through_filter_form_via_hidden_field(admin_client, settings):
+    _seed(settings)
+    response = admin_client.get("/devices", params={"sort": "-mac"})
+    assert b'<input type="hidden" name="sort" value="-mac">' in response.content
+
+
 def test_search_by_mac(admin_client, settings):
     _seed(settings)
     response = admin_client.get("/devices/table", params={"q": "cc:cc:cc:cc:cc:03"})

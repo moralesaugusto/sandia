@@ -11,6 +11,7 @@ whenever the underlying data doesn't support a value, and the device
 
 from __future__ import annotations
 
+import ipaddress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -320,14 +321,44 @@ def filter_devices(
     return result
 
 
+def _ip_sort_key(ip: str | None) -> tuple[int, int]:
+    if not ip:
+        return (1, 0)
+    try:
+        return (0, int(ipaddress.IPv4Address(ip)))
+    except ValueError:
+        return (1, 0)
+
+
+def _subnet_label(subnet: Subnet | None) -> str:
+    return f"{subnet.network}/{subnet.netmask}" if subnet else ""
+
+
+# Column key -> sort value. Used by the clickable table headers (see
+# devices/_table.html) - "sort" is the column key, optionally prefixed with
+# "-" for descending (e.g. "mac", "-last_seen").
+_SORT_KEYS = {
+    "hostname": lambda d: d.display_name.lower(),
+    "mac": lambda d: d.mac,
+    "current_ip": lambda d: _ip_sort_key(d.current_ip),
+    "vendor": lambda d: (d.vendor or "").lower(),
+    "subnet": lambda d: _subnet_label(d.subnet).lower(),
+    "lease": lambda d: (d.current_lease.binding_state or "") if d.current_lease else "",
+    "reservation": lambda d: d.reservation.name.lower() if d.reservation else "",
+    "last_seen": lambda d: d.last_seen or datetime.min,
+    "status": lambda d: _STATUS_SORT_RANK[d.status],
+}
+
+
 def sort_devices(devices: list[Device], sort: str = "") -> list[Device]:
-    if sort == "mac":
-        return sorted(devices, key=lambda d: d.mac)
-    if sort == "hostname":
-        return sorted(devices, key=lambda d: d.display_name.lower())
-    if sort == "last_seen":
-        return sorted(devices, key=lambda d: d.last_seen or datetime.min, reverse=True)
-    return sorted(
-        devices,
-        key=lambda d: (_STATUS_SORT_RANK[d.status], -(d.last_seen.timestamp() if d.last_seen else 0)),
-    )
+    if not sort:
+        # Default: most urgent/most recently relevant first.
+        return sorted(
+            devices,
+            key=lambda d: (_STATUS_SORT_RANK[d.status], -(d.last_seen.timestamp() if d.last_seen else 0)),
+        )
+    descending = sort.startswith("-")
+    key_fn = _SORT_KEYS.get(sort[1:] if descending else sort)
+    if key_fn is None:
+        return devices
+    return sorted(devices, key=key_fn, reverse=descending)

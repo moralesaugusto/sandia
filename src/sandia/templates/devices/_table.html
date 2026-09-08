@@ -7,20 +7,25 @@
   "reserved": "pink",
   "unknown": "slate",
 } %}
+{% macro sort_th(label, key, sort) %}
+<th class="text-left px-3 py-2 cursor-pointer select-none hover:text-white whitespace-nowrap" onclick="sortTable('devices-filter-form', '{{ key }}')">
+  {{ label }}{% if sort == key %} &#9650;{% elif sort == '-' + key %} &#9660;{% endif %}
+</th>
+{% endmacro %}
 <div class="overflow-x-auto rounded-xl border border-slate-800">
 <table class="w-full text-sm bg-slate-900">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
       <th class="px-3 py-2"></th>
-      <th class="text-left px-3 py-2">Device</th>
-      <th class="text-left px-3 py-2">MAC</th>
-      <th class="text-left px-3 py-2">Current IP</th>
-      <th class="text-left px-3 py-2">Vendor</th>
-      <th class="text-left px-3 py-2">Subnet</th>
-      <th class="text-left px-3 py-2">Lease</th>
-      <th class="text-left px-3 py-2">Reservation</th>
-      <th class="text-left px-3 py-2">Last seen</th>
-      <th class="text-left px-3 py-2">Status</th>
+      {{ sort_th('Device', 'hostname', sort) }}
+      {{ sort_th('MAC', 'mac', sort) }}
+      {{ sort_th('Current IP', 'current_ip', sort) }}
+      {{ sort_th('Vendor', 'vendor', sort) }}
+      {{ sort_th('Subnet', 'subnet', sort) }}
+      {{ sort_th('Lease', 'lease', sort) }}
+      {{ sort_th('Reservation', 'reservation', sort) }}
+      {{ sort_th('Last seen', 'last_seen', sort) }}
+      {{ sort_th('Status', 'status', sort) }}
     </tr>
   </thead>
   <tbody class="divide-y divide-slate-800">

@@ -257,6 +257,35 @@ def test_sort_devices_default_prioritizes_problems_first():
     assert ordered[0].status == DeviceStatus.PROBLEM
 
 
+def test_sort_devices_by_mac_ascending_and_descending():
+    now = datetime.now()
+    devices = list(_build(now).values())
+
+    ascending = [d.mac for d in sort_devices(devices, "mac")]
+    assert ascending == sorted(ascending)
+
+    descending = [d.mac for d in sort_devices(devices, "-mac")]
+    assert descending == sorted(descending, reverse=True)
+    assert descending == list(reversed(ascending))
+
+
+def test_sort_devices_by_current_ip_is_numeric_not_lexical():
+    now = datetime.now()
+    devices = list(_build(now).values())
+    ordered = sort_devices(devices, "current_ip")
+    ips_with_address = [d.current_ip for d in ordered if d.current_ip]
+    assert ips_with_address == ["10.0.0.20", "10.0.0.21", "10.0.0.23", "10.0.0.31", "10.0.0.40"]
+    # devices with no current IP (gg:...:07, discovered only from history) sort last.
+    assert ordered[-1].current_ip is None
+
+
+def test_sort_devices_unknown_key_is_a_no_op_not_an_error():
+    now = datetime.now()
+    devices = list(_build(now).values())
+    result = sort_devices(devices, "not-a-real-column")
+    assert {d.mac for d in result} == {d.mac for d in devices}
+
+
 def test_large_device_inventory_is_built_correctly_and_reasonably_fast():
     import time
 

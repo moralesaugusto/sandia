@@ -419,6 +419,38 @@ def test_leases_csv_export_respects_state_filter(admin_client):
     assert b"192.168.1.50" not in response.content
 
 
+def test_leases_sort_by_ip_ascending_is_numeric_not_lexical(admin_client):
+    response = admin_client.get("/leases/table", params={"state": "", "sort": "ip"})
+    body = response.content
+    assert body.index(b"192.168.1.50") < body.index(b"192.168.1.51") < body.index(b"192.168.1.52")
+
+
+def test_leases_sort_by_ip_descending(admin_client):
+    response = admin_client.get("/leases/table", params={"state": "", "sort": "-ip"})
+    body = response.content
+    assert body.index(b"192.168.1.52") < body.index(b"192.168.1.51") < body.index(b"192.168.1.50")
+
+
+def test_leases_sort_by_mac(admin_client):
+    # fixture MACs: .50 -> 00:11:22:33:44:55, .51 -> aa:bb:cc:dd:ee:01, .52 -> aa:bb:cc:dd:ee:02
+    response = admin_client.get("/leases/table", params={"state": "", "sort": "mac"})
+    body = response.content
+    assert body.index(b"192.168.1.50") < body.index(b"192.168.1.51") < body.index(b"192.168.1.52")
+
+
+def test_leases_unknown_sort_key_is_ignored_not_an_error(admin_client):
+    response = admin_client.get("/leases/table", params={"state": "", "sort": "not-a-real-column"})
+    assert response.status_code == 200
+    assert b"192.168.1.50" in response.content
+
+
+def test_leases_table_headers_are_clickable_and_show_sort_indicator(admin_client):
+    response = admin_client.get("/leases", params={"sort": "ip"})
+    assert response.status_code == 200
+    assert b"sortTable('leases-filter-form', 'ip')" in response.content
+    assert b"&#9650;" in response.content  # ascending-sort arrow on the active column
+
+
 def test_global_search_matches_reservation_and_lease(admin_client):
     response = admin_client.get("/search/suggest", params={"q": "printer"})
     assert response.status_code == 200

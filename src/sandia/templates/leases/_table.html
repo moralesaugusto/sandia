@@ -1,14 +1,19 @@
 {% from "base.html" import icon %}
+{% macro sort_th(label, key, sort) %}
+<th class="text-left px-4 py-2 cursor-pointer select-none hover:text-white whitespace-nowrap" onclick="sortTable('leases-filter-form', '{{ key }}')">
+  {{ label }}{% if sort == key %} &#9650;{% elif sort == '-' + key %} &#9660;{% endif %}
+</th>
+{% endmacro %}
 <div class="overflow-x-auto rounded-xl border border-slate-800">
 <table class="w-full text-sm bg-slate-900">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
-      <th class="text-left px-4 py-2">IP address</th>
-      <th class="text-left px-4 py-2">MAC address</th>
-      <th class="text-left px-4 py-2">Vendor</th>
-      <th class="text-left px-4 py-2">Hostname</th>
-      <th class="text-left px-4 py-2">State</th>
-      <th class="text-left px-4 py-2">Ends</th>
+      {{ sort_th('IP address', 'ip', sort) }}
+      {{ sort_th('MAC address', 'mac', sort) }}
+      {{ sort_th('Vendor', 'vendor', sort) }}
+      {{ sort_th('Hostname', 'hostname', sort) }}
+      {{ sort_th('State', 'state', sort) }}
+      {{ sort_th('Ends', 'ends', sort) }}
       <th class="text-left px-4 py-2"></th>
     </tr>
   </thead>

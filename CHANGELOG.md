@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## 1.1.1
+
+### Added
+- Sortable Leases and Devices tables: click a column header to sort by it (ascending, then descending, then back to the default), with an arrow indicating the active column and direction. Respected by CSV export. Numeric columns (IP address) sort numerically, not lexically.
+
+### Changed
+- Page content now scales to the actual browser window width instead of being capped at a fixed 1024px, so wide tables (Devices, Leases, Audit) get the room they need instead of squeezing into a narrow column.
+- The version number shown under the logo in the sidebar was removed (redundant with the About page, which already shows it plus uptime and runtime versions).
+- Version bumped to 1.1.1.
+
 ## 1.1.0
 
 ### Added

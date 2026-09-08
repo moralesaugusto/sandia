@@ -1,3 +1,4 @@
+import ipaddress
 import shutil
 from datetime import datetime
 
@@ -12,7 +13,7 @@ from ..csv_export import csv_response
 from ..db import get_session
 from ..dhcpd import Host, Parameter, serialize
 from ..dhcpd.apply import apply_new_config
-from ..leases import Lease, load_leases
+from ..leases import Lease, load_leases, parse_lease_timestamp
 from ..leases_cleanup import clean_leases_text
 from ..models import User
 from ..rendering import render, set_flash
@@ -56,6 +57,36 @@ def _filter_by_state(leases: list[Lease], state: str) -> list[Lease]:
     return [lease for lease in leases if (lease.binding_state or "").lower() == state.lower()]
 
 
+def _ip_sort_key(ip: str) -> tuple[int, int]:
+    try:
+        return (0, int(ipaddress.IPv4Address(ip)))
+    except ValueError:
+        return (1, 0)
+
+
+# Column key -> sort value, for the clickable table headers (see
+# leases/_table.html). "sort" is the column key, optionally prefixed with
+# "-" for descending (e.g. "ip", "-ends").
+_SORT_KEYS = {
+    "ip": lambda lease: _ip_sort_key(lease.ip),
+    "mac": lambda lease: (lease.mac or "").lower(),
+    "vendor": lambda lease: (lookup_vendor(lease.mac) or "").lower(),
+    "hostname": lambda lease: (lease.hostname or "").lower(),
+    "state": lambda lease: (lease.binding_state or "").lower(),
+    "ends": lambda lease: parse_lease_timestamp(lease.ends) or datetime.min,
+}
+
+
+def _sort_leases(leases: list[Lease], sort: str) -> list[Lease]:
+    if not sort:
+        return leases
+    descending = sort.startswith("-")
+    key_fn = _SORT_KEYS.get(sort[1:] if descending else sort)
+    if key_fn is None:
+        return leases
+    return sorted(leases, key=key_fn, reverse=descending)
+
+
 @router.get("/leases")
 async def leases_page(
     request: Request,
@@ -63,8 +94,9 @@ async def leases_page(
     settings: Settings = Depends(get_settings),
     q: str = "",
     state: str = "active",
+    sort: str = "",
 ):
-    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
     return render(
         request,
@@ -73,6 +105,7 @@ async def leases_page(
         leases=leases,
         q=q,
         state=state,
+        sort=sort,
         state_options=STATE_OPTIONS,
         reserved_macs=reserved_macs,
     )
@@ -85,10 +118,11 @@ async def leases_table(
     settings: Settings = Depends(get_settings),
     q: str = "",
     state: str = "active",
+    sort: str = "",
 ):
-    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
-    return render(request, "leases/_table.html", user=user, leases=leases, reserved_macs=reserved_macs)
+    return render(request, "leases/_table.html", user=user, leases=leases, reserved_macs=reserved_macs, sort=sort)
 
 
 @router.get("/leases/export.csv")
@@ -97,8 +131,9 @@ async def export_leases_csv(
     settings: Settings = Depends(get_settings),
     q: str = "",
     state: str = "active",
+    sort: str = "",
 ):
-    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
     rows = [
         [lease.ip, lease.mac or "", lookup_vendor(lease.mac) or "", lease.hostname or "", lease.binding_state or "", lease.starts or "", lease.ends or ""]
         for lease in leases

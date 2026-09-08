@@ -16,6 +16,7 @@
 {% endif %}
 
 <form
+  id="devices-filter-form"
   class="flex flex-wrap items-center gap-3 mb-4"
   hx-get="/devices/table"
   hx-trigger="keyup changed delay:300ms from:input[name='q'], change from:select"
@@ -48,13 +49,9 @@
     {% endfor %}
   </select>
   <input type="search" name="vendor" value="{{ vendor }}" placeholder="Vendor..." class="w-36 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-  <select name="sort" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-    <option value="" {% if sort == "" %}selected{% endif %}>Sort: status, last seen</option>
-    <option value="last_seen" {% if sort == "last_seen" %}selected{% endif %}>Sort: last seen</option>
-    <option value="hostname" {% if sort == "hostname" %}selected{% endif %}>Sort: name</option>
-    <option value="mac" {% if sort == "mac" %}selected{% endif %}>Sort: MAC</option>
-  </select>
+  <input type="hidden" name="sort" value="{{ sort }}">
 </form>
+<p class="text-xs text-slate-500 -mt-2 mb-4">Click a column header to sort.</p>
 
 <form method="post" id="devices-form">
 {% if user.role in ('admin', 'operator') %}

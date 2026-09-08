@@ -87,7 +87,7 @@ async def devices_table(
 ):
     _, devices, _, _, _ = _load_devices(settings)
     rows = _apply_filters(devices, q, status, reservation, lease, subnet_key, vendor, sort)
-    return render(request, "devices/_table.html", user=user, rows=rows)
+    return render(request, "devices/_table.html", user=user, rows=rows, sort=sort)
 
 
 @router.get("/devices/export.csv")

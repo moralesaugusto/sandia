@@ -203,6 +203,17 @@ function openContextMenu(evt, url) {
 function closeContextMenu() {
   document.getElementById('context-menu').classList.add('hidden');
 }
+function sortTable(formId, key) {
+  const form = document.getElementById(formId);
+  const sortField = form.querySelector('input[name="sort"]');
+  const current = sortField.value || '';
+  sortField.value = current === key ? '-' + key : (current === '-' + key ? '' : key);
+  const params = new URLSearchParams(new FormData(form));
+  htmx.ajax('GET', form.getAttribute('hx-get') + '?' + params.toString(), {
+    target: form.getAttribute('hx-target'),
+    swap: form.getAttribute('hx-swap') || 'innerHTML',
+  });
+}
 function showToast(message, kind) {
   const container = document.getElementById('toast-container');
   const isError = kind === 'error';

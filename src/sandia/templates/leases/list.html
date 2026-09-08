@@ -9,11 +9,12 @@
       <button type="submit" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">{{ icon('trash', 'w-4 h-4') }} Clean leases</button>
     </form>
     {% endif %}
-    <a href="/leases/export.csv?q={{ q | urlencode }}&amp;state={{ state | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+    <a href="/leases/export.csv?q={{ q | urlencode }}&amp;state={{ state | urlencode }}&amp;sort={{ sort | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
   </div>
 </div>
 
 <form
+  id="leases-filter-form"
   class="flex items-center gap-3 mb-4"
   hx-get="/leases/table"
   hx-trigger="keyup changed delay:300ms from:input[name='q'], search from:input[name='q'], change from:select[name='state']"
@@ -35,7 +36,9 @@
     <option value="{{ value }}" {% if state == value %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+  <input type="hidden" name="sort" value="{{ sort }}">
 </form>
+<p class="text-xs text-slate-500 -mt-2 mb-4">Click a column header to sort.</p>
 
 <div id="leases-table">
   {% include "leases/_table.html" %}
