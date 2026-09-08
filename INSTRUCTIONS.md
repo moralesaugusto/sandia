@@ -77,10 +77,11 @@ which of the above to do about it, instead of a raw traceback.
 This starts the server bound to `0.0.0.0` (reachable from other machines on
 the network, not just localhost). On first startup it also:
 
-- Creates `sandia.db` (SQLite) and either prints a **generated admin
-  password** to stdout (copy it before it scrolls away) or, in dummy mode,
-  creates the fixed testing-only login `admin` / `admin` instead (see
-  "Changing a password" below to change either one).
+- Creates `sandia.db` (SQLite) with a default `admin` / `admin` login, in
+  every mode (real or dummy), and prints a security warning to stdout
+  telling you to change it. **Change this immediately if the app is
+  reachable from anywhere but your own machine** - see "Changing a
+  password" below.
 - Generates a self-signed HTTPS certificate (elliptic-curve, P-256) if HTTPS
   is enabled and no certificate exists yet at `<data dir>/tls/` (see below).
   If a certificate is already there, it's reused as-is; if it's ever deleted
@@ -177,8 +178,10 @@ another machine (see below) before wiring it up to a real `dhcpd.conf`.
 
 ## Changing a password
 
-`admin` / `admin` (dummy mode) is a fixed, publicly-known testing password -
-change it (and any other account's password) any of these ways:
+`admin` / `admin` is a fixed, publicly-known default password, used in
+every mode (not just dummy) so there's nothing to copy off stdout before
+logging in for the first time. **Change it before the app is reachable
+from anywhere but your own machine** - any of these ways:
 
 1. **In the web UI, for your own account**: once logged in, click "Change
    password" in the sidebar (or go to `/account/password`). Works for any
@@ -194,8 +197,8 @@ change it (and any other account's password) any of these ways:
 4. **By modifying files directly (last resort)**: delete
    `<SANDIA_DATA_DIR>/sandia.db` and restart the app - this wipes *all*
    users, sessions, and the audit log and re-runs the first-run bootstrap
-   (fixed `admin`/`admin` in dummy mode, a fresh random password otherwise).
-   Only do this when you don't need anything in the existing database.
+   (`admin` / `admin` again). Only do this when you don't need anything in
+   the existing database.
 
 ## HTTPS
 

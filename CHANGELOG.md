@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+### Changed
+
+- **Security-relevant:** the bootstrap admin account is now always
+  `admin` / `admin`, in real mode as well as dummy mode - previously, real
+  (non-dummy) mode generated a random password on first run. This is a
+  known, intentional weakening for convenience; the app now prints a
+  louder startup warning telling you to change it, and every existing way
+  to do so (UI "Change password" link, admin User edit, `--set-password`)
+  still applies. **Change the default password before exposing the app
+  beyond your own machine** - it binds to `0.0.0.0` by default and a
+  well-known credential is trivially guessable.
+
 ## 1.0.3
 
 ### Added

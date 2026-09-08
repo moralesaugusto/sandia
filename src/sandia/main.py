@@ -53,15 +53,10 @@ def _bootstrap_admin(engine, settings: Settings) -> None:
     with Session(engine) as session:
         if session.exec(select(User)).first() is not None:
             return
-        if settings.dummy_data:
-            password = "admin"
-            print("Dummy mode - created initial admin user with fixed testing-only credentials: admin / admin")
-            print("Change it: Users > admin > Edit in the UI, the 'Change password' link once logged in,")
-            print("or run 'sandia --set-password admin' from the command line.")
-        else:
-            password = secrets.token_urlsafe(16)
-            print(f"Created initial admin user - username: admin  password: {password}")
-        admin = User(username="admin", password_hash=hash_password(password), role="admin")
+        print("Created initial admin user with fixed default credentials: admin / admin")
+        print("SECURITY WARNING: change this before exposing the app beyond localhost - use the")
+        print("'Change password' link once logged in, or run 'sandia --set-password admin'.")
+        admin = User(username="admin", password_hash=hash_password("admin"), role="admin")
         session.add(admin)
         session.commit()
 

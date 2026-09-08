@@ -34,14 +34,15 @@ def test_dummy_data_seeds_files_once(tmp_path):
     assert settings.dhcpd_conf_path.read_text() == "authoritative;\n"
 
 
-def test_non_dummy_mode_never_uses_fixed_admin_password(tmp_path):
-    # admin/admin must stay exclusive to dummy mode - never a real default.
+def test_non_dummy_mode_also_bootstraps_admin_admin(tmp_path):
+    # Fixed default credentials are intentional in every mode (see
+    # main._bootstrap_admin's startup warning) - not just dummy mode.
     settings = Settings(data_dir=tmp_path / "data", dummy_data=False)
     app = create_app(settings)
 
     client = TestClient(app, base_url="http://testserver", follow_redirects=False)
     login = client.post("/login", data={"username": "admin", "password": "admin"})
-    assert login.status_code == 401
+    assert login.status_code == 303
 
 
 def test_dummy_mode_bootstraps_fixed_admin_credentials(tmp_path):
