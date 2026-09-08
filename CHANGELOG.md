@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## 1.1.0
+
+### Added
+- Devices (`/devices`): a device-centric workspace correlating reservations, current leases, historical lease records, and DHCP log activity into one row per MAC address - the primary identity for a device, not its current IP. Search, filter (status/reservation/lease/subnet/vendor), sort, CSV export, bulk-select, and a right-click context menu, reusing the existing search/filter/context-menu patterns rather than parallel implementations.
+- Device 360 (`/devices/<mac>`): identity, current network state, reservation, full lease history (every IP a MAC has held, oldest to newest), DHCP activity timeline (from the same DHCP log diagnostics already reads), an embedded diagnostics summary linking to the full report, and related-object links (subnet map, leases, reservations) - no dead ends between SVG, device, IP, lease, subnet, pool, and diagnostics.
+- "Lease IP": a device-scoped pre-action page showing the device's context, the target subnet's pool utilization, and a deterministically-suggested next free address (lowest free address in the pool) before handing off to the existing reservation form - never silently overwrites an existing reservation or a conflicting lease.
+- "Delete lease record" / bulk "Delete lease records for selected": removes Sandia's copy of a device's current lease block(s) from the leases file, backed up first - the same safe file-surgery pattern as "Clean leases". This does not live-revoke a lease (there is no OMAPI/protocol channel to dhcpd in this app); if the device is still active, dhcpd will write a new record on its next renewal, and the confirmation dialog says so.
+- "Open device"/"Diagnose device" wired into every existing context menu that identifies a MAC (leases, subnet map cells, reservations), the Dashboard (device count and device-problem count tiles), and global search (a "Search devices" shortcut).
+- Version bumped to 1.1.0.
+
+### Changed
+- Right-click menu wording standardized to "Diagnose device" everywhere a client/lease/IP can be diagnosed (previously "Diagnose client" in some menus), matching the device-centric model.
+
 ## 1.0.9
 
 ### Added

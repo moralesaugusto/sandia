@@ -143,25 +143,26 @@ def test_menu_free_cell_offers_diagnose_ip(viewer_client, settings):
     assert b"/diagnostics/client?ip=192.168.9.14" in response.content
 
 
-def test_menu_reserved_cell_offers_diagnose_reservation(viewer_client, settings):
+def test_menu_reserved_cell_offers_diagnose_device(viewer_client, settings):
     _seed(settings)
     response = viewer_client.get(f"{MAP_URL}/192.168.9.10/menu")
     assert response.status_code == 200
-    assert b"Diagnose reservation" in response.content
+    assert b"Diagnose device" in response.content
+    assert b"/devices/aa%3Aaa%3Aaa%3Aaa%3Aaa%3A01" in response.content
 
 
-def test_menu_leased_cell_offers_diagnose_client(viewer_client, settings):
+def test_menu_leased_cell_offers_diagnose_device(viewer_client, settings):
     _seed(settings)
     response = viewer_client.get(f"{MAP_URL}/192.168.9.12/menu")
     assert response.status_code == 200
-    assert b"Diagnose client" in response.content
+    assert b"Diagnose device" in response.content
 
 
-def test_menu_denied_cell_offers_diagnose_client(viewer_client, settings):
+def test_menu_denied_cell_offers_diagnose_device(viewer_client, settings):
     _seed(settings)
     response = viewer_client.get(f"{MAP_URL}/192.168.9.13/menu")
     assert response.status_code == 200
-    assert b"Diagnose client" in response.content
+    assert b"Diagnose device" in response.content
 
 
 def test_map_page_offers_diagnose_subnet_link(admin_client, settings):

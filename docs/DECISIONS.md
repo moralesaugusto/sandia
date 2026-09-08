@@ -87,3 +87,54 @@ separate entity - there's nowhere for a standalone "pool" object to live.
 overlapping range, interface mismatch, invalid reservations) and
 pool-level (exhaustion, utilization, abandoned leases) findings together,
 rather than inventing a separate pool resource to justify a separate URL.
+
+## Devices is a view, not a new data model
+
+`devices.py::build_devices()` produces `Device` objects assembled entirely
+from the existing `Host` (reservations), `Lease` (current + full history,
+via the new `parse_lease_history()`/`load_lease_history()` in `leases.py`),
+and `DhcpEvent` (diagnostics' log parser) types. A `Device` holds
+references to a `Host`/`Lease`, never copies of their fields - so there is
+exactly one place each fact comes from. MAC is the identity: a device is
+the union of every MAC seen in reservations, current leases, or lease
+history, not a per-IP or per-lease row.
+
+## "Release Lease" became "Delete lease record"
+
+Sandia has no OMAPI or other live channel to a running dhcpd - every
+existing write capability (apply config, "Clean leases") is a plain file
+edit, backed up first, never a live protocol command. There is no safe way
+to force-revoke a lease a client is actively holding. Rather than fake a
+"Release" action that can't do what its name promises, the device menu
+offers "Delete lease record": it removes Sandia's copy of the current
+lease block(s) from the leases file (same backup-first text-surgery
+pattern as `leases_cleanup.clean_leases_text()`, via the new
+`delete_lease_records()`), and both the confirmation dialog and the
+success message say plainly that if the device is still active, dhcpd
+will simply write a new record on its next renewal. "Deny this client"
+(the existing config-based mechanism) remains the answer for actually
+blocking a device.
+
+## Device status is a fixed priority chain over real timestamps
+
+`devices.py::_build_status()` picks exactly one of Problem / Active /
+Recently seen / Inactive / Reserved / Unknown, in that priority order,
+from `current_lease.is_active`, `last_seen` (computed only from parseable
+`starts` timestamps in lease history - never from the DHCP log, whose
+timestamps lack a year and aren't reliably sortable), and whether a
+reservation exists. "Recently seen" vs "Inactive" is a fixed 24-hour
+threshold (`RECENT_WINDOW`), not a tunable heuristic. Reservation-having
+and lease-having are also shown as their own table columns/filters, so
+folding them into the status enum too would be redundant - status answers
+"how urgently does this device need attention", not "what do we know
+about it".
+
+## Lease IP reuses the reservation form; it does not add a second one
+
+`GET /devices/<mac>/lease` only computes context (suggested next-free
+address via `ip_map.next_available_ip()`, pool utilization, a warning if
+the device's active lease is on a different subnet) and links to the
+existing `/reservations/new` route - the extra `subnet_key` prefill
+parameter is the only change to that route. If the device already has a
+reservation, this route redirects straight to editing it rather than
+rendering a form that could create a conflicting second one.

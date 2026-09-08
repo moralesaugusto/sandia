@@ -1,0 +1,69 @@
+{% from "base.html" import icon %}
+{% set status_colors = {
+  "problem": "red",
+  "active": "emerald",
+  "recently_seen": "amber",
+  "inactive": "slate",
+  "reserved": "pink",
+  "unknown": "slate",
+} %}
+<div class="overflow-x-auto rounded-xl border border-slate-800">
+<table class="w-full text-sm bg-slate-900">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="px-3 py-2"></th>
+      <th class="text-left px-3 py-2">Device</th>
+      <th class="text-left px-3 py-2">MAC</th>
+      <th class="text-left px-3 py-2">Current IP</th>
+      <th class="text-left px-3 py-2">Vendor</th>
+      <th class="text-left px-3 py-2">Subnet</th>
+      <th class="text-left px-3 py-2">Lease</th>
+      <th class="text-left px-3 py-2">Reservation</th>
+      <th class="text-left px-3 py-2">Last seen</th>
+      <th class="text-left px-3 py-2">Status</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for device in rows %}
+    {% set c = status_colors[device.status.value] %}
+    <tr oncontextmenu="openContextMenu(event, '/devices/{{ device.mac | urlencode }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu">
+      <td class="px-3 py-2">
+        {% if user.role in ('admin', 'operator') %}
+        <input type="checkbox" name="macs" value="{{ device.mac }}" form="devices-form" class="device-checkbox rounded bg-slate-800 border-slate-700">
+        {% endif %}
+      </td>
+      <td class="px-3 py-2">
+        <a href="/devices/{{ device.mac | urlencode }}" class="flex items-center gap-2 hover:text-emerald-400">
+          <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(device.icon, 'w-3.5 h-3.5') }}</span>
+          <span class="font-medium">{{ device.display_name }}</span>
+        </a>
+      </td>
+      <td class="px-3 py-2 font-mono text-slate-400">{{ device.mac }}</td>
+      <td class="px-3 py-2 font-mono">{{ device.current_ip or '-' }}</td>
+      <td class="px-3 py-2 text-slate-500">{{ device.vendor or '-' }}</td>
+      <td class="px-3 py-2 text-slate-500">{% if device.subnet %}{{ device.subnet.network }}/{{ device.subnet.netmask }}{% else %}-{% endif %}</td>
+      <td class="px-3 py-2">
+        {% if device.current_lease %}
+        <span class="px-2 py-0.5 rounded-full text-xs {% if device.current_lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ device.current_lease.binding_state or 'unknown' }}</span>
+        {% else %}
+        <span class="text-slate-600">none</span>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2">
+        {% if device.reservation %}
+        <span class="px-2 py-0.5 rounded-full text-xs bg-pink-950 text-pink-400">{{ device.reservation.name }}</span>
+        {% else %}
+        <span class="text-slate-600">none</span>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ device.last_seen.strftime('%Y-%m-%d %H:%M') if device.last_seen else 'unknown' }}</td>
+      <td class="px-3 py-2">
+        <span title="{{ device.status_detail }}" class="px-2 py-0.5 rounded-full text-xs bg-{{ c }}-950 text-{{ c }}-400 whitespace-nowrap">{{ device.status_label }}</span>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No devices match the current filters.</span></td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

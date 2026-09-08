@@ -22,6 +22,7 @@ from .routers import (
     auth,
     backups,
     dashboard,
+    devices,
     diagnostics,
     global_settings,
     interfaces,
@@ -89,6 +90,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(dashboard.router)
+    app.include_router(devices.router)
     app.include_router(global_settings.router)
     app.include_router(subnets.router)
     app.include_router(reservations.router)

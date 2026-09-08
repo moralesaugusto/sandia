@@ -30,6 +30,19 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   Reservations outside the pool range are listed separately below the grid.
   Pools over 1024 addresses are too large to render individually and fall
   back to the existing utilization bar.
+- Devices (`/devices`): a device-centric workspace - every DHCP client,
+  keyed by MAC (not just its current IP), correlated from reservations,
+  current leases, historical lease records, and DHCP log activity. Search,
+  filter (status/reservation/lease/subnet/vendor), sort, CSV export, and
+  bulk-select. Clicking a device opens Device 360 (`/devices/<mac>`):
+  identity, current network state, reservation, full lease history (every
+  IP it has held), a DHCP activity timeline, an embedded diagnostics
+  summary, and related links (subnet map, leases, reservations). "Lease
+  IP" shows the device's context and a deterministically-suggested next
+  free address before handing off to the reservation form - it never
+  overwrites an existing reservation. "Delete lease record" removes
+  Sandia's copy of a device's current lease from the leases file (backed
+  up first) - it does not live-revoke a lease dhcpd is still serving.
 - Diagnostics (`/diagnostics`): deterministic, evidence-based health checks
   for the server, a subnet/pool, or a client - "why didn't this client get
   an IP?" reconstructs the DHCP flow (client, DHCP log activity, subnet,
@@ -350,7 +363,7 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-242+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+297+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -363,8 +376,11 @@ logic and its context menu across every status (free, reserved, reserved
 and leased, dynamically leased, denied), the diagnostics engine (DHCP log
 parsing, server/subnet/pool/client checks, and the client root-cause
 priority chain - including that no Critical/Warning finding is ever
-reported without supporting evidence and a non-Unknown confidence), and
-the full HTTP route layer
+reported without supporting evidence and a non-Unknown confidence), the
+device inventory (discovery from active/historical leases, reservation
+correlation, multi-IP history, status/problem detection, filtering, bulk
+lease-record deletion, and every device/IP/subnet cross-navigation path),
+and the full HTTP route layer
 (login, RBAC boundaries, subnet/reservation CRUD, self-service
 password change, the "reserve from lease" flow, the Interfaces page, the
 OUI database refresh, and config-validation failure paths).

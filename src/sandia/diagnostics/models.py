@@ -71,6 +71,10 @@ class DiagnosticResult:
     target_description: str
     findings: list[Finding] = field(default_factory=list)
     steps: list[FlowStep] = field(default_factory=list)
+    # Set by diagnose_client() when a MAC was resolved (directly, or via a
+    # reservation/lease lookup) - lets the UI offer "Open device" without
+    # re-deriving identity the caller already has.
+    resolved_mac: str | None = None
 
     @property
     def status(self) -> Status:

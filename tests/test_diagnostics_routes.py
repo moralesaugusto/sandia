@@ -61,13 +61,13 @@ def test_subnet_diagnostics_viewer_can_access(viewer_client):
 def test_lease_menu_offers_diagnose_client_link(admin_client):
     response = admin_client.get("/leases/192.168.1.50/menu")
     assert response.status_code == 200
-    assert b"Diagnose client" in response.content
+    assert b"Diagnose device" in response.content
     assert b"/diagnostics/client?mac=00%3A11%3A22%3A33%3A44%3A55" in response.content
 
 
 def test_lease_menu_diagnose_link_visible_to_viewer(viewer_client):
     response = viewer_client.get("/leases/192.168.1.50/menu")
-    assert b"Diagnose client" in response.content
+    assert b"Diagnose device" in response.content
 
 
 def test_reservation_menu_offers_diagnose_link(admin_client):

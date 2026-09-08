@@ -3,6 +3,9 @@
 <div class="px-3 py-2 text-slate-500">Reservation not found</div>
 {% else %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ host.name }}</div>
+{% if host.mac %}
+<a href="/devices/{{ host.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
+{% endif %}
 <a href="/diagnostics/client?mac={{ (host.mac or '') | urlencode }}&ip={{ (host.fixed_address or '') | urlencode }}&hostname={{ host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose reservation</a>
 {% if user.role in ('admin', 'operator') %}
 <a href="/reservations/{{ host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation</a>

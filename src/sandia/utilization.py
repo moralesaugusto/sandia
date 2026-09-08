@@ -1,6 +1,6 @@
 import ipaddress
 
-from .dhcpd import Subnet
+from .dhcpd import DhcpdConfig, Subnet
 from .leases import Lease
 
 
@@ -35,6 +35,25 @@ def subnet_utilization(subnet: Subnet, leases: list[Lease]) -> tuple[int, int]:
         if start <= ip <= end:
             used += 1
     return used, total
+
+
+def find_containing_subnet(config: DhcpdConfig, ip: str) -> Subnet | None:
+    """The subnet whose network/netmask actually contains this address -
+    not necessarily the one with a matching pool range (an address can be
+    a valid reservation on a subnet without falling inside its dynamic
+    pool)."""
+    try:
+        address = ipaddress.IPv4Address(ip)
+    except ValueError:
+        return None
+    for subnet in config.subnets:
+        try:
+            network = ipaddress.ip_network(f"{subnet.network}/{subnet.netmask}", strict=False)
+        except ValueError:
+            continue
+        if address in network:
+            return subnet
+    return None
 
 
 def utilization_color(used: int, total: int) -> str:

@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-xl font-semibold mb-6">Dashboard</h1>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
     <div class="w-9 h-9 rounded-lg bg-gradient-to-br {% if service_status == 'active' %}from-emerald-500/20 to-emerald-500/5 text-emerald-400{% else %}from-red-500/20 to-red-500/5 text-red-400{% endif %} flex items-center justify-center shrink-0">{{ icon('power', 'w-5 h-5') }}</div>
     <div>
@@ -11,6 +11,20 @@
       <div class="text-lg font-medium {% if service_status == 'active' %}text-emerald-400{% else %}text-red-400{% endif %}">{{ service_status }}</div>
     </div>
   </div>
+  <a href="/devices" class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3 hover:border-slate-700">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-400 flex items-center justify-center shrink-0">{{ icon('devices', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Devices</div>
+      <div class="text-lg font-medium">{{ device_count }}</div>
+    </div>
+  </a>
+  <a href="/devices?status=problem" class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3 hover:border-slate-700">
+    <div class="w-9 h-9 rounded-lg bg-gradient-to-br {% if problem_device_count %}from-red-500/20 to-red-500/5 text-red-400{% else %}from-slate-500/20 to-slate-500/5 text-slate-400{% endif %} flex items-center justify-center shrink-0">{{ icon('warning', 'w-5 h-5') }}</div>
+    <div>
+      <div class="text-xs uppercase text-slate-500 mb-1">Device problems</div>
+      <div class="text-lg font-medium {% if problem_device_count %}text-red-400{% else %}text-slate-200{% endif %}">{{ problem_device_count }}</div>
+    </div>
+  </a>
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
     <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 text-emerald-400 flex items-center justify-center shrink-0">{{ icon('leases', 'w-5 h-5') }}</div>
     <div>

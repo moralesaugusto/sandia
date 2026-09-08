@@ -39,17 +39,42 @@
   map, reservations) plus buttons on Subnets/Service pages - see
   `CHANGELOG.md` 1.0.9.
 
+## Phase 4 - Devices workspace (done, this pass)
+
+- `devices.py`: correlates reservations, current leases, full lease
+  history, and DHCP log activity into one row per MAC - not a new data
+  model, a view over the existing `Host`/`Lease`/`DhcpEvent` types.
+  `/devices` (search/filter/sort/export/bulk-select) and `/devices/<mac>`
+  (Device 360). See `DECISIONS.md` for the status model and why "Release
+  Lease" became "Delete lease record".
+- "Lease IP" reuses the existing `/reservations/new` form (extended with a
+  `subnet_key` prefill) rather than a parallel reservation flow; it only
+  adds a context page that suggests a free address first.
+- Every context menu that identifies a MAC (leases, subnet map, now
+  reservations too) gained "Open device"/"Diagnose device"; the Dashboard
+  gained device-count/device-problem tiles reusing the existing tile
+  pattern and the same problem signals diagnostics already computes.
+
 ## Later / not scheduled
 
 - A real DHCP event *log page* (browsing/filtering all parsed log events,
   not just a given client's) - the parser now exists (`diagnostics/dhcp_log.py`)
-  but there's no UI surface for it beyond per-client/per-server diagnostics.
+  but there's no UI surface for it beyond per-client/per-server/per-device
+  diagnostics and activity views.
 - Server health page beyond what `/diagnostics/server` already reports,
   live/real-time updates (would need a push channel - today the app is
   pure request/response + htmx polling-free partials).
 - Conflict/anomaly detection beyond what's implemented in
   `diagnostics/subnet.py` (duplicate reservations, overlapping/invalid
   ranges, interface mismatches, abandoned/exhausted pools).
+- Bulk reservation creation for multiple selected devices - deferred
+  deliberately (see `DECISIONS.md`): each device needs its own target IP,
+  which is real per-device decision-making, not a mechanical loop like
+  bulk lease-record deletion.
+- Pagination/virtualization for the Devices table - not added; it follows
+  the same precedent as Leases/Reservations (search/filter to narrow down,
+  render the rest server-side). Revisit only if real inventories are large
+  enough that this stops being fast enough in practice.
 
 Pan/zoom for the SVG grid was considered for Phase 1 and deliberately
 deferred: at the current cell-count cap the grid already fits on screen

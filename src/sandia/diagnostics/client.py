@@ -10,12 +10,10 @@ stage with nothing to show renders as "unknown/insufficient evidence".
 
 from __future__ import annotations
 
-import ipaddress
-
 from ..dhcpd import DhcpdConfig, Host, Subnet
 from ..dhcpd.subnet_interface import get_subnet_interface
 from ..leases import Lease
-from ..utilization import range_bounds, subnet_utilization
+from ..utilization import find_containing_subnet, range_bounds, subnet_utilization
 from ..vendors import lookup_vendor
 from . import dhcp_log
 from .dhcp_log import DhcpEvent
@@ -29,21 +27,6 @@ def _find_reservation_by_mac(config: DhcpdConfig, mac: str) -> Host | None:
 
 def _find_reservation_by_ip(config: DhcpdConfig, ip: str) -> Host | None:
     return next((host for host in config.all_hosts if host.fixed_address == ip), None)
-
-
-def _find_containing_subnet(config: DhcpdConfig, ip: str) -> Subnet | None:
-    try:
-        address = ipaddress.IPv4Address(ip)
-    except ValueError:
-        return None
-    for subnet in config.subnets:
-        try:
-            network = ipaddress.ip_network(f"{subnet.network}/{subnet.netmask}", strict=False)
-        except ValueError:
-            continue
-        if address in network:
-            return subnet
-    return None
 
 
 def _most_recent(events: list[DhcpEvent], kind: str) -> DhcpEvent | None:
@@ -318,7 +301,7 @@ def diagnose_client(
 
     client_events = dhcp_log.events_for(events, mac, ip) if not log_unavailable else []
 
-    subnet = _find_containing_subnet(config, ip) if ip else None
+    subnet = find_containing_subnet(config, ip) if ip else None
     candidate_subnets: list[Subnet] = []
     if subnet is None and client_events:
         last_iface = next((e.iface for e in reversed(client_events) if e.iface), None)
@@ -390,4 +373,4 @@ def diagnose_client(
             )
 
     description = mac or ip or hostname or "unknown client"
-    return DiagnosticResult(title="Client diagnostics", target_description=description, findings=findings, steps=steps)
+    return DiagnosticResult(title="Client diagnostics", target_description=description, findings=findings, steps=steps, resolved_mac=mac)

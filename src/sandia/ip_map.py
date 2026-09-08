@@ -50,7 +50,7 @@ class SubnetMap:
         return math.ceil(self.total / self.columns)
 
 
-def _denied_macs(config: DhcpdConfig) -> set[str]:
+def denied_macs(config: DhcpdConfig) -> set[str]:
     return {host.mac for host in config.all_hosts if host.mac and host.get("deny") == "booting"}
 
 
@@ -73,7 +73,7 @@ def build_subnet_map(config: DhcpdConfig, subnet: Subnet, leases: list[Lease]) -
         return SubnetMap(subnet=subnet, total=total, cells=[], too_large=True, outside_range=outside_range)
 
     lease_by_ip = {lease.ip: lease for lease in leases}
-    denied_macs = _denied_macs(config)
+    denied = denied_macs(config)
 
     cells: list[Cell] = []
     for index, ip_int in enumerate(range(int(start), int(end) + 1)):
@@ -85,7 +85,7 @@ def build_subnet_map(config: DhcpdConfig, subnet: Subnet, leases: list[Lease]) -
         if host is not None:
             status = "reserved-online" if active_lease else "reserved"
         elif active_lease is not None:
-            status = "denied" if active_lease.mac in denied_macs else "leased"
+            status = "denied" if active_lease.mac in denied else "leased"
         else:
             status = "free"
 
@@ -97,3 +97,9 @@ def build_subnet_map(config: DhcpdConfig, subnet: Subnet, leases: list[Lease]) -
 def find_cell(config: DhcpdConfig, subnet: Subnet, leases: list[Lease], ip: str) -> Cell | None:
     subnet_map = build_subnet_map(config, subnet, leases)
     return next((cell for cell in subnet_map.cells if cell.ip == ip), None)
+
+
+def next_available_ip(subnet_map: SubnetMap) -> str | None:
+    """The first free address in the pool, for suggesting a reservation
+    target - deterministic (lowest free address), not random."""
+    return next((cell.ip for cell in subnet_map.cells if cell.status == "free"), None)

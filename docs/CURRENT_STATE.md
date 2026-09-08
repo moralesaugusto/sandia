@@ -33,7 +33,14 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
 - Diagnostics (`/diagnostics`, `diagnostics/`): deterministic server,
   subnet/pool, and client health checks, correlating config/leases with a
   best-effort DHCP syslog parser. Wired into every relevant context menu.
-- 242 tests, all passing as of the end of this pass.
+- Devices (`/devices`, `devices.py`): a device-centric view over the same
+  canonical data (reservations + current leases + full lease history +
+  DHCP log), keyed by MAC. Search/filter/sort/export/bulk-select, a Device
+  360 detail page (identity, network state, reservation, lease history,
+  DHCP activity, embedded diagnostics, related links), and a "Lease IP"
+  pre-action page that suggests the next free address before handing off
+  to the existing reservation form.
+- 297 tests, all passing as of the end of this pass.
 
 ## Gaps identified and closed across recent passes
 

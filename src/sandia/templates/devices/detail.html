@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}{{ device.display_name }} - Sandia{% endblock %}
+{% block content %}
+{% set status_colors = {
+  "problem": "red",
+  "active": "emerald",
+  "recently_seen": "amber",
+  "inactive": "slate",
+  "reserved": "pink",
+  "unknown": "slate",
+} %}
+{% set c = status_colors[device.status.value] %}
+{% set diag_colors = {"healthy": "emerald", "warning": "amber", "critical": "red", "unknown": "slate"} %}
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <a href="/devices" class="text-sm text-slate-500 hover:text-white">&larr; Devices</a>
+    <h1 class="text-xl font-semibold flex items-center gap-2 mt-1">
+      <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(device.icon, 'w-4 h-4') }}</span>
+      {{ device.display_name }}
+    </h1>
+    <div class="text-sm text-slate-500 font-mono mt-1">{{ device.mac }}</div>
+  </div>
+  <div class="text-right shrink-0">
+    <span class="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-{{ c }}-950 text-{{ c }}-400 border border-{{ c }}-900">{{ device.status_label }}</span>
+    <div class="text-sm text-slate-500 mt-1.5">{{ device.status_detail }}</div>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-4 mb-4">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Identity</div>
+    <dl class="text-sm space-y-2">
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">MAC address</dt><dd class="font-mono">{{ device.mac }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Hostname</dt><dd>{{ device.hostname or 'Unknown - not reported by any lease or reservation' }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Vendor</dt><dd>{{ device.vendor or 'Unknown' }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">First seen</dt><dd>{{ device.first_seen.strftime('%Y-%m-%d %H:%M') if device.first_seen else 'Unknown - no lease history retained' }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Last seen</dt><dd>{{ device.last_seen.strftime('%Y-%m-%d %H:%M') if device.last_seen else 'Unknown' }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Current network state</div>
+    <dl class="text-sm space-y-2">
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Current IP</dt><dd class="font-mono">{{ device.current_ip or 'None' }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Lease state</dt><dd>{{ device.current_lease.binding_state if device.current_lease else 'No current lease' }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Lease ends</dt><dd>{{ device.current_lease.ends if device.current_lease and device.current_lease.ends else 'Unknown' }}</dd></div>
+      <div class="flex justify-between gap-3">
+        <dt class="text-slate-500">Subnet</dt>
+        <dd>{% if device.subnet %}<a href="/subnets/{{ device.subnet.key }}/map" class="text-emerald-400 hover:underline">{{ device.subnet.network }}/{{ device.subnet.netmask }}</a>{% else %}Unknown - no address to match against a subnet{% endif %}</dd>
+      </div>
+      <div class="flex justify-between gap-3"><dt class="text-slate-500">Pool</dt><dd class="font-mono">{{ device.subnet.get('range') if device.subnet and device.subnet.get('range') else 'None' }}</dd></div>
+    </dl>
+  </div>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reservation</div>
+    {% if user.role in ('admin', 'operator') %}
+      {% if device.reservation %}
+      <a href="/reservations/{{ device.reservation.name }}/edit" class="text-sm text-emerald-400 hover:underline flex items-center gap-1">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
+      {% else %}
+      <a href="/devices/{{ device.mac | urlencode }}/lease" class="text-sm text-emerald-400 hover:underline flex items-center gap-1">{{ icon('reservations', 'w-3.5 h-3.5') }} Lease IP</a>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% if device.reservation %}
+  <dl class="text-sm space-y-2">
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">Name</dt><dd>{{ device.reservation.name }}</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">Fixed address</dt><dd class="font-mono">{{ device.reservation.fixed_address or 'not set' }}</dd></div>
+    {% set declared_hostname = device.reservation.get('host-name') %}
+    {% if declared_hostname %}<div class="flex justify-between gap-3"><dt class="text-slate-500">Declared hostname</dt><dd>{{ declared_hostname.strip('"') }}</dd></div>{% endif %}
+    {% set next_server = device.reservation.get('next-server') %}
+    {% if next_server %}<div class="flex justify-between gap-3"><dt class="text-slate-500">PXE boot server</dt><dd class="font-mono">{{ next_server }}</dd></div>{% endif %}
+  </dl>
+  {% else %}
+  <div class="text-sm text-slate-500">No reservation - this device uses the dynamic pool.</div>
+  {% endif %}
+</div>
+
+<div id="history" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Lease history</div>
+  {% if device.history %}
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="text-xs uppercase text-slate-500">
+      <tr><th class="text-left py-1.5 pr-3">IP</th><th class="text-left py-1.5 pr-3">Start</th><th class="text-left py-1.5 pr-3">End</th><th class="text-left py-1.5 pr-3">State</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-800">
+      {% for record in device.history %}
+      <tr>
+        <td class="py-1.5 pr-3 font-mono">{{ record.ip }}</td>
+        <td class="py-1.5 pr-3 text-slate-400">{{ record.starts or 'unknown' }}</td>
+        <td class="py-1.5 pr-3 text-slate-400">{{ record.ends or 'unknown' }}</td>
+        <td class="py-1.5 pr-3">{{ record.binding_state or 'unknown' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="text-sm text-slate-500">No lease history retained for this MAC (either it has never held a lease, or older records have been cleaned).</div>
+  {% endif %}
+</div>
+
+<div id="activity" class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">DHCP activity</div>
+  {% if log_unavailable %}
+  <div class="text-sm text-amber-400 flex items-center gap-2">{{ icon('warning', 'w-4 h-4 shrink-0') }} {{ log_unavailable }}</div>
+  {% elif activity %}
+  <div class="space-y-0">
+    {% for event in activity %}
+    <div class="flex gap-3">
+      <div class="flex flex-col items-center">
+        <span class="w-2.5 h-2.5 rounded-full {% if event.kind in ('DHCPNAK', 'DHCPDECLINE') %}bg-red-500{% elif event.kind == 'DHCPACK' %}bg-emerald-500{% else %}bg-slate-500{% endif %} shrink-0 mt-1"></span>
+        {% if not loop.last %}<span class="w-px flex-1 bg-slate-800"></span>{% endif %}
+      </div>
+      <div class="pb-3 flex-1 min-w-0 text-sm">
+        <span class="text-slate-500 font-mono">{{ event.timestamp }}</span>
+        <span class="font-medium">{{ event.kind }}</span>
+        {% if event.ip %}<span class="font-mono text-slate-400">{{ event.ip }}</span>{% endif %}
+        {% if event.reason %}<span class="text-slate-500">- {{ event.reason }}</span>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-sm text-slate-500">No DHCP activity found in the log for this MAC.</div>
+  {% endif %}
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  {% set dc = diag_colors[diagnosis.status.value] %}
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnostics</div>
+    <span class="px-2.5 py-1 rounded-full text-xs font-semibold uppercase bg-{{ dc }}-950 text-{{ dc }}-400 border border-{{ dc }}-900">{{ diagnosis.status.value }}</span>
+  </div>
+  {% for finding in diagnosis.findings[:1] %}
+  <div class="text-sm font-medium mb-1">{{ finding.problem }}</div>
+  {% if finding.root_cause %}<div class="text-sm text-slate-400 mb-3">{{ finding.root_cause }}</div>{% endif %}
+  {% endfor %}
+  <a href="/diagnostics/client?mac={{ device.mac | urlencode }}&ip={{ (device.current_ip or '') | urlencode }}" class="inline-flex items-center gap-1.5 text-sm text-emerald-400 hover:underline">{{ icon('diagnose', 'w-3.5 h-3.5') }} Full diagnostic report</a>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Related</div>
+  <div class="flex flex-wrap gap-2 text-sm">
+    {% if device.subnet %}
+    <a href="/subnets/{{ device.subnet.key }}/map" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">Subnet map</a>
+    <a href="/subnets/{{ device.subnet.key }}/diagnose" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">Diagnose subnet &amp; pool</a>
+    {% endif %}
+    <a href="/leases?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">View in leases</a>
+    {% if device.reservation %}
+    <a href="/reservations?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">View in reservations</a>
+    {% endif %}
+  </div>
+  {% if device.previous_ips %}
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mt-4 mb-2">Previous IPs</div>
+  <div class="flex flex-wrap gap-2 text-sm font-mono">
+    {% for ip in device.previous_ips %}
+    <span class="bg-slate-800 rounded-lg px-2.5 py-1 text-slate-300">{{ ip }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

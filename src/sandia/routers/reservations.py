@@ -208,9 +208,10 @@ async def new_reservation_form(
     mac: str = "",
     ip: str = "",
     hostname: str = "",
+    subnet_key: str = "",
 ):
     config = load_live_config(settings)
-    prefill = {"name": hostname, "mac": mac, "fixed_address": ip, "subnet_key": "", **_host_form_fields(None)}
+    prefill = {"name": hostname, "mac": mac, "fixed_address": ip, "subnet_key": subnet_key, **_host_form_fields(None)}
     return render(
         request,
         "reservations/form.html",
