@@ -34,6 +34,7 @@ from .routers import (
 from .security import hash_password
 from .tls import ensure_self_signed_cert
 from .utilization import utilization_color
+from .vendors import configure as configure_vendors
 from .vendors import lookup_vendor
 
 BASE_DIR = Path(__file__).parent
@@ -72,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
     app.state.settings = settings
     app.state.engine = create_db_engine(settings)
+    configure_vendors(settings.data_dir)
     app.state.templates = Jinja2Templates(directory=BASE_DIR / "templates")
     app.state.templates.env.globals["app_version"] = __version__
     app.state.templates.env.globals["utilization_color"] = utilization_color

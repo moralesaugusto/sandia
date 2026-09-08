@@ -1,9 +1,27 @@
-"""Small, self-contained OUI (MAC address prefix) to vendor-name lookup.
+"""OUI (MAC address prefix) to vendor-name lookup.
 
-Not a full IEEE OUI database (that's hundreds of thousands of entries) -
-just enough common vendors to make the leases/reservations tables useful
-at a glance, the same way most DHCP/IPAM UIs show a device vendor hint.
+Ships with a small built-in list of common vendors that works with zero
+setup, fully offline. If a local cache of the full IEEE OUI registry has
+been downloaded (see `oui_cache.py` and the "Update OUI database" button
+on the About page), it's consulted as a fallback for anything the built-in
+list doesn't recognize.
 """
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from . import oui_cache
+
+_data_dir: Path | None = None
+
+
+def configure(data_dir: Path) -> None:
+    """Point vendor lookups at the app's data directory, so a downloaded
+    OUI cache (if any) can be found. Called once from create_app()."""
+    global _data_dir
+    _data_dir = data_dir
+
 
 _OUI_PREFIXES: dict[str, str] = {
     "00:1A:11": "Google",
@@ -128,4 +146,9 @@ def lookup_vendor(mac: str | None) -> str | None:
     if prefix4 in _OUI_PREFIXES:
         return _OUI_PREFIXES[prefix4]
     prefix3 = ":".join(parts[:3])
-    return _OUI_PREFIXES.get(prefix3)
+    if prefix3 in _OUI_PREFIXES:
+        return _OUI_PREFIXES[prefix3]
+
+    if _data_dir is not None:
+        return oui_cache.lookup(_data_dir, prefix3)
+    return None

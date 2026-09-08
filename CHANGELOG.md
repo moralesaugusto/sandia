@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here.
 
+## 1.0.5
+
+### Added
+
+- Optional local cache of the full IEEE OUI (MAC vendor prefix) registry,
+  to improve vendor identification beyond Sandia's small built-in list.
+  A "Download/Update OUI database" button on the About page (operator/
+  admin) fetches `standards-oui.ieee.org/oui/oui.csv` and caches it to
+  `oui_cache.json` under the data directory. The refresh always runs in a
+  background thread - the button click returns immediately regardless of
+  how long the download takes, and a failed or not-yet-run fetch falls
+  back to the built-in list unchanged, never blocking or breaking vendor
+  lookups. The About page shows the cache's fetched-at timestamp and
+  entry count as its "version," so it's obvious whether you're looking at
+  built-in-only or a populated cache.
+- Version bumped to 1.0.5.
+
 ## 1.0.4
 
 ### Added

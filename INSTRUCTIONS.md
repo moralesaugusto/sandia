@@ -22,6 +22,10 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 - An Interfaces page to manage the real `INTERFACESv4` setting (which
   physical interfaces `isc-dhcp-server` actually listens on) - see
   "Interfaces page" below.
+- An optional local cache of the full IEEE OUI (MAC vendor) registry,
+  refreshed on demand from the About page, to improve vendor
+  identification beyond the small built-in list - see "OUI vendor
+  database" below.
 - Bulk-select and delete reservations, in addition to one at a time.
 - Restart/enable/disable/check the `isc-dhcp-server` service.
 - Back up and restore config, with a diff shown before any apply.
@@ -189,6 +193,30 @@ of "why isn't this subnet handing out leases" confusion. Changing
 `INTERFACESv4` requires restarting `isc-dhcp-server` to take effect (the
 service does not pick it up live).
 
+## OUI vendor database
+
+Sandia ships a small built-in list of common MAC vendor prefixes (~100
+entries) used for vendor identification on the Leases/Reservations pages,
+which works offline with zero setup. The About page (`/about`) has a
+"Download OUI database" / "Update OUI database" button (operator/admin)
+that fetches the full public IEEE OUI registry
+(`https://standards-oui.ieee.org/oui/oui.csv`, tens of thousands of
+entries) and caches it locally as `oui_cache.json` under
+`SANDIA_DATA_DIR`.
+
+- **Non-blocking**: the download runs in a background thread. The button
+  click returns immediately with a "refresh started" message; reload the
+  About page to see progress or the result.
+- **Never required**: if the fetch fails (no internet access, IEEE
+  unreachable) or hasn't been run yet, the built-in list keeps working
+  exactly as before - this is a pure enhancement, not a dependency.
+- **Version shown**: the About page shows when the cache was last fetched
+  and how many entries it holds, so you can tell built-in-only apart from
+  a populated cache at a glance.
+- The built-in list is always checked first (it has some friendlier,
+  curated names for common devices); the downloaded cache is only
+  consulted for prefixes the built-in list doesn't recognize.
+
 ## Cleaning the leases file
 
 dhcpd appends a new `lease <ip> { ... }` block to `dhcpd.leases` on every
@@ -283,16 +311,17 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-123+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+138+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
-`--set-password`), MAC vendor lookup, device-icon/OS-guess assignment,
-the extra DHCP client options round-trip, subnet interface tagging, the
-`INTERFACESv4` read/write logic, the leases-cleanup dedup logic, the
-config diff, login rate-limiting, global search, bulk reservation delete,
-and the full HTTP route layer (login, RBAC boundaries, subnet/reservation
-CRUD, self-service password change, the "reserve from lease" flow, the
-Interfaces page, and config-validation failure paths).
+`--set-password`), MAC vendor lookup (including the OUI cache fallback
+and background refresh), device-icon/OS-guess assignment, the extra DHCP
+client options round-trip, subnet interface tagging, the `INTERFACESv4`
+read/write logic, the leases-cleanup dedup logic, the config diff, login
+rate-limiting, global search, bulk reservation delete, and the full HTTP
+route layer (login, RBAC boundaries, subnet/reservation CRUD, self-service
+password change, the "reserve from lease" flow, the Interfaces page, the
+OUI database refresh, and config-validation failure paths).
 
 ## Running it standalone / porting to another machine
 

@@ -464,6 +464,44 @@ def test_viewer_cannot_clean_leases(viewer_client):
     assert response.status_code == 403
 
 
+def test_about_page_shows_builtin_only_status_by_default(admin_client):
+    response = admin_client.get("/about")
+    assert response.status_code == 200
+    assert b"Built-in list only" in response.content
+    assert b"Download OUI database" in response.content
+
+
+def test_operator_can_trigger_oui_refresh(operator_client, monkeypatch):
+    from sandia import oui_cache
+    from test_oui_cache import _FakeResponse
+
+    csv_text = "Registry,Assignment,Organization Name,Organization Address\nMA-L,AABBCC,Test Vendor,Somewhere\n"
+    monkeypatch.setattr(oui_cache.urllib.request, "urlopen", lambda req, timeout=None: _FakeResponse(csv_text.encode()))
+
+    response = operator_client.post("/about/oui-refresh")
+    assert response.status_code == 303
+
+    listing = operator_client.get("/about")
+    assert b"OUI database refresh started" in listing.content
+
+
+def test_refresh_reports_error_when_already_in_progress(operator_client, monkeypatch):
+    from sandia import oui_cache
+
+    monkeypatch.setattr(oui_cache, "start_refresh", lambda data_dir: False)
+
+    response = operator_client.post("/about/oui-refresh")
+    assert response.status_code == 303
+
+    listing = operator_client.get("/about")
+    assert b"already in progress" in listing.content
+
+
+def test_viewer_cannot_trigger_oui_refresh(viewer_client):
+    response = viewer_client.post("/about/oui-refresh")
+    assert response.status_code == 403
+
+
 def test_admin_can_manage_users(admin_client):
     create = admin_client.post("/users/new", data={"username": "newop", "password": "somepassword", "role": "operator"})
     assert create.status_code == 303
