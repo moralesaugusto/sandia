@@ -2,7 +2,8 @@
 {% block title %}Audit Log - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-6 flex items-center gap-2">{{ icon('audit', 'w-5 h-5 text-slate-500') }} Audit Log</h1>
-<table class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+<div class="overflow-x-auto rounded-xl border border-slate-800">
+<table class="w-full text-sm bg-slate-900">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
       <th class="text-left px-4 py-2">Time</th>
@@ -28,4 +29,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
