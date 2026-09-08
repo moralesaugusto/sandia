@@ -39,7 +39,7 @@
   {% for row in subnet_rows %}
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
     <div class="flex justify-between text-sm mb-2">
-      <span class="font-medium">{{ row.subnet.network }}/{{ row.subnet.netmask }}</span>
+      <a href="/subnets/{{ row.subnet.key }}/map" class="font-medium hover:text-emerald-400 hover:underline">{{ row.subnet.network }}/{{ row.subnet.netmask }}</a>
       <span class="text-slate-400">{{ row.used }} / {{ row.total }} used</span>
     </div>
     {% if row.total %}

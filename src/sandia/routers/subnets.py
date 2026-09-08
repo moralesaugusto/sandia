@@ -6,10 +6,12 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
+from ..device_icons import device_icon_for
 from ..dhcpd import Subnet, serialize
 from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
+from ..ip_map import build_subnet_map, find_cell
 from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
@@ -265,3 +267,54 @@ async def delete_subnet(
     log_action(session, request, user, "subnet_delete", key)
     set_flash(request, "Subnet deleted. Restart isc-dhcp-server to take effect.")
     return RedirectResponse("/subnets", status_code=303)
+
+
+@router.get("/subnets/{key}/map")
+async def subnet_map_page(
+    key: str,
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    subnet = config.find_subnet(key)
+    if subnet is None:
+        set_flash(request, "Subnet not found.", kind="error")
+        return RedirectResponse("/subnets", status_code=303)
+
+    leases = load_leases(settings.leases_path)
+    subnet_map = build_subnet_map(config, subnet, leases)
+    return render(request, "subnets/map.html", user=user, subnet=subnet, map=subnet_map)
+
+
+@router.get("/subnets/{key}/map/{ip}/menu")
+async def subnet_map_cell_menu(
+    key: str,
+    ip: str,
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    subnet = config.find_subnet(key)
+    if subnet is None:
+        return render(request, "subnets/_map_menu.html", user=user, subnet=None, cell=None)
+
+    leases = load_leases(settings.leases_path)
+    cell = find_cell(config, subnet, leases, ip)
+    icon_name = device_icon_for(cell.host.name, cell.host.mac) if cell and cell.host else None
+
+    deny_host = None
+    if cell and cell.status == "denied" and cell.lease and cell.lease.mac:
+        deny_host = config.find_host(f"deny-{cell.lease.mac.replace(':', '')}")
+
+    return render(
+        request,
+        "subnets/_map_menu.html",
+        user=user,
+        subnet=subnet,
+        cell=cell,
+        ip=ip,
+        icon_name=icon_name,
+        deny_host=deny_host,
+    )

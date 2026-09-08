@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## 1.0.8
+
+### Added
+- Subnet map (`/subnets/<key>/map`): an SVG grid, one cell per address in the subnet's pool range, color-coded free/leased/reserved/reserved+leased/denied, with a right-click context menu per address (reserve, edit reservation, deny/undeny, copy IP/MAC) and a client-side search box that highlights matching cells. Linked from the Subnets list and the Dashboard. Pools over 1024 addresses fall back to the existing utilization bar instead of rendering individually (see `docs/DECISIONS.md`).
+- Reservations whose fixed address falls outside their subnet's pool range are now listed on that subnet's map page.
+- Version bumped to 1.0.8.
+
+### Changed
+- The floating right-click context-menu mechanism (previously Leases-page-only) is now shared (`base.html`) so other pages can use it; the Leases page continues to work exactly as before.
+
 ## 1.0.7
 
 ### Added

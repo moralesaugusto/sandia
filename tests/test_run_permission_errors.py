@@ -43,7 +43,14 @@ def test_dummy_cli_flag_sets_env_var(monkeypatch):
     with pytest.raises(SystemExit):
         main.run(argv=["--dummy"])
 
-    assert os.environ["SANDIA_DUMMY_DATA"] == "1"
+    # main.run() sets this via raw os.environ (so it's visible to the rest
+    # of the process, e.g. Settings() constructed later) rather than through
+    # monkeypatch, so it isn't auto-reverted at teardown - clean it up
+    # explicitly or it leaks into every test that runs after this one.
+    try:
+        assert os.environ["SANDIA_DUMMY_DATA"] == "1"
+    finally:
+        del os.environ["SANDIA_DUMMY_DATA"]
 
 
 def test_version_flag_prints_version_and_exits(capsys):

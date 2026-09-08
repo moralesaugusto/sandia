@@ -22,6 +22,14 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   (All/Global/a specific subnet) narrows the list down.
 - A global search box (in the sidebar, on every page) that matches IP,
   MAC, or hostname across reservations, leases, and subnets at once.
+- A subnet map (`/subnets/<key>/map`, linked from the Subnets list and
+  Dashboard): an SVG grid, one cell per address in the subnet's pool range,
+  color-coded free/dynamically-leased/reserved/reserved-and-leased/denied,
+  with a right-click menu per address (reserve, edit reservation, deny/undeny
+  a client, copy IP/MAC) and a search box that highlights matching cells.
+  Reservations outside the pool range are listed separately below the grid.
+  Pools over 1024 addresses are too large to render individually and fall
+  back to the existing utilization bar.
 - An Interfaces page to manage the real `INTERFACESv4` setting (which
   physical interfaces `isc-dhcp-server` actually listens on) - see
   "Interfaces page" below.
@@ -331,7 +339,7 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-147+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+167+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -339,7 +347,9 @@ and background refresh), device-icon/OS-guess assignment, the extra DHCP
 client options round-trip, subnet interface tagging, the `INTERFACESv4`
 read/write logic, the leases-cleanup dedup logic, the config diff, login
 rate-limiting, global search, bulk reservation delete, the leases state
-filter and reservations subnet filter, and the full HTTP route layer
+filter and reservations subnet filter, the subnet map's per-address status
+logic and its context menu across every status (free, reserved, reserved
+and leased, dynamically leased, denied), and the full HTTP route layer
 (login, RBAC boundaries, subnet/reservation CRUD, self-service
 password change, the "reserve from lease" flow, the Interfaces page, the
 OUI database refresh, and config-validation failure paths).

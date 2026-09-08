@@ -13,7 +13,7 @@
   </thead>
   <tbody class="divide-y divide-slate-800">
     {% for lease in leases %}
-    <tr oncontextmenu="showLeaseMenu(event, '{{ lease.ip }}')" class="hover:bg-slate-800/60 cursor-context-menu">
+    <tr oncontextmenu="openContextMenu(event, '/leases/{{ lease.ip }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu">
       <td class="px-4 py-2 font-mono">{{ lease.ip }}</td>
       <td class="px-4 py-2 font-mono text-slate-400">{{ lease.mac or '-' }}</td>
       <td class="px-4 py-2 text-slate-500">{{ lease.mac | vendor or '-' }}</td>

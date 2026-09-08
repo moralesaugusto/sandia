@@ -14,6 +14,7 @@ from .config import Settings
 from .db import create_db_engine
 from .dummy_data import seed_dummy_data
 from .errors import register_exception_handlers
+from .ip_map import MAX_CELLS
 from .models import User
 from .routers import (
     about,
@@ -77,6 +78,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.templates = Jinja2Templates(directory=BASE_DIR / "templates")
     app.state.templates.env.globals["app_version"] = __version__
     app.state.templates.env.globals["utilization_color"] = utilization_color
+    app.state.templates.env.globals["max_cells"] = MAX_CELLS
     app.state.templates.env.filters["vendor"] = lookup_vendor
 
     _bootstrap_admin(app.state.engine, settings)

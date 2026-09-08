@@ -40,22 +40,4 @@
 <div id="leases-table">
   {% include "leases/_table.html" %}
 </div>
-
-<div id="context-menu" class="hidden fixed z-50 bg-slate-800 border border-slate-700 rounded-md shadow-lg text-sm py-1 min-w-44"></div>
-
-<script>
-function showLeaseMenu(evt, ip) {
-  evt.preventDefault();
-  const menu = document.getElementById('context-menu');
-  htmx.ajax('GET', `/leases/${ip}/menu`, {target: '#context-menu', swap: 'innerHTML'}).then(() => {
-    menu.style.left = evt.pageX + 'px';
-    menu.style.top = evt.pageY + 'px';
-    menu.classList.remove('hidden');
-    document.addEventListener('click', hideLeaseMenu, {once: true});
-  });
-}
-function hideLeaseMenu() {
-  document.getElementById('context-menu').classList.add('hidden');
-}
-</script>
 {% endblock %}

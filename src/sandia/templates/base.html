@@ -185,7 +185,21 @@
 {% endif %}
 <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 items-end pointer-events-none"
   {% if flash %}data-flash-message="{{ flash.message }}" data-flash-kind="{{ flash.kind }}"{% endif %}></div>
+<div id="context-menu" class="hidden fixed z-50 bg-slate-800 border border-slate-700 rounded-md shadow-lg text-sm py-1 min-w-44"></div>
 <script>
+function openContextMenu(evt, url) {
+  evt.preventDefault();
+  const menu = document.getElementById('context-menu');
+  htmx.ajax('GET', url, {target: '#context-menu', swap: 'innerHTML'}).then(() => {
+    menu.style.left = evt.pageX + 'px';
+    menu.style.top = evt.pageY + 'px';
+    menu.classList.remove('hidden');
+    document.addEventListener('click', closeContextMenu, {once: true});
+  });
+}
+function closeContextMenu() {
+  document.getElementById('context-menu').classList.add('hidden');
+}
 function showToast(message, kind) {
   const container = document.getElementById('toast-container');
   const isError = kind === 'error';
