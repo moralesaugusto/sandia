@@ -86,6 +86,23 @@ sudo .venv/bin/sandia
 If you do hit a permission error, the app prints which path failed and
 which of the above to do about it, instead of a raw traceback.
 
+**If a config change fails validation with a permission error even though
+Sandia is running as root**: that's AppArmor, not a Unix permissions bug.
+Debian/Ubuntu's `isc-dhcp-server` package ships an enforced-by-default
+AppArmor profile (`/etc/apparmor.d/usr.sbin.dhcpd`) that only grants
+`dhcpd` read access to `/etc/dhcp/**` and a handful of other fixed paths.
+AppArmor is mandatory access control on top of, and independent from,
+Unix permissions - root does not bypass it for a confined binary. Sandia
+stages the config it validates with `dhcpd -t` right next to the real
+`dhcpd.conf` (inside `/etc/dhcp/`, which the stock profile already
+allows) specifically to avoid this. If you've relocated `DHCPD_CONF_PATH`
+somewhere AppArmor doesn't cover, or you're seeing `apparmor="DENIED"`
+entries in `dmesg`/`journalctl -k` mentioning `dhcpd`, either move
+`DHCPD_CONF_PATH` back under `/etc/dhcp/`, or add the directory to a
+local AppArmor override at `/etc/apparmor.d/local/usr.sbin.dhcpd`
+(supported by the stock profile) and reload with `sudo systemctl reload
+apparmor`.
+
 This starts the server bound to `0.0.0.0` (reachable from other machines on
 the network, not just localhost). On first startup it also:
 
@@ -311,7 +328,7 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-138+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+139+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback

@@ -41,3 +41,20 @@ def test_explicit_data_dir_env_var_still_wins_in_dummy_mode(monkeypatch, tmp_pat
     settings = Settings()
 
     assert settings.data_dir == tmp_path / "explicit"
+
+
+def test_staging_path_is_colocated_with_dhcpd_conf_not_data_dir(tmp_path):
+    # Regression test: the isc-dhcp-server AppArmor profile Debian/Ubuntu
+    # ship (/etc/apparmor.d/usr.sbin.dhcpd) only grants dhcpd read access to
+    # /etc/dhcp/** (and a few other fixed paths) - not /var/lib/sandia/. If
+    # the staging file Sandia validates with `dhcpd -t` lived under
+    # data_dir, that check fails with a permission error enforced by
+    # AppArmor's mandatory access control, which root does not bypass -
+    # even when Sandia itself runs as root. So staging_path must always be
+    # a sibling of dhcpd_conf_path, never under data_dir.
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        dhcpd_conf_path=tmp_path / "etc-dhcp" / "dhcpd.conf",
+    )
+    assert settings.staging_path.parent == tmp_path / "etc-dhcp"
+    assert settings.staging_path.parent != settings.data_dir

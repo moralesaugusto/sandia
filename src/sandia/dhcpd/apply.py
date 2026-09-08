@@ -34,7 +34,7 @@ async def _run(*args: str) -> CommandResult:
 
 
 async def stage(settings: Settings, new_text: str) -> None:
-    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    settings.staging_path.parent.mkdir(parents=True, exist_ok=True)
     settings.staging_path.write_text(new_text)
 
 

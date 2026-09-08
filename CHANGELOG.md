@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented here.
 
+## 1.0.6
+
+### Fixed
+
+- **Config validation failing with a permission error even when Sandia
+  runs as root.** Root cause: Sandia staged the config it validates with
+  `dhcpd -t` under `SANDIA_DATA_DIR` (e.g. `/var/lib/sandia/`), but the
+  `isc-dhcp-server` AppArmor profile Debian/Ubuntu ship
+  (`/etc/apparmor.d/usr.sbin.dhcpd`, enforced by default) only grants
+  `dhcpd` read access to `/etc/dhcp/**` and a few other fixed paths -
+  never `/var/lib/sandia/`. AppArmor is mandatory access control,
+  independent of Unix permissions, so root does not bypass it. Confirmed
+  with a live repro: `dhcpd -t` against the old staging path produced an
+  `apparmor="DENIED" ... fsuid=0` kernel audit entry even when run as
+  root, and validating the identical content staged next to the real
+  `dhcpd.conf` succeeded. Fix: `Settings.staging_path` now always lives
+  as a sibling of `dhcpd_conf_path` (inside `/etc/dhcp/` in the default
+  real-mode setup) instead of under the data directory.
+
+### Changed
+
+- Error-kind toasts (e.g. a failed `dhcpd -t` validation) now stay open
+  until dismissed, render wider and in monospace, and have a Copy button
+  - the previous 5-second auto-dismiss and narrow width made multi-line
+  `dhcpd -t` errors easy to miss or impossible to read in full. Success
+  toasts are unchanged.
+- "About" is now a regular sidebar nav entry, not just the small version
+  number link under the logo.
+- Version bumped to 1.0.6.
+
 ## 1.0.5
 
 ### Added
