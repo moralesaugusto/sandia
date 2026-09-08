@@ -1,5 +1,7 @@
 # Sandia
 
+**S**omehow, **A**nother **N**etwork **D**HCP **I**s **A**live.
+
 *Sandía* is Spanish for watermelon - the theme (logo, color palette) runs
 with it. Under the fruit, it's a standalone web UI for managing an ISC
 isc-dhcp-server instance: a device-centric inventory of every DHCP
