@@ -190,23 +190,37 @@ function showToast(message, kind) {
   const container = document.getElementById('toast-container');
   const isError = kind === 'error';
   const toast = document.createElement('div');
-  toast.className = 'pointer-events-auto flex items-start gap-3 max-w-sm rounded-lg px-4 py-3 text-sm shadow-xl border transition-all duration-300 translate-y-2 opacity-0 ' +
-    (isError ? 'bg-red-950 text-red-300 border-red-900' : 'bg-emerald-950 text-emerald-300 border-emerald-900');
+  toast.className = 'pointer-events-auto flex items-start gap-3 rounded-lg px-4 py-3 text-sm shadow-xl border transition-all duration-300 translate-y-2 opacity-0 ' +
+    (isError ? 'max-w-xl bg-red-950 text-red-300 border-red-900' : 'max-w-sm bg-emerald-950 text-emerald-300 border-emerald-900');
   const text = document.createElement('span');
-  text.className = 'flex-1 whitespace-pre-wrap';
+  text.className = 'flex-1 whitespace-pre-wrap' + (isError ? ' font-mono text-xs leading-relaxed' : '');
   text.textContent = message;
   const closeBtn = document.createElement('button');
   closeBtn.className = 'text-current opacity-60 hover:opacity-100 shrink-0';
   closeBtn.textContent = '×';
   closeBtn.onclick = () => toast.remove();
   toast.appendChild(text);
+  if (isError) {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'text-current opacity-60 hover:opacity-100 shrink-0 text-xs underline';
+    copyBtn.textContent = 'Copy';
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(message).then(() => {
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+      });
+    };
+    toast.appendChild(copyBtn);
+  }
   toast.appendChild(closeBtn);
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
-  setTimeout(() => {
-    toast.classList.add('opacity-0');
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
+  if (!isError) {
+    setTimeout(() => {
+      toast.classList.add('opacity-0');
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
 }
 (function () {
   const container = document.getElementById('toast-container');
