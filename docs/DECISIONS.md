@@ -39,3 +39,51 @@ emerald (matches "active" badges elsewhere), reserved = pink (matches
 "reserved" badge on the Leases page), reserved *and* currently leased =
 purple (a distinct fourth state - blend of the two), denied = red (matches
 existing error/destructive color).
+
+## Diagnostics: no AI, one root cause, priority-ordered rules
+
+`diagnostics/client.py::_root_cause_findings()` is a plain if/elif chain
+over already-parsed evidence, checked in a fixed priority order (reservation
+IP conflict > explicit DHCPNAK from the log > pool exhaustion > address not
+covered by any subnet > DHCPDISCOVER with no offer). The first rule that
+applies is reported as *the* root cause; later rules are not also reported
+even if their symptoms are technically also present, so a client with a
+reservation conflict doesn't also get told the pool "looks" exhausted. This
+is the direct implementation of "when multiple symptoms share a cause,
+report the cause once" - and it's deterministic and unit-testable per rule,
+which an LLM-based diagnosis would not be.
+
+## Confidence is about the evidence, not the conclusion
+
+`Confidence.CONFIRMED` means "this fact was computed/observed directly from
+parsed data" (a count, a config value, a log line that literally says X) -
+not "we're sure this is the whole story." E.g. the server's "recent DHCP
+errors" finding is CONFIRMED that N log lines matched keywords, but its
+root-cause text only claims that much, explicitly deferring the actual
+cause to the operator reading the lines - it never claims CONFIRMED about
+something it only inferred. `Confidence.STRONG`/`POSSIBLE` are used when a
+log line's own reason text is missing and the finding is inferring from
+context (e.g. "DISCOVER logged, no OFFER ever followed" without a reason
+in the log is POSSIBLE, not STRONG - could be this client, could be
+something the log doesn't capture at all).
+
+## DHCP log is optional evidence, not a dependency
+
+`SANDIA_DHCP_LOG_PATH` (default `/var/log/syslog`) is read best-effort,
+same precedent as the OUI vendor cache: if it's missing, unreadable, or
+just doesn't mention a given client, every check still runs against
+config/leases alone and explicitly reports the log gap (a Warning on the
+server page; "insufficient evidence"/Unknown steps in client diagnostics)
+rather than silently doing less or crashing. A tail-only read (last 2MB,
+`diagnostics/dhcp_log.py::MAX_LOG_BYTES`) keeps this bounded regardless of
+how large the real syslog is.
+
+## Pool-level diagnostics live on the subnet route, not a separate one
+
+The app models a pool as a property of a subnet (its `range`), not a
+separate entity - there's nowhere for a standalone "pool" object to live.
+"Diagnose Pool" and "Diagnose Subnet" both resolve to
+`/subnets/<key>/diagnose`, which reports both subnet-level (invalid/
+overlapping range, interface mismatch, invalid reservations) and
+pool-level (exhaustion, utilization, abandoned leases) findings together,
+rather than inventing a separate pool resource to justify a separate URL.

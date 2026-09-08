@@ -22,6 +22,7 @@ from .routers import (
     auth,
     backups,
     dashboard,
+    diagnostics,
     global_settings,
     interfaces,
     leases_router,
@@ -100,6 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(about.router)
     app.include_router(search.router)
     app.include_router(interfaces.router)
+    app.include_router(diagnostics.router)
 
     return app
 

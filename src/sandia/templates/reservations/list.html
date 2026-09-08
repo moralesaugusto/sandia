@@ -38,7 +38,7 @@
 
   <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
     {% for row in rows %}
-    <div class="px-4 py-3 flex items-center justify-between">
+    <div class="px-4 py-3 flex items-center justify-between" oncontextmenu="openContextMenu(event, '/reservations/{{ row.host.name }}/menu')">
       <div class="flex items-center gap-3">
         {% if user.role in ('admin', 'operator') %}
         <input type="checkbox" name="names" value="{{ row.host.name }}" class="reservation-checkbox rounded bg-slate-800 border-slate-700 shrink-0">

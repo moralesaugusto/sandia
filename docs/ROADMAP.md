@@ -15,28 +15,41 @@
 - Large pools (over ~1024 addresses) fall back to the existing summary bar
   instead of rendering one SVG cell per address - see `DECISIONS.md`.
 
-## Phase 2 - broader context menus (not yet done)
+## Phase 2 - broader context menus (done, this pass)
 
-- Right-click on a Reservations-page row (not just via the map), matching
-  the same action set as the map's "reserved" cell menu.
-- Right-click on a Subnets-page row for subnet-level actions (Map, Edit,
-  Delete) instead of only inline links.
+- Right-click on a Reservations-page row (new `reservations/_menu.html`),
+  offering Diagnose/Edit/Delete/copy - the same shared `openContextMenu()`
+  mechanism as leases and the subnet map, not a second implementation.
+- Subnets-page rows gained a "Diagnose" inline link alongside the existing
+  Map/Edit/Delete links (that page's established pattern is inline links,
+  not a context menu - kept consistent rather than introducing a second
+  interaction style on one page).
 
-## Phase 3 - DHCP troubleshooting view (not yet done)
+## Phase 3 - DHCP diagnostics (done, this pass)
 
-- Given a MAC or IP, reconstruct what can actually be determined from
-  parsed config + leases: subnet selection, reservation match, pool
-  membership, address availability, current lease state. Evidence-only -
-  no invented diagnostics, matching `CLAUDE.md`'s troubleshooting section.
+- `src/sandia/diagnostics/`: deterministic, evidence-based checks for the
+  server, a subnet/pool, and a client - never an LLM, never a guess
+  presented as fact. See `DECISIONS.md` for the root-cause priority order.
+- Client diagnostics ("why didn't this client get an IP?") reconstructs
+  the flow from config/leases and, where available, a parsed DHCP syslog
+  (`SANDIA_DHCP_LOG_PATH`) - the first thing in this app to read DHCP
+  protocol activity (DISCOVER/OFFER/REQUEST/ACK/NAK/DECLINE/RELEASE), not
+  just lease *state*.
+- Wired into the existing context-menu system throughout (leases, subnet
+  map, reservations) plus buttons on Subnets/Service pages - see
+  `CHANGELOG.md` 1.0.9.
 
 ## Later / not scheduled
 
-- DHCP event log / operational alerts (would need to tail and parse syslog
-  output for `dhcpd`, which isn't read anywhere today - real scope, not a
-  small addition).
-- Server health page, live/real-time updates (would need a push channel -
-  today the app is pure request/response + htmx polling-free partials).
-- Conflict detection beyond `dhcpd -t`.
+- A real DHCP event *log page* (browsing/filtering all parsed log events,
+  not just a given client's) - the parser now exists (`diagnostics/dhcp_log.py`)
+  but there's no UI surface for it beyond per-client/per-server diagnostics.
+- Server health page beyond what `/diagnostics/server` already reports,
+  live/real-time updates (would need a push channel - today the app is
+  pure request/response + htmx polling-free partials).
+- Conflict/anomaly detection beyond what's implemented in
+  `diagnostics/subnet.py` (duplicate reservations, overlapping/invalid
+  ranges, interface mismatches, abandoned/exhausted pools).
 
 Pan/zoom for the SVG grid was considered for Phase 1 and deliberately
 deferred: at the current cell-count cap the grid already fits on screen

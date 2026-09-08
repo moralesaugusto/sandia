@@ -152,6 +152,18 @@ async def export_reservations_csv(
     return csv_response("reservations.csv", ["name", "mac", "vendor", "fixed_address", "subnet"], rows)
 
 
+@router.get("/reservations/{name}/menu")
+async def reservation_menu(
+    name: str,
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    host = config.find_host(name)
+    return render(request, "reservations/_menu.html", user=user, host=host)
+
+
 @router.get("/reservations/{name}/details")
 async def reservation_details(
     name: str,

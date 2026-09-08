@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Service - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-6 flex items-center gap-2">{{ icon('service', 'w-5 h-5 text-slate-500') }} {{ service_name }}</h1>
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('service', 'w-5 h-5 text-slate-500') }} {{ service_name }}</h1>
+  <a href="/diagnostics/server" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} Run diagnostics</a>
+</div>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
   <div id="service-status" hx-get="/service/status" hx-trigger="every 5s" hx-swap="innerHTML">

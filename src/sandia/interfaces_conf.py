@@ -12,6 +12,7 @@ defaults like DHCPDv4_CONF, OPTIONS, INTERFACESv6) is preserved exactly.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 _LINE_RE = re.compile(r'^[ \t]*#?[ \t]*INTERFACESv4[ \t]*=[ \t]*"(?P<value>[^"]*)"[ \t]*$', re.MULTILINE)
 
@@ -21,6 +22,10 @@ def get_interfaces(text: str) -> list[str]:
     if not match:
         return []
     return match.group("value").split()
+
+
+def read_configured_interfaces(path: Path) -> list[str]:
+    return get_interfaces(path.read_text()) if path.exists() else []
 
 
 def set_interfaces(text: str, interfaces: list[str]) -> str:

@@ -10,7 +10,7 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..dhcpd.subnet_interface import get_subnet_interface
-from ..interfaces_conf import get_interfaces, set_interfaces
+from ..interfaces_conf import read_configured_interfaces, set_interfaces
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -28,7 +28,7 @@ async def interfaces_page(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
 ):
-    interfaces = get_interfaces(_read(settings.interfaces_conf_path))
+    interfaces = read_configured_interfaces(settings.interfaces_conf_path)
 
     config = load_live_config(settings)
     subnet_interfaces = [

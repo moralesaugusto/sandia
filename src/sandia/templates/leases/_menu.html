@@ -1,6 +1,7 @@
 {% from "base.html" import icon %}
 {% if lease %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ lease.ip }}</div>
+<a href="/diagnostics/client?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose client</a>
 {% if user.role in ('admin', 'operator') %}
   {% if not reserved_host %}
   <a href="/reservations/new?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this lease</a>

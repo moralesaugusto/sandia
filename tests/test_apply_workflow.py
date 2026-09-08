@@ -84,3 +84,43 @@ async def test_run_returns_clean_failure_when_binary_missing():
 
     assert not result.ok
     assert result.stderr
+    assert result.command_missing is True
+
+
+async def test_check_live_config_validates_the_file_on_disk_not_staging(settings, monkeypatch):
+    settings.dhcpd_conf_path.write_text("authoritative;\n")
+
+    calls = []
+
+    async def fake_run(*args):
+        calls.append(args)
+        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+
+    monkeypatch.setattr(apply_module, "_run", fake_run)
+
+    result = await apply_module.check_live_config(settings)
+
+    assert result.ok
+    assert calls == [("dhcpd", "-t", "-cf", str(settings.dhcpd_conf_path))]
+
+
+async def test_check_live_config_reports_missing_file_without_running_dhcpd(settings, monkeypatch):
+    calls = []
+
+    async def fake_run(*args):
+        calls.append(args)
+        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+
+    monkeypatch.setattr(apply_module, "_run", fake_run)
+
+    result = await apply_module.check_live_config(settings)
+
+    assert not result.ok
+    assert "does not exist" in result.stderr
+    assert calls == []  # never shelled out for a file that isn't there
+
+
+async def test_check_live_config_skips_validation_in_dummy_mode(tmp_path):
+    dummy_settings = Settings(data_dir=tmp_path / "data", dummy_data=True)
+    result = await apply_module.check_live_config(dummy_settings)
+    assert result.ok

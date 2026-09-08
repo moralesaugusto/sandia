@@ -15,6 +15,7 @@ class Settings:
     data_dir: Path | None = None
     dhcpd_conf_path: Path = field(default_factory=lambda: Path(os.environ.get("DHCPD_CONF_PATH", "/etc/dhcp/dhcpd.conf")))
     leases_path: Path = field(default_factory=lambda: Path(os.environ.get("DHCPD_LEASES_PATH", "/var/lib/dhcp/dhcpd.leases")))
+    dhcp_log_path: Path = field(default_factory=lambda: Path(os.environ.get("SANDIA_DHCP_LOG_PATH", "/var/log/syslog")))
     interfaces_conf_path: Path = field(
         default_factory=lambda: Path(os.environ.get("SANDIA_INTERFACES_CONF", "/etc/default/isc-dhcp-server"))
     )
@@ -47,6 +48,7 @@ class Settings:
             self.leases_path = self.data_dir / "dummy" / "dhcpd.leases"
             self.backup_dir = self.data_dir / "dummy" / "backups"
             self.interfaces_conf_path = self.data_dir / "dummy" / "isc-dhcp-server-defaults"
+            self.dhcp_log_path = self.data_dir / "dummy" / "dhcpd.log"
 
     @property
     def db_path(self) -> Path:

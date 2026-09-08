@@ -13,6 +13,11 @@ class CommandResult:
     ok: bool
     stdout: str
     stderr: str
+    # True only when the command itself couldn't be found/executed (e.g.
+    # `dhcpd` not installed) - distinct from the command running and
+    # reporting a real failure. Diagnostics needs this distinction to avoid
+    # claiming "config is invalid" when it actually just couldn't check.
+    command_missing: bool = False
 
 
 @dataclass
@@ -28,7 +33,7 @@ async def _run(*args: str) -> CommandResult:
             *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
     except FileNotFoundError as exc:
-        return CommandResult(ok=False, stdout="", stderr=str(exc))
+        return CommandResult(ok=False, stdout="", stderr=str(exc), command_missing=True)
     stdout, stderr = await proc.communicate()
     return CommandResult(ok=proc.returncode == 0, stdout=stdout.decode(), stderr=stderr.decode())
 
@@ -42,6 +47,18 @@ async def check_config(settings: Settings) -> CommandResult:
     if settings.dummy_data:
         return CommandResult(ok=True, stdout="dummy mode: skipping dhcpd -t", stderr="")
     return await _run("dhcpd", "-t", "-cf", str(settings.staging_path))
+
+
+async def check_live_config(settings: Settings) -> CommandResult:
+    """Validate the config file actually on disk, read-only - unlike
+    check_config(), this never touches the staging file, so it's safe to
+    call from diagnostics without disturbing an in-progress raw-config
+    edit the user may have staged but not applied yet."""
+    if settings.dummy_data:
+        return CommandResult(ok=True, stdout="dummy mode: skipping dhcpd -t", stderr="")
+    if not settings.dhcpd_conf_path.exists():
+        return CommandResult(ok=False, stdout="", stderr=f"{settings.dhcpd_conf_path} does not exist")
+    return await _run("dhcpd", "-t", "-cf", str(settings.dhcpd_conf_path))
 
 
 async def install_config(settings: Settings) -> CommandResult:

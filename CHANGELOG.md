@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## 1.0.9
+
+### Added
+- Diagnostics: deterministic, evidence-based health checks for the server, a subnet/pool, and a client (`/diagnostics`, `/diagnostics/server`, `/diagnostics/client`, `/subnets/<key>/diagnose`). Every result reports status (Healthy/Warning/Critical/Unknown), problem, root cause, confidence (Confirmed/Strong/Possible/Unknown), evidence, impact, and navigable next actions - never a guess presented as fact.
+- Client diagnostics ("why didn't this client get an IP?") reconstructs the DHCP flow (Client -> DHCP activity -> Subnet -> Reservation -> Pool -> Address availability -> DHCP response -> Lease) from parsed config/leases and, where available, the DHCP log (`SANDIA_DHCP_LOG_PATH`, default `/var/log/syslog`) - correlating pool exhaustion, DHCPNAK/DHCPDECLINE, reservation/IP conflicts, and interface-tag mismatches into a single root cause rather than listing every symptom separately.
+- Subnet/pool diagnostics detect exhaustion, high utilization, abandoned leases, duplicate/invalid reservations, overlapping or malformed pool ranges, and interface-tag mismatches.
+- "Diagnose" actions added to the existing right-click context menus (leases, subnet map cells, and a new one on the Reservations list) and as buttons on the Subnets list, subnet map, and Service pages - reusing the same context-menu mechanism throughout, not a second implementation. Launching from a menu always carries the object's MAC/IP/hostname along, so the admin never re-enters it.
+- Version bumped to 1.0.9.
+
 ## 1.0.8
 
 ### Added

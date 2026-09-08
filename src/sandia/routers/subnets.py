@@ -11,6 +11,8 @@ from ..dhcpd import Subnet, serialize
 from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
+from ..diagnostics import diagnose_subnet
+from ..interfaces_conf import read_configured_interfaces
 from ..ip_map import build_subnet_map, find_cell
 from ..leases import load_leases
 from ..models import User
@@ -285,6 +287,32 @@ async def subnet_map_page(
     leases = load_leases(settings.leases_path)
     subnet_map = build_subnet_map(config, subnet, leases)
     return render(request, "subnets/map.html", user=user, subnet=subnet, map=subnet_map)
+
+
+@router.get("/subnets/{key}/diagnose")
+async def subnet_diagnostics(
+    key: str,
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    subnet = config.find_subnet(key)
+    if subnet is None:
+        set_flash(request, "Subnet not found.", kind="error")
+        return RedirectResponse("/subnets", status_code=303)
+
+    leases = load_leases(settings.leases_path)
+    configured_interfaces = read_configured_interfaces(settings.interfaces_conf_path)
+    result = diagnose_subnet(config, subnet, leases, configured_interfaces)
+    return render(
+        request,
+        "diagnostics/result.html",
+        user=user,
+        result=result,
+        back_url=f"/subnets/{key}/map",
+        back_label="Subnet map",
+    )
 
 
 @router.get("/subnets/{key}/map/{ip}/menu")

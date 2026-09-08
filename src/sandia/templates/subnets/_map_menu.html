@@ -5,6 +5,7 @@
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ cell.ip }}</div>
 
 {% if cell.status in ('reserved', 'reserved-online') %}
+  <a href="/diagnostics/client?mac={{ (cell.host.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ cell.host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose reservation</a>
   {% if user.role in ('admin', 'operator') %}
   <a href="/reservations/{{ cell.host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation "{{ cell.host.name }}"</a>
   <form method="post" action="/reservations/{{ cell.host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
@@ -16,6 +17,7 @@
   {% endif %}
 
 {% elif cell.status == 'leased' %}
+  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose client</a>
   {% if user.role in ('admin', 'operator') %}
   <a href="/reservations/new?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this lease</a>
   <form method="post" action="/leases/{{ cell.ip }}/deny" onsubmit="return confirm('Deny this client from obtaining a lease?');">
@@ -28,6 +30,7 @@
 
 {% elif cell.status == 'denied' %}
   <div class="px-3 py-2 text-red-400 flex items-center gap-2">{{ icon('block', 'w-4 h-4') }} Client denied</div>
+  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose client</a>
   {% if deny_host and user.role in ('admin', 'operator') %}
   <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit denial</a>
   {% endif %}
@@ -36,6 +39,7 @@
   {% endif %}
 
 {% else %}
+  <a href="/diagnostics/client?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose IP</a>
   {% if user.role in ('admin', 'operator') %}
   <a href="/reservations/new?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this IP</a>
   {% endif %}

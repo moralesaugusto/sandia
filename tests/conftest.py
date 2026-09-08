@@ -33,6 +33,10 @@ def settings(tmp_path) -> Settings:
         leases_path=leases,
         backup_dir=backup_dir,
         interfaces_conf_path=interfaces_conf,
+        # Explicit and non-existent by default (rather than falling through
+        # to the real default of /var/log/syslog) so tests are deterministic
+        # regardless of what's on the machine running them.
+        dhcp_log_path=tmp_path / "dhcpd.log",
     )
 
 

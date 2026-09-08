@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ result.title }} - Sandia{% endblock %}
+{% block content %}
+{% set status_colors = {"healthy": "emerald", "warning": "amber", "critical": "red", "unknown": "slate"} %}
+{% set confidence_colors = {"confirmed": "emerald", "strong": "amber", "possible": "slate", "unknown": "slate"} %}
+{% set overall = status_colors[result.status.value] %}
+
+<div class="flex items-start justify-between mb-6 gap-4">
+  <div>
+    <a href="{{ back_url }}" class="text-sm text-slate-500 hover:text-white">&larr; {{ back_label }}</a>
+    <h1 class="text-xl font-semibold flex items-center gap-2 mt-1">{{ icon('diagnose', 'w-5 h-5 text-slate-500') }} {{ result.title }}</h1>
+    <div class="text-sm text-slate-500 font-mono">{{ result.target_description }}</div>
+  </div>
+  <span class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-{{ overall }}-950 text-{{ overall }}-400 border border-{{ overall }}-900">{{ result.status.value }}</span>
+</div>
+
+{% for finding in result.findings %}
+{% set fc = status_colors[finding.status.value] %}
+{% set cc = confidence_colors[finding.confidence.value] %}
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="w-2.5 h-2.5 rounded-full bg-{{ fc }}-500 shrink-0"></span>
+    <h2 class="font-semibold">{{ finding.problem }}</h2>
+    <span class="ml-auto shrink-0 px-2 py-0.5 rounded-full text-xs bg-{{ cc }}-950 text-{{ cc }}-400">{{ finding.confidence.value }}</span>
+  </div>
+
+  {% if finding.root_cause %}
+  <div class="mb-3">
+    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Root cause</div>
+    <div class="text-sm text-slate-200">{{ finding.root_cause }}</div>
+  </div>
+  {% endif %}
+
+  {% if finding.evidence %}
+  <div class="mb-3">
+    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Evidence</div>
+    <div class="text-sm font-mono bg-slate-950/50 rounded-lg p-3 space-y-1">
+      {% for e in finding.evidence %}
+      <div class="flex gap-2"><span class="text-slate-500 shrink-0">{{ e.label }}:</span><span class="text-slate-300 break-all">{{ e.value }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if finding.impact %}
+  <div class="mb-3">
+    <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Impact</div>
+    <div class="text-sm text-slate-400">{{ finding.impact }}</div>
+  </div>
+  {% endif %}
+
+  {% if finding.actions %}
+  <div class="flex flex-wrap gap-2 mt-3">
+    {% for action in finding.actions %}
+    <a href="{{ action.url }}" class="text-sm bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">{{ action.label }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if result.steps %}
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 mt-8">DHCP flow</h2>
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+  {% for step in result.steps %}
+  {% set sc = status_colors[step.status.value] %}
+  <div class="flex gap-3">
+    <div class="flex flex-col items-center">
+      <span class="w-3 h-3 rounded-full bg-{{ sc }}-500 shrink-0 mt-1"></span>
+      {% if not loop.last %}<span class="w-px flex-1 bg-slate-800"></span>{% endif %}
+    </div>
+    <div class="pb-6 flex-1 min-w-0">
+      <div class="font-medium text-sm">{{ step.name }}</div>
+      <div class="text-sm text-slate-400">{{ step.detail }}</div>
+      {% if step.evidence %}
+      <div class="mt-1.5 text-xs font-mono text-slate-500 space-y-0.5 break-all">
+        {% for e in step.evidence %}
+        <div>{{ e.label }}: {{ e.value }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

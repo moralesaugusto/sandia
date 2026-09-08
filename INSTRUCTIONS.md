@@ -30,6 +30,17 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   Reservations outside the pool range are listed separately below the grid.
   Pools over 1024 addresses are too large to render individually and fall
   back to the existing utilization bar.
+- Diagnostics (`/diagnostics`): deterministic, evidence-based health checks
+  for the server, a subnet/pool, or a client - "why didn't this client get
+  an IP?" reconstructs the DHCP flow (client, DHCP log activity, subnet,
+  reservation, pool, address availability, DHCP response, lease) from
+  parsed config/leases and, where readable, the DHCP log
+  (`SANDIA_DHCP_LOG_PATH`, default `/var/log/syslog`). Every result reports
+  status, root cause, confidence, evidence, impact, and next actions - if
+  the evidence doesn't support a conclusion, it says so explicitly rather
+  than guessing. Reachable from the sidebar, or via a "Diagnose" action in
+  the leases/subnet-map/reservations context menus and the Service page,
+  which carries the object's MAC/IP/hostname along automatically.
 - An Interfaces page to manage the real `INTERFACESv4` setting (which
   physical interfaces `isc-dhcp-server` actually listens on) - see
   "Interfaces page" below.
@@ -339,7 +350,7 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-167+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+242+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -349,7 +360,11 @@ read/write logic, the leases-cleanup dedup logic, the config diff, login
 rate-limiting, global search, bulk reservation delete, the leases state
 filter and reservations subnet filter, the subnet map's per-address status
 logic and its context menu across every status (free, reserved, reserved
-and leased, dynamically leased, denied), and the full HTTP route layer
+and leased, dynamically leased, denied), the diagnostics engine (DHCP log
+parsing, server/subnet/pool/client checks, and the client root-cause
+priority chain - including that no Critical/Warning finding is ever
+reported without supporting evidence and a non-Unknown confidence), and
+the full HTTP route layer
 (login, RBAC boundaries, subnet/reservation CRUD, self-service
 password change, the "reserve from lease" flow, the Interfaces page, the
 OUI database refresh, and config-validation failure paths).

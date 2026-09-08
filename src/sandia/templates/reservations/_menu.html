@@ -1,0 +1,19 @@
+{% from "base.html" import icon %}
+{% if not host %}
+<div class="px-3 py-2 text-slate-500">Reservation not found</div>
+{% else %}
+<div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ host.name }}</div>
+<a href="/diagnostics/client?mac={{ (host.mac or '') | urlencode }}&ip={{ (host.fixed_address or '') | urlencode }}&hostname={{ host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose reservation</a>
+{% if user.role in ('admin', 'operator') %}
+<a href="/reservations/{{ host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation</a>
+<form method="post" action="/reservations/{{ host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
+  <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} Delete reservation</button>
+</form>
+{% endif %}
+{% if host.mac %}
+<button type="button" onclick="navigator.clipboard.writeText('{{ host.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+{% endif %}
+{% if host.fixed_address %}
+<button type="button" onclick="navigator.clipboard.writeText('{{ host.fixed_address }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy IP address</button>
+{% endif %}
+{% endif %}

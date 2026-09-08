@@ -27,23 +27,28 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
   subnet interface tags against it.
 - Auth/RBAC (admin/operator/viewer), audit log, login rate-limiting, self-signed
   HTTPS, OUI vendor DB (built-in + optional downloaded cache).
-- 147 tests, all passing as of the start of this pass.
+- Subnet map (`/subnets/<key>/map`): SVG per-address grid with a shared,
+  reusable right-click context-menu mechanism (`openContextMenu()` in
+  `base.html`), used by leases, the map, and reservations.
+- Diagnostics (`/diagnostics`, `diagnostics/`): deterministic server,
+  subnet/pool, and client health checks, correlating config/leases with a
+  best-effort DHCP syslog parser. Wired into every relevant context menu.
+- 242 tests, all passing as of the end of this pass.
 
-## Gap identified at the start of this pass
+## Gaps identified and closed across recent passes
 
-Project instructions describe an "SVG-based subnet/IP visualization" and
-broad multi-object right-click context menus as existing core features to be
-preserved. Neither existed in the codebase: subnet utilization was a single
-bar (no per-IP visual), and the only working right-click context menu was on
-the Leases table. This was verified by reading every template and router, not
-assumed from the instructions.
-
-This pass adds the SVG per-IP subnet map as a new first-class surface (see
-`ROADMAP.md`) rather than "preserving" something that wasn't there, and
-generalizes the existing lease context-menu JS so new surfaces can reuse it.
+Project instructions describe an "SVG-based subnet/IP visualization",
+broad multi-object right-click context menus, and DHCP diagnostics as
+existing core features to preserve. At the start none of them existed:
+subnet utilization was a single bar, the only context menu was on Leases,
+and there was no correlation of config/leases/logs into a diagnosis. Each
+was verified against the actual codebase (grep, reading every template and
+router) before being built, rather than assumed from the instructions. Both
+gaps are now closed - see `ROADMAP.md` Phases 1-3.
 
 ## Not yet implemented (from the product-direction wishlist)
 
-DHCP troubleshooting view, DHCP event log, operational alerts, server health
-page, live/real-time updates, conflict detection beyond `dhcpd -t` validation.
+A browsable DHCP event log (the parser exists; there's no page listing all
+events, only per-client/per-server diagnostics), operational alerts/paging,
+a server health page beyond `/diagnostics/server`, live/real-time updates.
 See `ROADMAP.md`.

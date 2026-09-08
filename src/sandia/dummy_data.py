@@ -84,6 +84,25 @@ lease 10.0.5.75 {
 }
 """
 
+DUMMY_DHCP_LOG = """\
+Sep  2 08:00:00 sandia-demo dhcpd[1234]: DHCPDISCOVER from b8:27:eb:12:34:56 via eth0
+Sep  2 08:00:00 sandia-demo dhcpd[1234]: DHCPOFFER on 192.168.50.50 to b8:27:eb:12:34:56 via eth0
+Sep  2 08:00:00 sandia-demo dhcpd[1234]: DHCPREQUEST for 192.168.50.50 (192.168.50.1) from b8:27:eb:12:34:56 via eth0
+Sep  2 08:00:00 sandia-demo dhcpd[1234]: DHCPACK on 192.168.50.50 to b8:27:eb:12:34:56 via eth0
+Sep  2 09:15:00 sandia-demo dhcpd[1234]: DHCPDISCOVER from ac:de:48:22:33:44 via eth0
+Sep  2 09:15:00 sandia-demo dhcpd[1234]: DHCPOFFER on 192.168.50.101 to ac:de:48:22:33:44 via eth0
+Sep  2 09:15:00 sandia-demo dhcpd[1234]: DHCPREQUEST for 192.168.50.101 (192.168.50.1) from ac:de:48:22:33:44 via eth0
+Sep  2 09:15:00 sandia-demo dhcpd[1234]: DHCPACK on 192.168.50.101 to ac:de:48:22:33:44 via eth0
+Sep  2 10:00:00 sandia-demo dhcpd[1234]: DHCPDISCOVER from 18:65:71:22:33:44 via eth0
+Sep  2 10:00:00 sandia-demo dhcpd[1234]: DHCPOFFER on 192.168.50.103 to 18:65:71:22:33:44 via eth0
+Sep  2 10:00:00 sandia-demo dhcpd[1234]: DHCPREQUEST for 192.168.50.103 (192.168.50.1) from 18:65:71:22:33:44 via eth0
+Sep  2 10:00:00 sandia-demo dhcpd[1234]: DHCPACK on 192.168.50.103 to 18:65:71:22:33:44 via eth0
+Sep  2 11:05:12 sandia-demo dhcpd[1234]: DHCPREQUEST for 192.168.50.220 from aa:bb:cc:00:11:22 via eth0: unknown lease 192.168.50.220
+Sep  2 11:05:12 sandia-demo dhcpd[1234]: DHCPNAK on 192.168.50.220 to aa:bb:cc:00:11:22 via eth0
+Sep  2 11:05:13 sandia-demo dhcpd[1234]: DHCPDISCOVER from aa:bb:cc:00:11:22 via eth0
+Sep  2 12:40:07 sandia-demo dhcpd[1234]: DHCPDISCOVER from de:ad:be:ef:00:01 via eth1: no free leases
+"""
+
 
 def seed_dummy_data(settings: Settings) -> None:
     """Write synthetic dhcpd.conf/leases files for exploring the UI without
@@ -100,3 +119,7 @@ def seed_dummy_data(settings: Settings) -> None:
     settings.interfaces_conf_path.parent.mkdir(parents=True, exist_ok=True)
     if not settings.interfaces_conf_path.exists():
         settings.interfaces_conf_path.write_text(DUMMY_INTERFACES_CONF)
+
+    settings.dhcp_log_path.parent.mkdir(parents=True, exist_ok=True)
+    if not settings.dhcp_log_path.exists():
+        settings.dhcp_log_path.write_text(DUMMY_DHCP_LOG)

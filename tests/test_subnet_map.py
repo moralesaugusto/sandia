@@ -133,3 +133,39 @@ def test_reserve_this_ip_link_prefills_new_reservation_form(operator_client, set
     response = operator_client.get("/reservations/new", params={"ip": "192.168.9.14"})
     assert response.status_code == 200
     assert b"192.168.9.14" in response.content
+
+
+def test_menu_free_cell_offers_diagnose_ip(viewer_client, settings):
+    _seed(settings)
+    response = viewer_client.get(f"{MAP_URL}/192.168.9.14/menu")
+    assert response.status_code == 200
+    assert b"Diagnose IP" in response.content
+    assert b"/diagnostics/client?ip=192.168.9.14" in response.content
+
+
+def test_menu_reserved_cell_offers_diagnose_reservation(viewer_client, settings):
+    _seed(settings)
+    response = viewer_client.get(f"{MAP_URL}/192.168.9.10/menu")
+    assert response.status_code == 200
+    assert b"Diagnose reservation" in response.content
+
+
+def test_menu_leased_cell_offers_diagnose_client(viewer_client, settings):
+    _seed(settings)
+    response = viewer_client.get(f"{MAP_URL}/192.168.9.12/menu")
+    assert response.status_code == 200
+    assert b"Diagnose client" in response.content
+
+
+def test_menu_denied_cell_offers_diagnose_client(viewer_client, settings):
+    _seed(settings)
+    response = viewer_client.get(f"{MAP_URL}/192.168.9.13/menu")
+    assert response.status_code == 200
+    assert b"Diagnose client" in response.content
+
+
+def test_map_page_offers_diagnose_subnet_link(admin_client, settings):
+    _seed(settings)
+    response = admin_client.get(MAP_URL)
+    assert response.status_code == 200
+    assert b"/subnets/192.168.9.0_255.255.255.0/diagnose" in response.content

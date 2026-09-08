@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Diagnostics - Sandia{% endblock %}
+{% block content %}
+<h1 class="text-xl font-semibold mb-2 flex items-center gap-2">{{ icon('diagnose', 'w-5 h-5 text-slate-500') }} Diagnostics</h1>
+<p class="text-sm text-slate-500 mb-6">Evidence-based checks correlating configuration, leases, reservations, and the DHCP log - never a guess presented as fact.</p>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6 max-w-lg">
+  <h2 class="font-medium mb-1">Diagnose a client</h2>
+  <p class="text-sm text-slate-500 mb-4">"Why didn't this client get an IP?" - enter a MAC address, IP address, or hostname.</p>
+  <form method="get" action="/diagnostics/client" class="flex flex-col gap-3">
+    <input name="mac" placeholder="MAC address (optional)" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <input name="ip" placeholder="IP address (optional)" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <input name="hostname" placeholder="Hostname (optional)" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <button class="self-start flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('diagnose', 'w-4 h-4') }} Diagnose</button>
+  </form>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg mb-6">
+  <h2 class="font-medium mb-1">Server diagnostics</h2>
+  <p class="text-sm text-slate-500 mb-4">Service status, configuration validity, lease database access, interfaces, and recent DHCP log errors.</p>
+  <a href="/diagnostics/server" class="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('service', 'w-4 h-4') }} Run server diagnostics</a>
+</div>
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Subnet &amp; pool diagnostics</h2>
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
+  {% for subnet in subnets %}
+  <a href="/subnets/{{ subnet.key }}/diagnose" class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-slate-800/60">{{ icon('subnets', 'w-4 h-4 text-slate-500') }} {{ subnet.network }}/{{ subnet.netmask }}</a>
+  {% else %}
+  <div class="px-4 py-6 text-sm text-slate-500 flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No subnets configured yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

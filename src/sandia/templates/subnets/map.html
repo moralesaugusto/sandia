@@ -20,9 +20,12 @@
     <a href="/subnets" class="text-sm text-slate-500 hover:text-white">&larr; Subnets</a>
     <h1 class="text-xl font-semibold flex items-center gap-2 mt-1">{{ icon('subnets', 'w-5 h-5 text-slate-500') }} {{ subnet.network }} / {{ subnet.netmask }}</h1>
   </div>
-  {% if user.role in ('admin', 'operator') %}
-  <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-4 h-4') }} Edit subnet</a>
-  {% endif %}
+  <div class="flex items-center gap-4">
+    <a href="/subnets/{{ subnet.key }}/diagnose" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} Diagnose subnet &amp; pool</a>
+    {% if user.role in ('admin', 'operator') %}
+    <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-4 h-4') }} Edit subnet</a>
+    {% endif %}
+  </div>
 </div>
 
 {% if not map.total %}

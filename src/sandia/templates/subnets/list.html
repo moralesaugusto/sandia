@@ -18,6 +18,7 @@
       </div>
       <div class="flex gap-3 text-sm">
         <a href="/subnets/{{ row.subnet.key }}/map" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('subnets', 'w-3.5 h-3.5') }} Map</a>
+        <a href="/subnets/{{ row.subnet.key }}/diagnose" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('diagnose', 'w-3.5 h-3.5') }} Diagnose</a>
         {% if user.role in ('admin', 'operator') %}
         <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
         <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm('Delete this subnet?');">
