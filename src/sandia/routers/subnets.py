@@ -9,6 +9,7 @@ from ..db import get_session
 from ..dhcpd import Subnet, serialize
 from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
+from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
 from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
@@ -71,9 +72,10 @@ def _apply_subnet_fields(
     subnet.body = apply_extra_options(subnet.body, MANAGED_SUBNET_FIELDS, extra_options)
 
 
-def _subnet_form_fields(subnet: Subnet | None) -> dict:
+def _subnet_form_fields(config, subnet: Subnet | None) -> dict:
     if subnet is None:
         return {
+            "interface": "",
             "ntp_servers": "",
             "next_server": "",
             "boot_filename": "",
@@ -82,6 +84,7 @@ def _subnet_form_fields(subnet: Subnet | None) -> dict:
             "extra_options": "",
         }
     return {
+        "interface": get_subnet_interface(config, subnet) or "",
         "ntp_servers": subnet.get("ntp-servers") or "",
         "next_server": subnet.get("next-server") or "",
         "boot_filename": _unquote(subnet.get("filename")),
@@ -102,13 +105,18 @@ async def list_subnets(
     rows = []
     for subnet in config.subnets:
         used, total = subnet_utilization(subnet, leases)
-        rows.append({"subnet": subnet, "used": used, "total": total})
+        rows.append({"subnet": subnet, "used": used, "total": total, "interface": get_subnet_interface(config, subnet)})
     return render(request, "subnets/list.html", user=user, rows=rows)
 
 
 @router.get("/subnets/new")
-async def new_subnet_form(request: Request, user: User = Depends(require_role("operator"))):
-    return render(request, "subnets/form.html", user=user, subnet=None, is_new=True, prefill=_subnet_form_fields(None))
+async def new_subnet_form(
+    request: Request,
+    user: User = Depends(require_role("operator")),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    return render(request, "subnets/form.html", user=user, subnet=None, is_new=True, prefill=_subnet_form_fields(config, None))
 
 
 @router.post("/subnets/new")
@@ -121,6 +129,7 @@ async def create_subnet(
     netmask: str = Form(...),
     range_start: str = Form(...),
     range_end: str = Form(...),
+    interface: str = Form(""),
     routers: str = Form(""),
     broadcast_address: str = Form(""),
     domain_name_servers: str = Form(""),
@@ -152,6 +161,7 @@ async def create_subnet(
         extra_options,
     )
     config.nodes.append(subnet)
+    set_subnet_interface(config, subnet, interface.strip())
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
@@ -159,7 +169,8 @@ async def create_subnet(
         set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/subnets/new", status_code=303)
 
-    log_action(session, request, user, "subnet_create", f"{network}/{netmask}")
+    detail = f"{network}/{netmask}" + (f" on {interface}" if interface else "")
+    log_action(session, request, user, "subnet_create", detail)
     set_flash(request, "Subnet created. Restart isc-dhcp-server to take effect.")
     return RedirectResponse("/subnets", status_code=303)
 
@@ -176,7 +187,7 @@ async def edit_subnet_form(
     if subnet is None:
         set_flash(request, "Subnet not found.", kind="error")
         return RedirectResponse("/subnets", status_code=303)
-    return render(request, "subnets/form.html", user=user, subnet=subnet, is_new=False, prefill=_subnet_form_fields(subnet))
+    return render(request, "subnets/form.html", user=user, subnet=subnet, is_new=False, prefill=_subnet_form_fields(config, subnet))
 
 
 @router.post("/subnets/{key}/edit")
@@ -188,6 +199,7 @@ async def update_subnet(
     settings: Settings = Depends(get_settings),
     range_start: str = Form(...),
     range_end: str = Form(...),
+    interface: str = Form(""),
     routers: str = Form(""),
     broadcast_address: str = Form(""),
     domain_name_servers: str = Form(""),
@@ -218,6 +230,7 @@ async def update_subnet(
         max_lease_time,
         extra_options,
     )
+    set_subnet_interface(config, subnet, interface.strip())
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:

@@ -7,10 +7,11 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..csv_export import csv_response
 from ..db import get_session
-from ..device_icons import device_icon_for
+from ..device_icons import DEVICE_LABELS, device_icon_for, guess_os
 from ..dhcpd import Host, serialize
 from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
+from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -126,6 +127,42 @@ async def export_reservations_csv(
         for host in hosts
     ]
     return csv_response("reservations.csv", ["name", "mac", "vendor", "fixed_address", "subnet"], rows)
+
+
+@router.get("/reservations/{name}/details")
+async def reservation_details(
+    name: str,
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    host = config.find_host(name)
+    if host is None:
+        return render(request, "reservations/_details.html", user=user, host=None)
+
+    subnet = _host_subnet_map(config).get(name)
+    icon_name = device_icon_for(host.name, host.mac)
+
+    active_lease = None
+    if host.mac:
+        active_lease = next(
+            (lease for lease in load_leases(settings.leases_path) if lease.mac == host.mac and lease.is_active),
+            None,
+        )
+
+    details = {
+        "vendor": lookup_vendor(host.mac),
+        "device_icon": icon_name,
+        "device_label": DEVICE_LABELS.get(icon_name, "Unknown device"),
+        "os_guess": guess_os(host.name, host.mac),
+        "subnet_label": f"{subnet.network}/{subnet.netmask}" if subnet else "Global",
+        "client_hostname": _unquote(host.get("host-name")),
+        "next_server": host.get("next-server"),
+        "boot_filename": _unquote(host.get("filename")),
+        "active_lease": active_lease,
+    }
+    return render(request, "reservations/_details.html", user=user, host=host, details=details)
 
 
 @router.get("/reservations/new")

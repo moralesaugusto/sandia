@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{% if is_new %}New Subnet{% else %}Edit Subnet{% endif %} - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-6">{% if is_new %}New Subnet{% else %}Edit Subnet {{ subnet.network }}/{{ subnet.netmask }}{% endif %}</h1>
+<h1 class="text-xl font-semibold mb-2">{% if is_new %}New Subnet{% else %}Edit Subnet {{ subnet.network }}/{{ subnet.netmask }}{% endif %}</h1>
+<p class="text-sm text-slate-500 mb-6">The interface tag is stored as a comment above the subnet block - dhcpd itself has no per-subnet "interface" statement, so this is for your own organization on a multi-homed server, not a live directive. Actual interface binding still comes from IP addressing and the service's own configuration.</p>
 <form method="post" action="{% if is_new %}/subnets/new{% else %}/subnets/{{ subnet.key }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg">
   <div class="grid grid-cols-2 gap-4">
     <div>
@@ -20,6 +21,10 @@
       <input value="{{ subnet.netmask }}" disabled class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-500">
       {% endif %}
     </div>
+  </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1">Interface <span class="text-slate-600">(organizational tag only - see note below)</span></label>
+    <input name="interface" value="{{ prefill.interface }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono" placeholder="eth0">
   </div>
   <div class="grid grid-cols-2 gap-4">
     <div>

@@ -4,14 +4,19 @@
 
 Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 
-- Edit `dhcpd.conf` - global settings, subnets/scopes, static reservations
-  (including Webmin-style client options: hostname, PXE boot server/file,
-  lease-time overrides, and a free-form "extra options" field for anything
-  else), or the raw file directly (with a diff preview before applying).
+- Edit `dhcpd.conf` - global settings, subnets/scopes (optionally tagged
+  with an interface name for your own organization - see "Subnet
+  interface tags" below), static reservations (including Webmin-style
+  client options: hostname, PXE boot server/file, lease-time overrides,
+  and a free-form "extra options" field for anything else), or the raw
+  file directly (with a diff preview before applying).
 - Browse and search leases, with MAC vendor identification, CSV export,
-  and a right-click menu to reserve or deny a client from an observed
-  lease (or jump straight to editing the reservation if it's already
-  reserved).
+  a right-click menu to reserve or deny a client from an observed lease
+  (or jump straight to editing the reservation if it's already reserved),
+  and a "Clean leases" action to compact out stale renewal history.
+- A "Details" panel on every reservation showing everything Sandia knows
+  about that host: vendor, device type, a best-effort OS guess, client
+  options, and whether it currently has an active lease.
 - A global search box (in the sidebar, on every page) that matches IP,
   MAC, or hostname across reservations, leases, and subnets at once.
 - Bulk-select and delete reservations, in addition to one at a time.
@@ -144,6 +149,35 @@ In short: run the app as yourself day-to-day (browsing leases, dummy mode,
 editing config drafts), and re-run it with `sudo` for the session where you
 actually want to apply that config or restart the service.
 
+## Subnet interface tags
+
+Subnets can be tagged with an interface name (e.g. `eth2`) from the
+subnet form. **This is organizational metadata, not a live directive**:
+ISC dhcpd has no `interface` statement inside a `subnet` block - which
+physical interface actually serves a subnet is determined by IP
+addressing and how the `isc-dhcp-server` service itself is started
+(`INTERFACESv4` in `/etc/default/isc-dhcp-server`), not by anything in
+`dhcpd.conf`. Trying to make it a real directive (`interface eth2;` inside
+the subnet) would simply fail `dhcpd -t` and get rejected before it ever
+reached the live file.
+
+So the tag is stored as a `# interface: eth2` comment immediately above
+the subnet's declaration - valid syntax dhcpd ignores, that round-trips
+safely and is editable/clearable from the form. It's there to help you
+keep track of which subnet belongs to which physical interface on a
+multi-homed server; it doesn't change dhcpd's actual behavior.
+
+## Cleaning the leases file
+
+dhcpd appends a new `lease <ip> { ... }` block to `dhcpd.leases` on every
+renewal instead of rewriting the old one in place, so a long-running
+server accumulates history. "Clean leases" on the Leases page (admin/
+operator) keeps only the current block per IP and removes the rest -
+every other byte in the file (header comments, `server-duid`, anything
+else it doesn't need to touch, and the current state of every lease) is
+left completely alone, and a timestamped backup is taken first. It's a
+no-op if there's nothing stale to remove.
+
 ## Trying it with dummy data (no real dhcpd, no root/sudo needed)
 
 To just look at and click through the UI - without installing
@@ -227,15 +261,15 @@ manual `openssl` step needed. The cert and key live at
 uv run pytest
 ```
 
-85+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+105+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
-`--set-password`), MAC vendor lookup, device-icon assignment, the extra
-DHCP client options round-trip, the config diff, login rate-limiting,
-global search, bulk reservation delete, and the full HTTP route layer
-(login, RBAC boundaries,
-subnet/reservation CRUD, self-service password change, the "reserve from
-lease" flow, and config-validation failure paths).
+`--set-password`), MAC vendor lookup, device-icon/OS-guess assignment,
+the extra DHCP client options round-trip, subnet interface tagging, the
+leases-cleanup dedup logic, the config diff, login rate-limiting, global
+search, bulk reservation delete, and the full HTTP route layer (login,
+RBAC boundaries, subnet/reservation CRUD, self-service password change,
+the "reserve from lease" flow, and config-validation failure paths).
 
 ## Running it standalone / porting to another machine
 

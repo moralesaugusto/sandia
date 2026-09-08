@@ -71,3 +71,64 @@ def device_icon_for(name: str, mac: str | None) -> str:
             return icon_name
 
     return "device-generic"
+
+
+DEVICE_LABELS: dict[str, str] = {
+    "device-printer": "Printer",
+    "device-phone": "Phone / tablet",
+    "device-laptop": "Computer",
+    "device-tv": "TV / media player",
+    "device-camera": "Camera",
+    "device-server": "Server / NAS",
+    "device-iot": "IoT device",
+    "device-network": "Network equipment",
+    "device-game": "Game console",
+    "device-generic": "Unknown device",
+}
+
+# Hostname/vendor -> best-effort OS guess. There's no real client
+# fingerprinting here (that would need the DHCP options a client actually
+# sent, which the lease file doesn't record) - this is the same class of
+# heuristic as the device icon, just for OS, and is always shown as a
+# guess in the UI rather than a fact.
+_HOSTNAME_OS_HINTS: list[tuple[str, str]] = [
+    ("iphone", "iOS"),
+    ("ipad", "iPadOS"),
+    ("macbook", "macOS"),
+    ("imac", "macOS"),
+    ("android", "Android"),
+    ("pixel", "Android"),
+]
+
+_VENDOR_OS_HINTS: list[tuple[str, str]] = [
+    ("Raspberry Pi", "Linux (likely Raspberry Pi OS)"),
+    ("Espressif", "Embedded firmware (ESP8266/ESP32)"),
+    ("Apple", "iOS/macOS"),
+    ("Samsung", "Android"),
+    ("Sonos", "Embedded firmware"),
+    ("Roku", "Embedded firmware"),
+    ("Nintendo", "Console firmware"),
+    ("PlayStation", "Console firmware"),
+    ("Ubiquiti", "Network device firmware"),
+    ("TP-Link", "Network device firmware"),
+    ("Netgear", "Network device firmware"),
+    ("Cisco", "Network device firmware"),
+    ("Dell", "Windows or Linux (likely)"),
+    ("Lenovo", "Windows or Linux (likely)"),
+    ("HP", "Windows or Linux (likely)"),
+    ("Microsoft", "Windows"),
+]
+
+
+def guess_os(name: str, mac: str | None) -> str | None:
+    lowered = name.lower()
+    for hint, os_name in _HOSTNAME_OS_HINTS:
+        if hint in lowered:
+            return os_name
+
+    vendor = lookup_vendor(mac) or ""
+    for hint, os_name in _VENDOR_OS_HINTS:
+        if hint in vendor:
+            return os_name
+
+    return None

@@ -2,7 +2,39 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 1.0.4
+
+### Added
+
+- Subnet-to-interface tagging: subnets can now be tagged with an interface
+  name (e.g. `eth2`) when creating or editing them, shown as a badge on
+  the Subnets list. **Important caveat, shown in the UI too:** ISC dhcpd
+  has no `interface` statement inside a `subnet` block - which physical
+  interface serves a subnet is actually determined by IP addressing and
+  the service's own startup configuration, not dhcpd.conf. So this is
+  stored as a `# interface: eth2` comment immediately above the subnet
+  (valid syntax, safely round-trips, editable/clearable from the form) -
+  an organizational label for a multi-homed server, not a live directive.
+  Injecting a real `interface eth2;` parameter would simply fail `dhcpd
+  -t` and get rejected by the existing validate-before-apply pipeline.
+- "Clean leases" on the Leases page (admin/operator): dhcpd appends a new
+  lease block on every renewal rather than rewriting the old one, so the
+  leases file accumulates history. This compacts it down to just the
+  current block per IP, leaving every other byte in the file (header
+  comments, `server-duid`, unrelated declarations, the current state of
+  every lease) completely untouched, and takes a timestamped backup
+  first. No-ops cleanly if there's nothing stale to remove.
+- Reservation details: a "Details" icon next to every reservation (visible
+  to all roles, not just admin/operator) opens a panel with everything
+  Sandia knows about that host - MAC address, vendor (OUI lookup), device
+  type, a best-effort OS guess, fixed IP/subnet, configured client options
+  (hostname/PXE boot), and whether it currently has an active lease and
+  when it expires. The OS guess is explicitly labeled as a guess, not a
+  fact - there's no real client fingerprinting data available (that would
+  need DHCP options the client sent, which the lease file doesn't record),
+  so it's inferred from hostname keywords and MAC vendor the same way the
+  device-type icon is, and says so plainly when nothing matches.
+- Version bumped to 1.0.4.
 
 ### Changed
 

@@ -1,3 +1,6 @@
+import shutil
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
@@ -10,6 +13,7 @@ from ..db import get_session
 from ..dhcpd import Host, Parameter, serialize
 from ..dhcpd.apply import apply_new_config
 from ..leases import Lease, load_leases
+from ..leases_cleanup import clean_leases_text
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -71,6 +75,41 @@ async def export_leases_csv(
         ["ip", "mac", "vendor", "hostname", "binding_state", "starts", "ends"],
         rows,
     )
+
+
+@router.post("/leases/clean")
+async def clean_leases(
+    request: Request,
+    user: User = Depends(require_role("operator")),
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    """Compact the leases file: keep only the current (last) block per IP,
+    dropping superseded renewal history. Never touches any other content
+    in the file, and backs up the original first."""
+    if not settings.leases_path.exists():
+        set_flash(request, "No leases file found.", kind="error")
+        return RedirectResponse("/leases", status_code=303)
+
+    text = settings.leases_path.read_text()
+    cleaned, removed = clean_leases_text(text)
+    if removed == 0:
+        set_flash(request, "Leases file is already clean - no stale records found.")
+        return RedirectResponse("/leases", status_code=303)
+
+    try:
+        settings.backup_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
+        shutil.copyfile(settings.leases_path, settings.backup_dir / f"dhcpd.leases.{stamp}")
+        settings.leases_path.write_text(cleaned)
+    except OSError as exc:
+        log_action(session, request, user, "leases_clean_failed", str(exc), success=False)
+        set_flash(request, f"Failed to clean leases file: {exc}", kind="error")
+        return RedirectResponse("/leases", status_code=303)
+
+    log_action(session, request, user, "leases_clean", f"removed {removed} stale lease record(s)")
+    set_flash(request, f"Cleaned {removed} stale lease record(s) from the leases file.")
+    return RedirectResponse("/leases", status_code=303)
 
 
 @router.get("/leases/{ip}/menu")

@@ -3,7 +3,14 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">Leases</h1>
-  <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <div class="flex items-center gap-4">
+    {% if user.role in ('admin', 'operator') %}
+    <form method="post" action="/leases/clean" onsubmit="return confirm('Clean the leases file? This keeps the current state of every lease and only removes superseded renewal history. A backup is taken first.');">
+      <button type="submit" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">{{ icon('trash', 'w-4 h-4') }} Clean leases</button>
+    </form>
+    {% endif %}
+    <a href="/leases/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  </div>
 </div>
 
 <div class="relative w-full max-w-sm mb-4">

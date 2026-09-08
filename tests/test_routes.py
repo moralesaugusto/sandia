@@ -112,6 +112,26 @@ def test_operator_can_create_reservation(operator_client):
     assert b"de:ad:be:ef:00:01" in listing.content
 
 
+def test_reservation_details_shows_known_fields(admin_client):
+    response = admin_client.get("/reservations/printer/details")
+    assert response.status_code == 200
+    assert b"00:11:22:33:44:55" in response.content
+    assert b"192.168.1.50" in response.content
+    assert b"192.168.1.0/255.255.255.0" in response.content
+
+
+def test_reservation_details_viewer_can_access(viewer_client):
+    response = viewer_client.get("/reservations/printer/details")
+    assert response.status_code == 200
+    assert b"192.168.1.50" in response.content
+
+
+def test_reservation_details_unknown_host(admin_client):
+    response = admin_client.get("/reservations/does-not-exist/details")
+    assert response.status_code == 200
+    assert b"not found" in response.content
+
+
 def test_reservation_client_options_round_trip(operator_client, settings):
     operator_client.post(
         "/reservations/new",
@@ -177,6 +197,36 @@ def test_subnet_client_options_round_trip(operator_client, settings):
     assert "default-lease-time 300;" in conf
     assert "max-lease-time 3600;" in conf
     assert 'option tftp-server-name "tftp.local";' in conf
+
+
+def test_subnet_interface_tag_round_trip(operator_client, settings):
+    operator_client.post(
+        "/subnets/new",
+        data={
+            "network": "192.168.89.0",
+            "netmask": "255.255.255.0",
+            "range_start": "192.168.89.10",
+            "range_end": "192.168.89.50",
+            "interface": "eth2",
+        },
+    )
+    conf = settings.dhcpd_conf_path.read_text()
+    assert "# interface: eth2" in conf
+
+    listing = operator_client.get("/subnets")
+    assert b"eth2" in listing.content
+
+    edit_page = operator_client.get("/subnets/192.168.89.0_255.255.255.0/edit")
+    assert b'value="eth2"' in edit_page.content
+
+    # changing it should not leave the old tag behind
+    operator_client.post(
+        "/subnets/192.168.89.0_255.255.255.0/edit",
+        data={"range_start": "192.168.89.10", "range_end": "192.168.89.50", "interface": "eth3"},
+    )
+    conf_after = settings.dhcpd_conf_path.read_text()
+    assert "# interface: eth3" in conf_after
+    assert "# interface: eth2" not in conf_after
 
 
 def test_bulk_delete_reservations(operator_client, settings):
@@ -337,6 +387,39 @@ def test_backups_created_after_first_apply(operator_client, settings):
     listing = operator_client.get("/backups")
     assert listing.status_code == 200
     assert b"dhcpd.conf." in listing.content
+
+
+def test_clean_leases_removes_stale_history(operator_client, settings):
+    before = settings.leases_path.read_text()
+    assert before.count("lease 192.168.1.50") == 2  # the fixture has one superseded duplicate
+
+    response = operator_client.post("/leases/clean")
+    assert response.status_code == 303
+
+    after = settings.leases_path.read_text()
+    assert after.count("lease 192.168.1.50") == 1
+    assert "192.168.1.51" in after  # untouched leases still present
+    assert "192.168.1.52" in after
+
+    backups = list(settings.backup_dir.glob("dhcpd.leases.*"))
+    assert len(backups) == 1
+    assert backups[0].read_text() == before
+
+    listing = operator_client.get("/leases")
+    assert b"Cleaned 1 stale lease record" in listing.content
+
+
+def test_clean_leases_is_a_no_op_when_already_clean(operator_client, settings):
+    operator_client.post("/leases/clean")  # first pass removes the one duplicate
+    response = operator_client.post("/leases/clean")  # second pass: nothing left to clean
+    assert response.status_code == 303
+    listing = operator_client.get("/leases")
+    assert b"already clean" in listing.content
+
+
+def test_viewer_cannot_clean_leases(viewer_client):
+    response = viewer_client.post("/leases/clean")
+    assert response.status_code == 403
 
 
 def test_admin_can_manage_users(admin_client):

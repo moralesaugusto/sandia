@@ -12,7 +12,10 @@
   {% for row in rows %}
   <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
     <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2 font-medium">{{ icon('subnets', 'w-4 h-4 text-slate-500') }} {{ row.subnet.network }} / {{ row.subnet.netmask }}</div>
+      <div class="flex items-center gap-2 font-medium">
+        {{ icon('subnets', 'w-4 h-4 text-slate-500') }} {{ row.subnet.network }} / {{ row.subnet.netmask }}
+        {% if row.interface %}<span class="flex items-center gap-1 text-xs font-mono font-normal text-emerald-400 bg-emerald-950 rounded-full px-2 py-0.5">{{ icon('device-network', 'w-3 h-3') }} {{ row.interface }}</span>{% endif %}
+      </div>
       {% if user.role in ('admin', 'operator') %}
       <div class="flex gap-3 text-sm">
         <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
