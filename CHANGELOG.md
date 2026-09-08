@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## 1.1.2
+
+### Changed
+- "Global Settings" renamed to "Advanced Settings" in the sidebar, and now groups Raw Config, Service, and Backups underneath it as a collapsible submenu (auto-expanded when one of those pages is active). No route/URL changes.
+- Version bumped to 1.1.2.
+
 ## 1.1.1
 
 ### Added

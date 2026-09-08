@@ -15,6 +15,7 @@
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    summary::-webkit-details-marker { display: none; }
   </style>
 </head>
 <body class="h-full bg-slate-950 text-slate-100">
@@ -57,6 +58,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"/><path d="M16.3 4.8v3.2h-3.2M7.7 19.2V16h3.2"/></svg>
 {% elif name == "check" %}
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.5 17 19 6.5"/></svg>
+{% elif name == "chevron-right" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5 15.5 12 9 18.5"/></svg>
 {% elif name == "diff" %}
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="7.5" height="15" rx="1.5"/><rect x="13" y="4.5" width="7.5" height="15" rx="1.5"/><path d="M7.25 9v4M16.75 11h-4"/></svg>
 {% elif name == "send" %}
@@ -141,11 +144,34 @@
           ('/reservations', 'Reservations', 'reservations'),
           ('/leases', 'Leases', 'leases'),
           ('/interfaces', 'Interfaces', 'device-network'),
-          ('/settings', 'Global Settings', 'settings'),
-          ('/config/raw', 'Raw Config', 'raw'),
+        ] %}
+        <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          {{ icon(icon_name) }}
+          {{ label }}
+        </a>
+        {% endfor %}
+        {% set advanced_paths = ['/settings', '/config/raw', '/service', '/backups'] %}
+        <details class="group" {% if request.url.path in advanced_paths %}open{% endif %}>
+          <summary class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer list-none transition-colors {% if request.url.path in advanced_paths %}text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+            {{ icon('settings') }}
+            <span class="flex-1">Advanced Settings</span>
+            {{ icon('chevron-right', 'w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-90') }}
+          </summary>
+          <div class="mt-0.5 mb-0.5 flex flex-col gap-0.5 ml-4 pl-3 border-l border-slate-800">
+            {% for sub_href, sub_label in [
+              ('/settings', 'General'),
+              ('/config/raw', 'Raw Config'),
+              ('/service', 'Service'),
+              ('/backups', 'Backups'),
+            ] %}
+            <a href="{{ sub_href }}" class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.url.path == sub_href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+              {{ sub_label }}
+            </a>
+            {% endfor %}
+          </div>
+        </details>
+        {% for href, label, icon_name in [
           ('/diagnostics', 'Diagnostics', 'diagnose'),
-          ('/service', 'Service', 'service'),
-          ('/backups', 'Backups', 'backups'),
           ('/about', 'About', 'info'),
         ] %}
         <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
