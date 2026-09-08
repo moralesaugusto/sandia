@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 1.0.7
+
+### Added
+- Leases page: a state filter (Active/Free/Expired/Released/Abandoned/Backup/Reset/All), defaulting to **Active** since the leases file accumulates stale history dhcpd never removes. Combines with the existing search box; respected by CSV export.
+- Reservations page: a subnet filter (All subnets/Global/a specific subnet). Respected by CSV export.
+- Version bumped to 1.0.7.
+
 ## 1.0.6
 
 ### Fixed

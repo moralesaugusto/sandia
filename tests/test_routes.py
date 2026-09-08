@@ -301,6 +301,35 @@ def test_viewer_cannot_bulk_delete(viewer_client):
     assert response.status_code == 403
 
 
+def test_reservations_subnet_filter_defaults_to_all(admin_client):
+    # Fixture has "printer" nested in 192.168.1.0/24, "server1" and "laptop"
+    # global (laptop is inside a group, not a subnet).
+    response = admin_client.get("/reservations")
+    assert b"printer" in response.content
+    assert b"server1" in response.content
+    assert b"laptop" in response.content
+
+
+def test_reservations_subnet_filter_narrows_to_one_subnet(admin_client):
+    response = admin_client.get("/reservations", params={"subnet_key": "192.168.1.0_255.255.255.0"})
+    assert b"printer" in response.content
+    assert b"server1" not in response.content
+    assert b"laptop" not in response.content
+
+
+def test_reservations_subnet_filter_global_only(admin_client):
+    response = admin_client.get("/reservations", params={"subnet_key": "__global__"})
+    assert b"printer" not in response.content
+    assert b"server1" in response.content
+    assert b"laptop" in response.content
+
+
+def test_reservations_csv_export_respects_subnet_filter(admin_client):
+    response = admin_client.get("/reservations/export.csv", params={"subnet_key": "__global__"})
+    assert b"printer" not in response.content
+    assert b"server1" in response.content
+
+
 def test_duplicate_reservation_name_is_rejected(operator_client):
     operator_client.post(
         "/reservations/new",
@@ -360,6 +389,34 @@ def test_leases_search_filters_table(admin_client):
     response = admin_client.get("/leases/table", params={"q": "192.168.1.52"})
     assert b"192.168.1.52" in response.content
     assert b"192.168.1.51" not in response.content
+
+
+def test_leases_page_defaults_to_active_state_only(admin_client):
+    # Fixture: .50 and .52 are active, .51 is free.
+    response = admin_client.get("/leases")
+    assert b"192.168.1.50" in response.content
+    assert b"192.168.1.52" in response.content
+    assert b"192.168.1.51" not in response.content
+
+
+def test_leases_state_filter_can_show_all(admin_client):
+    response = admin_client.get("/leases", params={"state": ""})
+    assert b"192.168.1.50" in response.content
+    assert b"192.168.1.51" in response.content
+    assert b"192.168.1.52" in response.content
+
+
+def test_leases_state_filter_can_narrow_to_free(admin_client):
+    response = admin_client.get("/leases/table", params={"state": "free"})
+    assert b"192.168.1.51" in response.content
+    assert b"192.168.1.50" not in response.content
+    assert b"192.168.1.52" not in response.content
+
+
+def test_leases_csv_export_respects_state_filter(admin_client):
+    response = admin_client.get("/leases/export.csv", params={"state": "free"})
+    assert b"192.168.1.51" in response.content
+    assert b"192.168.1.50" not in response.content
 
 
 def test_global_search_matches_reservation_and_lease(admin_client):

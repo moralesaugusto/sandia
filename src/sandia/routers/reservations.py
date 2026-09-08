@@ -45,6 +45,19 @@ def _filter_hosts(hosts: list[Host], q: str) -> list[Host]:
     ]
 
 
+# Sentinel for "hosts with no subnet" (a top-level/global reservation) -
+# distinct from "" (no filter, show every subnet).
+GLOBAL_SUBNET_FILTER = "__global__"
+
+
+def _filter_hosts_by_subnet(hosts: list[Host], host_subnet: dict, subnet_key: str) -> list[Host]:
+    if not subnet_key:
+        return hosts
+    if subnet_key == GLOBAL_SUBNET_FILTER:
+        return [host for host in hosts if host.name not in host_subnet]
+    return [host for host in hosts if host_subnet.get(host.name) and host_subnet[host.name].key == subnet_key]
+
+
 def _unquote(value: str | None) -> str:
     return (value or "").strip('"')
 
@@ -96,15 +109,24 @@ async def list_reservations(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
     q: str = "",
+    subnet_key: str = "",
 ):
     config = load_live_config(settings)
     host_subnet = _host_subnet_map(config)
-    hosts = _filter_hosts(config.all_hosts, q)
+    hosts = _filter_hosts_by_subnet(_filter_hosts(config.all_hosts, q), host_subnet, subnet_key)
     rows = [
         {"host": host, "subnet": host_subnet.get(host.name), "icon": device_icon_for(host.name, host.mac)}
         for host in hosts
     ]
-    return render(request, "reservations/list.html", user=user, rows=rows, q=q)
+    return render(
+        request,
+        "reservations/list.html",
+        user=user,
+        rows=rows,
+        q=q,
+        subnet_key=subnet_key,
+        subnets=config.subnets,
+    )
 
 
 @router.get("/reservations/export.csv")
@@ -112,10 +134,11 @@ async def export_reservations_csv(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
     q: str = "",
+    subnet_key: str = "",
 ):
     config = load_live_config(settings)
     host_subnet = _host_subnet_map(config)
-    hosts = _filter_hosts(config.all_hosts, q)
+    hosts = _filter_hosts_by_subnet(_filter_hosts(config.all_hosts, q), host_subnet, subnet_key)
     rows = [
         [
             host.name,

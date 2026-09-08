@@ -9,11 +9,20 @@
 </div>
 
 <div class="flex items-center gap-3 mb-4">
-  <form method="get" action="/reservations" class="flex-1 max-w-sm relative">
-    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
-    <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+  <form method="get" action="/reservations" class="flex-1 max-w-lg flex items-center gap-3">
+    <div class="relative flex-1">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
+      <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    </div>
+    <select name="subnet_key" onchange="this.form.submit()" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      <option value="">All subnets</option>
+      <option value="__global__" {% if subnet_key == "__global__" %}selected{% endif %}>Global (no subnet)</option>
+      {% for subnet in subnets %}
+      <option value="{{ subnet.key }}" {% if subnet_key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
+      {% endfor %}
+    </select>
   </form>
-  <a href="/reservations/export.csv{% if q %}?q={{ q }}{% endif %}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <a href="/reservations/export.csv?q={{ q | urlencode }}&amp;subnet_key={{ subnet_key | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
 </div>
 
 <form method="post">

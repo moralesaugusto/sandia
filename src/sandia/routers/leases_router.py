@@ -21,6 +21,21 @@ from ..vendors import lookup_vendor
 
 router = APIRouter()
 
+# "" means "All states" - no filtering. Anything else is matched against
+# Lease.binding_state (see leases.py). Default query param value is
+# "active": the leases file accumulates stale/expired history dhcpd never
+# removes, so an unfiltered view is mostly noise for day-to-day use.
+STATE_OPTIONS = [
+    ("", "All states"),
+    ("active", "Active"),
+    ("free", "Free"),
+    ("expired", "Expired"),
+    ("released", "Released"),
+    ("abandoned", "Abandoned"),
+    ("backup", "Backup"),
+    ("reset", "Reset"),
+]
+
 
 def _filter_leases(leases: list[Lease], q: str) -> list[Lease]:
     if not q:
@@ -35,16 +50,32 @@ def _filter_leases(leases: list[Lease], q: str) -> list[Lease]:
     ]
 
 
+def _filter_by_state(leases: list[Lease], state: str) -> list[Lease]:
+    if not state:
+        return leases
+    return [lease for lease in leases if (lease.binding_state or "").lower() == state.lower()]
+
+
 @router.get("/leases")
 async def leases_page(
     request: Request,
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
     q: str = "",
+    state: str = "active",
 ):
-    leases = _filter_leases(load_leases(settings.leases_path), q)
+    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
-    return render(request, "leases/list.html", user=user, leases=leases, q=q, reserved_macs=reserved_macs)
+    return render(
+        request,
+        "leases/list.html",
+        user=user,
+        leases=leases,
+        q=q,
+        state=state,
+        state_options=STATE_OPTIONS,
+        reserved_macs=reserved_macs,
+    )
 
 
 @router.get("/leases/table")
@@ -53,8 +84,9 @@ async def leases_table(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
     q: str = "",
+    state: str = "active",
 ):
-    leases = _filter_leases(load_leases(settings.leases_path), q)
+    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
     return render(request, "leases/_table.html", user=user, leases=leases, reserved_macs=reserved_macs)
 
@@ -64,8 +96,9 @@ async def export_leases_csv(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
     q: str = "",
+    state: str = "active",
 ):
-    leases = _filter_leases(load_leases(settings.leases_path), q)
+    leases = _filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state)
     rows = [
         [lease.ip, lease.mac or "", lookup_vendor(lease.mac) or "", lease.hostname or "", lease.binding_state or "", lease.starts or "", lease.ends or ""]
         for lease in leases
