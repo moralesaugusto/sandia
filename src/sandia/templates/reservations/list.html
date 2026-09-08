@@ -55,7 +55,7 @@
         </div>
       </div>
       <div class="flex gap-3 text-sm shrink-0">
-        <button type="button" onclick="showHostDetails('{{ row.host.name }}')" class="flex items-center gap-1 text-slate-400 hover:text-white">{{ icon('info', 'w-3.5 h-3.5') }} Details</button>
+        <button type="button" onclick="showHostDetails('{{ row.host.name }}')" class="flex items-center gap-1 text-slate-400 hover:text-slate-100">{{ icon('info', 'w-3.5 h-3.5') }} Details</button>
         {% if user.role in ('admin', 'operator') %}
         <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
         <button type="submit" formaction="/reservations/{{ row.host.name }}/delete" onclick="return confirm('Delete this reservation?');" class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
@@ -73,7 +73,7 @@
   <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md pointer-events-auto">
     <div class="flex items-center justify-between mb-2">
       <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Host details</div>
-      <button type="button" onclick="hideHostDetails()" class="text-slate-500 hover:text-white text-lg leading-none">&times;</button>
+      <button type="button" onclick="hideHostDetails()" class="text-slate-500 hover:text-slate-100 text-lg leading-none">&times;</button>
     </div>
     <div id="host-details-content"></div>
   </div>

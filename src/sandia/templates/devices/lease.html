@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Lease {{ device.display_name }} - Sandia{% endblock %}
 {% block content %}
-<a href="/devices/{{ device.mac | urlencode }}" class="text-sm text-slate-500 hover:text-white">&larr; {{ device.display_name }}</a>
+<a href="/devices/{{ device.mac | urlencode }}" class="text-sm text-slate-500 hover:text-slate-100">&larr; {{ device.display_name }}</a>
 <h1 class="text-xl font-semibold flex items-center gap-2 mt-1 mb-6">{{ icon('reservations', 'w-5 h-5 text-slate-500') }} Lease IP</h1>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4 max-w-lg">

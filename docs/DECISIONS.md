@@ -167,6 +167,48 @@ records share the same address. This needed no new concept - it's the
 same historical data `devices.py::Device.history`/`previous_ips` already
 expose, just walked once to count transitions instead of only listing them.
 
+## Light/dark mode: remap color tokens via CSS variables, not `dark:` classes
+
+The app is styled entirely with literal Tailwind utility classes
+(`bg-slate-900`, `text-emerald-400`, ...), never `dark:`-prefixed variants -
+there was no light palette to fall back to. Rewriting ~35 templates to carry
+a second set of classes would be a large, error-prone change for a purely
+cosmetic feature. Instead, `base.html` overrides `tailwind.config.theme`
+so the `slate` palette (every background/border/text token in the app) and
+the four accent shades actually used as plain status text (`pink-400`,
+`emerald-400`, `amber-400`, `red-400`) resolve to CSS custom properties;
+`html.light` redefines those properties to a readable value for a light
+background. No template changes color classes at all - toggling is just
+adding/removing one class on `<html>`. Accent shades used inside their own
+self-contained tinted box (toasts, validation banners - `bg-red-950
+text-red-300 border-red-900` and similar) were deliberately left as literal,
+unvaried colors: they're already high-contrast internally regardless of
+page theme, and remapping only one shade in that trio would have broken
+them. `text-white` on the app's solid/gradient brand buttons (always a
+saturated background, in either theme) was left alone for the same reason;
+every other bare `text-white`/`hover:text-white` (assumed a dark hover
+background) was changed to `text-slate-100`, which does invert, so hover
+states stay legible in light mode instead of turning invisible on a now-light
+background.
+
+## Light/dark mode: saved in the session first, the account second
+
+The choice is written to `request.session["theme"]` on every toggle (works
+immediately, including on the login page before any user is known) and,
+only when a user is authenticated, mirrored to `User.theme` in the database.
+On login, `request.session.setdefault("theme", user.theme)` seeds the new
+session from the account's saved preference *without* overwriting a choice
+already made earlier in that same anonymous session - a device the user is
+sitting at right now should keep winning over a stale account-level value
+they might not even remember setting. This gives the behavior implied by
+"save this setting": correct on the very first request with no account yet,
+and durable across browsers/devices once one exists. `User.theme` is added
+via a small idempotent `ALTER TABLE ... ADD COLUMN` guard in
+`db.py::_ensure_user_theme_column()` rather than a migration framework -
+`SQLModel.metadata.create_all()` only creates missing tables, never adds
+columns to one that already exists, and this is the only schema change this
+project has needed since the original `User`/`AuditLog` tables.
+
 ## Wall of Shame: abandoned-lease device association is never invented
 
 An abandoned lease block sometimes carries `hardware ethernet` (a client

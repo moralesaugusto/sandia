@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 def render(request: Request, template_name: str, status_code: int = 200, **context) -> HTMLResponse:
     templates = request.app.state.templates
     context.setdefault("user", None)
+    context.setdefault("theme", request.session.get("theme", "dark"))
     context["flash"] = request.session.pop("flash", None)
     return templates.TemplateResponse(request, template_name, context, status_code=status_code)
 

@@ -14,7 +14,7 @@
 
 <div class="flex items-start justify-between mb-6 gap-4">
   <div>
-    <a href="/devices" class="text-sm text-slate-500 hover:text-white">&larr; Devices</a>
+    <a href="/devices" class="text-sm text-slate-500 hover:text-slate-100">&larr; Devices</a>
     <h1 class="text-xl font-semibold flex items-center gap-2 mt-1">
       <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(device.icon, 'w-4 h-4') }}</span>
       {{ device.display_name }}
@@ -147,12 +147,12 @@
   <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Related</div>
   <div class="flex flex-wrap gap-2 text-sm">
     {% if device.subnet %}
-    <a href="/subnets/{{ device.subnet.key }}/map" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">Subnet map</a>
-    <a href="/subnets/{{ device.subnet.key }}/diagnose" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">Diagnose subnet &amp; pool</a>
+    <a href="/subnets/{{ device.subnet.key }}/map" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-slate-100 text-slate-300 rounded-lg px-3 py-1.5">Subnet map</a>
+    <a href="/subnets/{{ device.subnet.key }}/diagnose" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-slate-100 text-slate-300 rounded-lg px-3 py-1.5">Diagnose subnet &amp; pool</a>
     {% endif %}
-    <a href="/leases?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">View in leases</a>
+    <a href="/leases?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-slate-100 text-slate-300 rounded-lg px-3 py-1.5">View in leases</a>
     {% if device.reservation %}
-    <a href="/reservations?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-white text-slate-300 rounded-lg px-3 py-1.5">View in reservations</a>
+    <a href="/reservations?q={{ device.mac | urlencode }}" class="bg-slate-800 border border-slate-700 hover:border-emerald-500 hover:text-slate-100 text-slate-300 rounded-lg px-3 py-1.5">View in reservations</a>
     {% endif %}
   </div>
   {% if device.previous_ips %}

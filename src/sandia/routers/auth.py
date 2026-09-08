@@ -12,6 +12,8 @@ from ..security import find_user, hash_password, require_login, verify_password
 
 router = APIRouter()
 
+THEMES = ("dark", "light")
+
 
 @router.get("/login")
 def login_form(request: Request):
@@ -43,6 +45,9 @@ def login_submit(
 
     clear_failures(rate_key)
     request.session["user_id"] = user.id
+    # Only seed from the account's saved preference if this browser hasn't
+    # already picked one on the login page - never clobber a choice just made.
+    request.session.setdefault("theme", user.theme)
     user.last_login = utcnow()
     session.add(user)
     session.commit()
@@ -54,6 +59,28 @@ def login_submit(
 def logout(request: Request, session: Session = Depends(get_session)):
     request.session.clear()
     return RedirectResponse("/login", status_code=303)
+
+
+@router.post("/account/theme")
+def set_theme(
+    request: Request,
+    theme: str = Form(...),
+    next: str = Form("/"),
+    session: Session = Depends(get_session),
+):
+    if theme not in THEMES:
+        theme = "dark"
+    request.session["theme"] = theme
+    user_id = request.session.get("user_id")
+    if user_id is not None:
+        user = session.get(User, user_id)
+        if user is not None:
+            user.theme = theme
+            session.add(user)
+            session.commit()
+    if not next.startswith("/"):
+        next = "/"
+    return RedirectResponse(next, status_code=303)
 
 
 @router.get("/account/password")

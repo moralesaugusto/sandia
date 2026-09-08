@@ -15,6 +15,7 @@ class User(SQLModel, table=True):
     is_active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
     last_login: datetime | None = None
+    theme: str = "dark"  # "dark" | "light"
 
 
 class AuditLog(SQLModel, table=True):

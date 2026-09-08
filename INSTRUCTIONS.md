@@ -76,6 +76,9 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 - Manage users with role-based access (admin / operator / viewer),
   audit logging, and login rate-limiting.
 - Toast notifications for every config change, success or failure.
+- Light/dark mode toggle (sidebar, and on the login page). Saved
+  immediately in the browser session, and on the account once logged in,
+  so it follows you to a new browser or device.
 
 All config changes go through the same path: stage the new config,
 validate it (`dhcpd -t`), back up the live file, then install it - so a

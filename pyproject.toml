@@ -1,6 +1,6 @@
 [project]
 name = "sandia"
-version = "1.2.0"
+version = "1.3.0"
 description = "Web UI for managing an ISC isc-dhcp-server instance"
 readme = "README.md"
 authors = [

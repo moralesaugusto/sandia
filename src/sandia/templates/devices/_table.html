@@ -8,7 +8,7 @@
   "unknown": "slate",
 } %}
 {% macro sort_th(label, key, sort) %}
-<th class="text-left px-3 py-2 cursor-pointer select-none hover:text-white whitespace-nowrap" onclick="sortTable('devices-filter-form', '{{ key }}')">
+<th class="text-left px-3 py-2 cursor-pointer select-none hover:text-slate-100 whitespace-nowrap" onclick="sortTable('devices-filter-form', '{{ key }}')">
   {{ label }}{% if sort == key %} &#9650;{% elif sort == '-' + key %} &#9660;{% endif %}
 </th>
 {% endmacro %}

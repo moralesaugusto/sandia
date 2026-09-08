@@ -11,8 +11,8 @@
   <div id="validate-result"></div>
   <div id="diff-result"></div>
   <div class="flex gap-3">
-    <button type="button" hx-post="/config/raw/validate" hx-target="#validate-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Validate</button>
-    <button type="button" hx-post="/config/raw/diff" hx-target="#diff-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('diff', 'w-4 h-4') }} Show diff</button>
+    <button type="button" hx-post="/config/raw/validate" hx-target="#validate-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Validate</button>
+    <button type="button" hx-post="/config/raw/diff" hx-target="#diff-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('diff', 'w-4 h-4') }} Show diff</button>
     <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('send', 'w-4 h-4') }} Apply</button>
   </div>
   {% endif %}

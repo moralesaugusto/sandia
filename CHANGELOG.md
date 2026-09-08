@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## 1.3.0
+
+### Added
+- Light/dark mode toggle (sun/moon button in the sidebar, and on the login page before signing in). The whole app is written with literal Tailwind slate/status utility classes rather than `dark:` variants, so this is implemented by remapping those color tokens to CSS variables that swap value with an `<html class="light">` flag - no template needed a second set of classes. The choice is saved: immediately in the session (works pre-login), and for a logged-in user also on their account (`User.theme`), so it follows them to a new browser or device on next login rather than resetting to dark.
+- Version bumped to 1.3.0.
+
 ## 1.2.0
 
 ### Added

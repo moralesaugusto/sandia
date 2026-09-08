@@ -43,7 +43,10 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
 - Wall of Shame (`/diagnostics/wall-of-shame`, `wall_of_shame.py`, a
   Diagnostics submenu): top-10 DHCPNAK/IP-change/abandoned-lease lists,
   three time ranges, pure aggregation over existing leases/log data.
-- 339 tests, all passing as of the end of this pass.
+- Light/dark mode: a toggle in the sidebar (and on the login page). Saved
+  in the session immediately and, for a logged-in user, on their account
+  (`User.theme`) so it follows them across browsers/devices.
+- 346 tests, all passing as of the end of this pass.
 
 ## Gaps identified and closed across recent passes
 

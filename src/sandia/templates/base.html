@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="h-full bg-slate-950">
+<html lang="en" class="h-full bg-slate-950{% if theme == 'light' %} light{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,12 +9,52 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // The whole app is written with literal slate/status utility classes
+    // (bg-slate-900, text-emerald-400, ...) rather than dark: variants, so
+    // light mode is implemented by pointing those Tailwind color tokens at
+    // CSS variables (below) that swap value when <html> gets a "light"
+    // class - no template needs a second set of classes.
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              50: 'var(--slate-50)', 100: 'var(--slate-100)', 200: 'var(--slate-200)',
+              300: 'var(--slate-300)', 400: 'var(--slate-400)', 500: 'var(--slate-500)',
+              600: 'var(--slate-600)', 700: 'var(--slate-700)', 800: 'var(--slate-800)',
+              900: 'var(--slate-900)', 950: 'var(--slate-950)',
+            },
+            pink: { 400: 'var(--pink-400)' },
+            emerald: { 400: 'var(--emerald-400)' },
+            amber: { 400: 'var(--amber-400)' },
+            red: { 400: 'var(--red-400)' },
+          },
+        },
+      },
+    };
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
   <style>
+    :root {
+      color-scheme: dark;
+      --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1;
+      --slate-400: #94a3b8; --slate-500: #64748b; --slate-600: #475569; --slate-700: #334155;
+      --slate-800: #1e293b; --slate-900: #0f172a; --slate-950: #020617;
+      --pink-400: #f472b6; --emerald-400: #34d399; --amber-400: #fbbf24; --red-400: #f87171;
+    }
+    html.light {
+      color-scheme: light;
+      --slate-50: #020617; --slate-100: #0f172a; --slate-200: #1e293b; --slate-300: #334155;
+      --slate-400: #475569; --slate-500: #64748b; --slate-600: #94a3b8; --slate-700: #cbd5e1;
+      --slate-800: #e2e8f0; --slate-900: #f1f5f9; --slate-950: #f8fafc;
+      --pink-400: #be185d; --emerald-400: #047857; --amber-400: #b45309; --red-400: #b91c1c;
+    }
     body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: var(--slate-700); border-radius: 9999px; }
     summary::-webkit-details-marker { display: none; }
   </style>
 </head>
@@ -102,19 +142,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.5l2-5.5 3 11 2.5-8.5 1.5 3H21"/></svg>
 {% elif name == "database" %}
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6"/><path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3"/></svg>
+{% elif name == "sun" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+{% elif name == "moon" %}
+<svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5a8.5 8.5 0 1 1-9.5-13 7 7 0 0 0 9.5 13z"/></svg>
 {% endif %}
+{% endmacro %}
+{% macro theme_toggle(theme, next_path, css="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors") %}
+<form method="post" action="/account/theme">
+  <input type="hidden" name="theme" value="{{ 'dark' if theme == 'light' else 'light' }}">
+  <input type="hidden" name="next" value="{{ next_path }}">
+  <button type="submit" title="Switch to {{ 'dark' if theme == 'light' else 'light' }} mode" class="{{ css }}">
+    {{ icon('sun' if theme == 'light' else 'moon', 'w-4 h-4') }}
+    {{ 'Light mode' if theme == 'light' else 'Dark mode' }}
+  </button>
+</form>
 {% endmacro %}
 {% macro nav_group(label, icon_name, group_paths, items, current_path) %}
 {% set active = current_path in group_paths %}
 <details class="group" {% if active %}open{% endif %}>
-  <summary class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer list-none transition-colors {% if active %}text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+  <summary class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer list-none transition-colors {% if active %}text-slate-100{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
     {{ icon(icon_name) }}
     <span class="flex-1">{{ label }}</span>
     {{ icon('chevron-right', 'w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-90') }}
   </summary>
   <div class="mt-0.5 mb-0.5 flex flex-col gap-0.5 ml-4 pl-3 border-l border-slate-800">
     {% for sub_href, sub_label in items %}
-    <a href="{{ sub_href }}" class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if current_path == sub_href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+    <a href="{{ sub_href }}" class="flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if current_path == sub_href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
       {{ sub_label }}
     </a>
     {% endfor %}
@@ -162,7 +216,7 @@
           ('/leases', 'Leases', 'leases'),
           ('/interfaces', 'Interfaces', 'device-network'),
         ] %}
-        <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon(icon_name) }}
           {{ label }}
         </a>
@@ -179,18 +233,18 @@
           [('/diagnostics', 'Overview'), ('/diagnostics/wall-of-shame', 'Wall of Shame')],
           request.url.path
         ) }}
-        <a href="/about" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/about' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <a href="/about" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/about' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon('info') }}
           About
         </a>
         {% if user.role == 'admin' %}
         <div class="mt-2 pt-2 border-t border-slate-800"></div>
-        <a href="/users" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/users' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <a href="/users" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/users' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon('users') }} Users
         </a>
         {% endif %}
         {% if user.role in ('admin', 'operator') %}
-        <a href="/audit" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/audit' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-white ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <a href="/audit" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/audit' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon('audit') }} Audit Log
         </a>
         {% endif %}
@@ -204,6 +258,7 @@
           </div>
         </div>
         <a href="/account/password" class="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors">{{ icon('key', 'w-4 h-4') }} Change password</a>
+        {{ theme_toggle(theme, request.url.path) }}
         <form method="post" action="/logout">
           <button class="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition-colors">{{ icon('logout', 'w-4 h-4') }} Log out</button>
         </form>
