@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-xl font-semibold mb-2">{{ _("AI Settings") }}</h1>
 <p class="text-sm text-slate-500 mb-6 max-w-lg">{{ _("Connect the floating AI assistant to an Ollama server. The assistant is read-only: it answers from a snapshot of the service status, dhcpd.conf, leases and DHCP log, which is sent to this server with every question.") }}</p>
-<form method="post" action="/settings/ai" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+<form method="post" action="/settings/ai" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">{{ csrf_input() }}
   <div>
     <label class="block text-sm text-slate-400 mb-1" for="ollama_url">{{ _("Ollama server") }}</label>
     <input id="ollama_url" name="ollama_url" value="{{ ai.ollama_url }}" placeholder="192.168.1.10 or http://192.168.1.10:11434" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono">

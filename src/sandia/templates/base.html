@@ -58,7 +58,7 @@
     summary::-webkit-details-marker { display: none; }
   </style>
 </head>
-<body class="h-full bg-slate-950 text-slate-100">
+<body class="h-full bg-slate-950 text-slate-100" hx-headers='{"X-CSRF-Token": {{ csrf_token() | tojson }}}'>
 {% macro icon(name, css="w-5 h-5") %}
 {% if name == "dashboard" %}
 <svg xmlns="http://www.w3.org/2000/svg" class="{{ css }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
@@ -151,7 +151,7 @@
 {% endif %}
 {% endmacro %}
 {% macro theme_toggle(theme, next_path, css="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors") %}
-<form method="post" action="/account/theme">
+<form method="post" action="/account/theme">{{ csrf_input() }}
   <input type="hidden" name="theme" value="{{ 'dark' if theme == 'light' else 'light' }}">
   <input type="hidden" name="next" value="{{ next_path }}">
   <button type="submit" title="{{ _('Switch to dark mode') if theme == 'light' else _('Switch to light mode') }}" class="{{ css }}">
@@ -161,7 +161,7 @@
 </form>
 {% endmacro %}
 {% macro lang_toggle(lang, next_path) %}
-<form method="post" action="/account/language" class="inline-flex rounded-lg border border-slate-700 bg-slate-900/80 p-0.5 text-xs font-medium backdrop-blur" aria-label="Language / Idioma">
+<form method="post" action="/account/language" class="inline-flex rounded-lg border border-slate-700 bg-slate-900/80 p-0.5 text-xs font-medium backdrop-blur" aria-label="Language / Idioma">{{ csrf_input() }}
   <input type="hidden" name="next" value="{{ next_path }}">
   {% for code, name in [('en', 'English'), ('es', 'Español')] %}
   <button type="submit" name="lang" value="{{ code }}" title="{{ name }}" aria-pressed="{{ 'true' if lang == code else 'false' }}"
@@ -273,7 +273,7 @@
         </div>
         <a href="/account/password" class="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors">{{ icon('key', 'w-4 h-4') }} {{ _('Change password') }}</a>
         {{ theme_toggle(theme, request.url.path) }}
-        <form method="post" action="/logout">
+        <form method="post" action="/logout">{{ csrf_input() }}
           <button class="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition-colors">{{ icon('logout', 'w-4 h-4') }} {{ _('Log out') }}</button>
         </form>
       </div>
@@ -395,7 +395,7 @@
       // from the history it forwards to the model.
       const res = await fetch('/ai/chat', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': {{ csrf_token() | tojson }}},
         body: JSON.stringify({messages: state.messages}),
       });
       if (res.redirected) {

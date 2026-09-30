@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-xl font-semibold mb-2">{% if is_new %}{{ _("New Subnet") }}{% else %}{{ _("Edit Subnet") }} {{ subnet.network }}/{{ subnet.netmask }}{% endif %}</h1>
 <p class="text-sm text-slate-500 mb-6">{{ _("The interface tag is stored as a comment above the subnet block - dhcpd itself has no per-subnet \"interface\" statement, so this is for your own organization on a multi-homed server, not a live directive. Actual interface binding still comes from IP addressing and the service's own configuration.") }}</p>
-<form method="post" action="{% if is_new %}/subnets/new{% else %}/subnets/{{ subnet.key }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg">
+<form method="post" action="{% if is_new %}/subnets/new{% else %}/subnets/{{ subnet.key }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg">{{ csrf_input() }}
   <div class="grid grid-cols-2 gap-4">
     <div>
       <label class="block text-sm text-slate-400 mb-1">{{ _("Network") }}</label>

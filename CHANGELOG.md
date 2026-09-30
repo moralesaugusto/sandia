@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+### Security
+- SEC-01: a real install no longer creates `admin` / `admin`. The first start generates a random admin password, prints it, and saves it to `<data dir>/initial-admin-password` (mode 0600). Dummy mode keeps `admin` / `admin`.
+- SEC-02: CSRF protection. Every state-changing request must carry the per-session token, as the `csrf_token` form field or the `X-CSRF-Token` header (htmx and the AI chat send the header). The token is replaced on login.
+- SEC-03: the session cookie is now `sandia_session`, HttpOnly, SameSite=Lax, and Secure whenever HTTPS is on. With `SANDIA_HTTPS=0` the default bind address is `127.0.0.1`, and binding plain HTTP to another address prints a warning.
+
 ## 1.4.0
 
 ### Added

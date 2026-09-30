@@ -1,4 +1,4 @@
-from conftest import OPERATOR_PASSWORD
+from conftest import ADMIN_PASSWORD, OPERATOR_PASSWORD, fetch_csrf_token, make_client
 
 
 def test_unauthenticated_redirects_to_login(client):
@@ -11,6 +11,36 @@ def test_login_wrong_password_shows_error(client):
     response = client.post("/login", data={"username": "admin", "password": "wrong"})
     assert response.status_code == 401
     assert b"Invalid username or password" in response.content
+
+
+def test_session_cookie_is_hardened(client):
+    response = client.post("/login", data={"username": "admin", "password": ADMIN_PASSWORD})
+    cookie = response.headers["set-cookie"].lower()
+    assert cookie.startswith("sandia_session=")
+    assert "httponly" in cookie
+    assert "samesite=lax" in cookie
+    assert "secure" in cookie
+
+
+def test_session_cookie_not_secure_when_https_disabled(settings):
+    from sqlmodel import Session, select
+
+    from sandia.main import create_app
+    from sandia.models import User
+    from sandia.security import hash_password
+
+    settings.enable_https = False
+    app = create_app(settings)
+    with Session(app.state.engine) as session:
+        admin = session.exec(select(User)).one()
+        admin.password_hash = hash_password(ADMIN_PASSWORD)
+        session.add(admin)
+        session.commit()
+    client = make_client(app, base_url="http://testserver")
+    response = client.post("/login", data={"username": "admin", "password": ADMIN_PASSWORD})
+    cookie = response.headers["set-cookie"].lower()
+    assert cookie.startswith("sandia_session=")
+    assert "secure" not in cookie
 
 
 def test_flash_messages_render_as_toast_data_attribute(operator_client):
@@ -640,6 +670,7 @@ def test_any_role_can_change_own_password(operator_client):
     # old password no longer works, new one does
     fresh = operator_client
     fresh.cookies.clear()
+    fetch_csrf_token(fresh)
     assert fresh.post("/login", data={"username": "operator", "password": OPERATOR_PASSWORD}).status_code == 401
     assert fresh.post("/login", data={"username": "operator", "password": "brand-new-password-1"}).status_code == 303
 

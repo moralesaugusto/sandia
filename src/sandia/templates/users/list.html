@@ -19,7 +19,7 @@
     <div class="flex gap-3 text-sm">
       <a href="/users/{{ u.id }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Edit") }}</a>
       {% if u.id != user.id %}
-      <form method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm({{ _("Delete this user?") | tojson | forceescape }});">
+      <form method="post" action="/users/{{ u.id }}/delete" onsubmit="return confirm({{ _("Delete this user?") | tojson | forceescape }});">{{ csrf_input() }}
         <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} {{ _("Delete") }}</button>
       </form>
       {% endif %}

@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% macro sort_th(label, key, sort) %}
 <th class="text-left px-4 py-2 cursor-pointer select-none hover:text-slate-100 whitespace-nowrap" onclick="sortTable('leases-filter-form', '{{ key }}')">
   {{ label }}{% if sort == key %} &#9650;{% elif sort == '-' + key %} &#9660;{% endif %}

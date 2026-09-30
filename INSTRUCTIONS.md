@@ -177,11 +177,11 @@ apparmor`.
 This starts the server bound to `0.0.0.0` (reachable from other machines on
 the network, not just localhost). On first startup it also:
 
-- Creates `sandia.db` (SQLite) with a default `admin` / `admin` login, in
-  every mode (real or dummy), and prints a security warning to stdout
-  telling you to change it. **Change this immediately if the app is
-  reachable from anywhere but your own machine** - see "Changing a
-  password" below.
+- Creates `sandia.db` (SQLite) with an `admin` login. In real mode its
+  password is random: it is printed to stdout and saved to
+  `<data dir>/initial-admin-password` (mode 0600). Change it after logging
+  in and delete that file - see "Changing a password" below. Dummy mode
+  uses `admin` / `admin`, since it only serves synthetic data.
 - Generates a self-signed HTTPS certificate (elliptic-curve, P-256) if HTTPS
   is enabled and no certificate exists yet at `<data dir>/tls/` (see below).
   If a certificate is already there, it's reused as-is; if it's ever deleted
@@ -189,7 +189,7 @@ the network, not just localhost). On first startup it also:
   start - you never have to do this by hand.
 
 Then open the URL it prints (`https://<host>:<port>/login` by default) and
-log in with `admin` and the printed password. Your browser will warn that
+log in with `admin` and the printed password (or `admin` in dummy mode). Your browser will warn that
 the certificate is self-signed/untrusted - that's expected for a self-hosted
 tool; accept it (or import the cert - see "HTTPS" below) to proceed.
 
@@ -212,7 +212,7 @@ All optional; defaults match a standard Debian `isc-dhcp-server` install.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SANDIA_HOST` | `0.0.0.0` | Interface to bind. `0.0.0.0` means "all interfaces" - reachable from other machines, not just `localhost`. |
+| `SANDIA_HOST` | `0.0.0.0` (`127.0.0.1` when `SANDIA_HTTPS=0`) | Interface to bind. `0.0.0.0` means "all interfaces" - reachable from other machines, not just `localhost`. |
 | `SANDIA_PORT` | `7001` | Port to listen on. |
 | `SANDIA_HTTPS` | `1` (enabled) | Set to `0` to serve plain HTTP instead of HTTPS - see below. |
 | `DHCPD_CONF_PATH` | `/etc/dhcp/dhcpd.conf` | The live dhcpd config file this app edits. |
@@ -355,10 +355,9 @@ another machine (see below) before wiring it up to a real `dhcpd.conf`.
 
 ## Changing a password
 
-`admin` / `admin` is a fixed, publicly-known default password, used in
-every mode (not just dummy) so there's nothing to copy off stdout before
-logging in for the first time. **Change it before the app is reachable
-from anywhere but your own machine** - any of these ways:
+Change the generated initial admin password (or `admin` / `admin` in dummy
+mode) after your first login, then delete
+`<SANDIA_DATA_DIR>/initial-admin-password`. Any of these ways works:
 
 1. **In the web UI, for your own account**: once logged in, click "Change
    password" in the sidebar (or go to `/account/password`). Works for any
@@ -374,7 +373,7 @@ from anywhere but your own machine** - any of these ways:
 4. **By modifying files directly (last resort)**: delete
    `<SANDIA_DATA_DIR>/sandia.db` and restart the app - this wipes *all*
    users, sessions, and the audit log and re-runs the first-run bootstrap
-   (`admin` / `admin` again). Only do this when you don't need anything in
+   (a new random password again). Only do this when you don't need anything in
    the existing database.
 
 ## HTTPS
@@ -387,7 +386,11 @@ manual `openssl` step needed. The cert and key live at
 - **To make HTTPS optional / turn it off** (e.g. running behind a reverse
   proxy like nginx or Caddy that terminates TLS itself, or for quick local
   testing): set `SANDIA_HTTPS=0`. No certificate is generated in this mode
-  and the app serves plain HTTP on `SANDIA_HOST:SANDIA_PORT`.
+  and the app serves plain HTTP on `SANDIA_HOST:SANDIA_PORT`, bound to
+  `127.0.0.1` unless `SANDIA_HOST` says otherwise (it warns if you bind
+  plain HTTP to a non-loopback address). The session cookie
+  (`sandia_session`, HttpOnly, SameSite=Lax) is marked Secure only when
+  HTTPS is on.
 - **To force a new certificate** (e.g. after changing hostname): delete
   `<SANDIA_DATA_DIR>/tls/cert.pem` and `key.pem` and restart the app - a
   fresh pair is generated automatically. You don't need to delete both by

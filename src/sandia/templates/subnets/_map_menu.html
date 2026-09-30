@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if not subnet or not cell %}
 <div class="px-3 py-2 text-slate-500">{{ _("Address not found") }}</div>
 {% else %}
@@ -11,7 +11,7 @@
   <a href="/diagnostics/client?mac={{ (cell.host.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ cell.host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
   {% if user.role in ('admin', 'operator') %}
   <a href="/reservations/{{ cell.host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _('Edit reservation "{name}"', name=cell.host.name) }}</a>
-  <form method="post" action="/reservations/{{ cell.host.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">
+  <form method="post" action="/reservations/{{ cell.host.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete reservation") }}</button>
   </form>
   {% endif %}
@@ -26,7 +26,7 @@
   <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
   {% if user.role in ('admin', 'operator') %}
   <a href="/reservations/new?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} {{ _("Reserve this lease") }}</a>
-  <form method="post" action="/leases/{{ cell.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+  <form method="post" action="/leases/{{ cell.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
   </form>
   {% endif %}

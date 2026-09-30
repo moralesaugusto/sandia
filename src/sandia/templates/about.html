@@ -84,7 +84,7 @@
   {{ _("Downloads the full public IEEE OUI registry (tens of thousands of vendor prefixes) to improve vendor identification on the Leases and Reservations pages, beyond Sandia's small built-in list. Runs in the background and never blocks the app; if it fails (e.g. no internet access), the built-in list keeps working unchanged.") }}
 </p>
 {% if user.role in ('admin', 'operator') %}
-<form method="post" action="/about/oui-refresh" class="mt-3">
+<form method="post" action="/about/oui-refresh" class="mt-3">{{ csrf_input() }}
   <button type="submit" {% if oui_status.refreshing %}disabled{% endif %}
     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
     {{ icon('refresh', 'w-4 h-4') }}

@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if log_unavailable %}
 <div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} {{ log_unavailable }}</div>
 {% else %}

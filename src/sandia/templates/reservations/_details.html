@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if host %}
 <div class="flex items-center gap-3 mb-4">
   <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500/20 to-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">{{ icon(details.device_icon, 'w-5 h-5') }}</div>

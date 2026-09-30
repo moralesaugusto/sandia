@@ -72,6 +72,7 @@ ES: dict[str, str] = {
     "Ask about config, leases, logs... (Enter to send)": "Pregunta sobre configuración, leases, logs... (Enter para enviar)",
     "Ask about subnets, reservations, leases, DHCP log events or why a client is not getting an address. Answers are based on the current config, leases and log.": "Pregunta sobre subnets, reservas, leases, eventos del log DHCP o por qué un cliente no obtiene dirección. Las respuestas se basan en la configuración, los leases y el log actuales.",
     "Your session has expired. Reload the page and log in again.": "Tu sesión ha caducado. Recarga la página e inicia sesión de nuevo.",
+    "Invalid or missing CSRF token. Reload the page and try again.": "Token CSRF no válido o ausente. Recarga la página e inténtalo de nuevo.",
     "Request failed:": "La solicitud falló:",
     "The model returned an empty reply.": "El modelo devolvió una respuesta vacía.",
     "Connect the floating AI assistant to an Ollama server. The assistant is read-only: it answers from a snapshot of the service status, dhcpd.conf, leases and DHCP log, which is sent to this server with every question.": "Conecta el asistente de IA flotante a un servidor Ollama. El asistente es de solo lectura: responde a partir de una instantánea del estado del servicio, dhcpd.conf, los leases y el log DHCP, que se envía a este servidor con cada pregunta.",

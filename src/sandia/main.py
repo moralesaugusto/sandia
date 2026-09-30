@@ -3,7 +3,7 @@ import os
 import secrets
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -11,6 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import __version__
 from .config import Settings
+from .csrf import csrf_input, template_csrf_token, verify_csrf
 from .db import create_db_engine
 from .dummy_data import seed_dummy_data
 from .errors import register_exception_handlers
@@ -60,12 +61,22 @@ def _bootstrap_admin(engine, settings: Settings) -> None:
     with Session(engine) as session:
         if session.exec(select(User)).first() is not None:
             return
-        print("Created initial admin user with fixed default credentials: admin / admin")
-        print("SECURITY WARNING: change this before exposing the app beyond localhost - use the")
-        print("'Change password' link once logged in, or run 'sandia --set-password admin'.")
-        admin = User(username="admin", password_hash=hash_password("admin"), role="admin")
-        session.add(admin)
+        if settings.dummy_data:
+            # Dummy mode serves synthetic data only, so a well-known login is fine there.
+            password = "admin"
+        else:
+            password = secrets.token_urlsafe(16)
+            fd = os.open(settings.initial_password_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                f.write(password + "\n")
+        session.add(User(username="admin", password_hash=hash_password(password), role="admin"))
         session.commit()
+    if settings.dummy_data:
+        print("Created initial admin user for dummy mode: admin / admin")
+    else:
+        print(f"Created initial admin user 'admin' with a random password: {password}")
+        print(f"It is also saved in {settings.initial_password_path} (mode 0600).")
+        print("Change it after logging in, then delete that file.")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -74,7 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.dummy_data:
         seed_dummy_data(settings)
 
-    app = FastAPI(title="Sandia", version=__version__)
+    app = FastAPI(title="Sandia", version=__version__, dependencies=[Depends(verify_csrf)])
     register_exception_handlers(app)
     app.state.settings = settings
     app.state.engine = create_db_engine(settings)
@@ -85,12 +96,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.templates.env.globals["max_cells"] = MAX_CELLS
     app.state.templates.env.filters["vendor"] = lookup_vendor
     app.state.templates.env.globals["_"] = template_gettext
+    app.state.templates.env.globals["csrf_input"] = csrf_input
+    app.state.templates.env.globals["csrf_token"] = template_csrf_token
 
     _bootstrap_admin(app.state.engine, settings)
 
     # Added first so it runs inside SessionMiddleware (the last added is outermost).
     app.add_middleware(LanguageMiddleware)
-    app.add_middleware(SessionMiddleware, secret_key=_load_or_create_session_secret(settings))
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=_load_or_create_session_secret(settings),
+        session_cookie="sandia_session",
+        same_site="lax",
+        https_only=settings.enable_https,
+    )
     app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
     app.include_router(auth.router)
@@ -213,5 +232,8 @@ def run(argv: list[str] | None = None) -> None:
         print(f"HTTPS enabled - serving on https://{settings.host}:{settings.port}")
     else:
         print(f"HTTPS disabled (SANDIA_HTTPS=0) - serving on http://{settings.host}:{settings.port}")
+        if settings.host not in ("127.0.0.1", "::1", "localhost"):
+            print("SECURITY WARNING: plain HTTP on a non-loopback address sends passwords and session")
+            print("cookies unencrypted. Use HTTPS, or bind to 127.0.0.1 behind a TLS reverse proxy.")
 
     uvicorn.run(app, host=settings.host, port=settings.port, **ssl_kwargs)

@@ -1,4 +1,4 @@
-from fastapi.testclient import TestClient
+from conftest import login, make_client
 from sqlmodel import Session, select
 
 from sandia.config import Settings
@@ -34,15 +34,18 @@ def test_dummy_data_seeds_files_once(tmp_path):
     assert settings.dhcpd_conf_path.read_text() == "authoritative;\n"
 
 
-def test_non_dummy_mode_also_bootstraps_admin_admin(tmp_path):
-    # Fixed default credentials are intentional in every mode (see
-    # main._bootstrap_admin's startup warning) - not just dummy mode.
+def test_non_dummy_mode_bootstraps_random_admin_password(tmp_path):
     settings = Settings(data_dir=tmp_path / "data", dummy_data=False)
     app = create_app(settings)
 
-    client = TestClient(app, base_url="http://testserver", follow_redirects=False)
-    login = client.post("/login", data={"username": "admin", "password": "admin"})
-    assert login.status_code == 303
+    password_file = settings.initial_password_path
+    assert password_file.stat().st_mode & 0o777 == 0o600
+    password = password_file.read_text().strip()
+    assert password != "admin"
+
+    client = make_client(app)
+    assert client.post("/login", data={"username": "admin", "password": "admin"}).status_code != 303
+    assert client.post("/login", data={"username": "admin", "password": password}).status_code == 303
 
 
 def test_dummy_mode_bootstraps_fixed_admin_credentials(tmp_path):
@@ -53,9 +56,8 @@ def test_dummy_mode_bootstraps_fixed_admin_credentials(tmp_path):
         admin = session.exec(select(User)).first()
         assert admin.username == "admin"
 
-    client = TestClient(app, base_url="http://testserver", follow_redirects=False)
-    login = client.post("/login", data={"username": "admin", "password": "admin"})
-    assert login.status_code == 303
+    client = make_client(app)
+    login(client, "admin", "admin")
 
 
 def test_dummy_mode_without_explicit_data_dir_does_not_need_root(monkeypatch, tmp_path):
@@ -80,9 +82,8 @@ def test_dummy_mode_full_ui_flow_without_sudo_or_real_dhcpd(tmp_path):
         session.add(admin)
         session.commit()
 
-    client = TestClient(app, base_url="http://testserver", follow_redirects=False)
-    login = client.post("/login", data={"username": "admin", "password": "testpass123"})
-    assert login.status_code == 303
+    client = make_client(app)
+    login(client, "admin", "testpass123")
 
     dashboard = client.get("/")
     assert dashboard.status_code == 200

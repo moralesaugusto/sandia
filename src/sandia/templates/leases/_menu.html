@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if lease %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ lease.ip }}</div>
 {% if lease.mac %}
@@ -11,7 +11,7 @@
   {% else %}
   <a href="/reservations/{{ reserved_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _('Edit reservation "{name}"', name=reserved_host.name) }}</a>
   {% endif %}
-  <form method="post" action="/leases/{{ lease.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+  <form method="post" action="/leases/{{ lease.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
   </form>
 {% endif %}

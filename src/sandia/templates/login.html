@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Sign in') }} - Sandia{% endblock %}
 {% block guest_content %}
-{% from "base.html" import theme_toggle, lang_toggle %}
+{% from "base.html" import theme_toggle, lang_toggle with context %}
 <div class="min-h-screen flex items-center justify-center px-4 bg-[radial-gradient(ellipse_at_top,_rgba(225,29,72,0.08),_transparent_60%)]">
   <div class="fixed top-4 right-4 flex items-center gap-3">{{ theme_toggle(theme, '/login', css="flex items-center gap-1.5 text-slate-500 hover:text-emerald-400 text-xs transition-colors") }}{{ lang_toggle(lang, '/login') }}</div>
   <div class="w-full max-w-sm">
@@ -20,7 +20,7 @@
       <p class="text-xs text-slate-500 mb-0.5">Somehow, Another Network DHCP Is Alive</p>
       <a href="/about" class="text-xs text-slate-600 hover:text-emerald-400">v{{ app_version }}</a>
     </div>
-    <form method="post" action="/login" class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 space-y-4 shadow-xl shadow-black/20">
+    <form method="post" action="/login" class="bg-slate-900/80 border border-slate-800 rounded-xl p-6 space-y-4 shadow-xl shadow-black/20">{{ csrf_input() }}
       <div>
         <label class="block text-sm text-slate-400 mb-1">{{ _('Username') }}</label>
         <input name="username" required autofocus class="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">

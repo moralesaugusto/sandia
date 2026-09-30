@@ -53,7 +53,7 @@
 </form>
 <p class="text-xs text-slate-500 -mt-2 mb-4">{{ _("Click a column header to sort.") }}</p>
 
-<form method="post" id="devices-form">
+<form method="post" id="devices-form">{{ csrf_input() }}
 {% if user.role in ('admin', 'operator') %}
 <div class="flex items-center justify-between mb-3">
   <label class="flex items-center gap-2 text-sm text-slate-400">

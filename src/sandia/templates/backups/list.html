@@ -9,7 +9,7 @@
   <div class="px-4 py-3 flex items-center justify-between">
     <span class="flex items-center gap-2.5 font-mono text-sm">{{ icon('backups', 'w-4 h-4 text-slate-600') }} {{ name }}</span>
     {% if user.role in ('admin', 'operator') %}
-    <form method="post" action="/backups/{{ name }}/restore" onsubmit="return confirm({{ _("Restore this backup? The current config will itself be backed up first.") | tojson | forceescape }});">
+    <form method="post" action="/backups/{{ name }}/restore" onsubmit="return confirm({{ _("Restore this backup? The current config will itself be backed up first.") | tojson | forceescape }});">{{ csrf_input() }}
       <button class="flex items-center gap-1 text-emerald-400 hover:underline text-sm">{{ icon('refresh', 'w-3.5 h-3.5') }} {{ _("Restore") }}</button>
     </form>
     {% endif %}

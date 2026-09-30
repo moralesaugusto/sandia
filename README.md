@@ -119,7 +119,7 @@ uv sync
 uv run sandia --dummy        # try it with realistic demo data, no root needed
 ```
 
-Open `https://localhost:7001` and sign in with `admin` / `admin` (change it right away). To manage a real server, run it with enough privilege to edit `/etc/dhcp/dhcpd.conf` and control the service:
+Open `https://localhost:7001` and sign in with `admin` / `admin` (dummy mode only; a real install generates a random admin password on first start, prints it, and saves it to `<data dir>/initial-admin-password`). To manage a real server, run it with enough privilege to edit `/etc/dhcp/dhcpd.conf` and control the service:
 
 ```bash
 sudo .venv/bin/sandia
@@ -132,7 +132,7 @@ Setup, configuration (paths, port, HTTPS, log location), and porting to another 
 FastAPI and Jinja2 on the server, htmx and a little vanilla JavaScript in the browser, Tailwind for styling, SQLite for users and the audit log. There is no SPA framework and no frontend build step. The design choices behind it are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ```bash
-uv run pytest         # 398 tests
+uv run pytest         # 409 tests
 uv run ruff check .
 ```
 

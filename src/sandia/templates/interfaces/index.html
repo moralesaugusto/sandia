@@ -12,7 +12,7 @@
 </div>
 {% endif %}
 
-<form method="post" action="/interfaces" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg mb-8">
+<form method="post" action="/interfaces" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg mb-8">{{ csrf_input() }}
   <div>
     <label class="block text-sm text-slate-400 mb-1">{{ _("Listening interfaces") }} <span class="text-slate-600">{{ _("(space or comma separated)") }}</span></label>
     <input name="interfaces" value="{{ interfaces | join(' ') }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono" placeholder="eth0 eth1" {% if user.role == 'viewer' %}disabled{% endif %}>

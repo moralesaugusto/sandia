@@ -1,3 +1,4 @@
+import re
 import shutil
 from pathlib import Path
 
@@ -80,14 +81,33 @@ def app(settings, monkeypatch):
     return application
 
 
+def fetch_csrf_token(client: TestClient) -> str:
+    """Read the session's CSRF token from a rendered page and send it on every later request."""
+    response = client.get("/login")
+    if response.status_code == 303:  # already logged in
+        response = client.get("/account/password")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', response.text).group(1)
+    client.headers["X-CSRF-Token"] = token
+    return token
+
+
+def make_client(app, base_url: str = "https://testserver") -> TestClient:
+    client = TestClient(app, base_url=base_url, follow_redirects=False)
+    fetch_csrf_token(client)
+    return client
+
+
 @pytest.fixture
 def client(app):
-    return TestClient(app, base_url="http://testserver", follow_redirects=False)
+    return make_client(app)
 
 
 def login(client: TestClient, username: str, password: str) -> None:
+    fetch_csrf_token(client)  # the session may be new or cleared by a logout
     response = client.post("/login", data={"username": username, "password": password})
     assert response.status_code == 303, response.text
+    # Logging in rotates the token.
+    fetch_csrf_token(client)
 
 
 @pytest.fixture

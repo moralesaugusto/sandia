@@ -21,7 +21,7 @@
         <a href="/subnets/{{ row.subnet.key }}/diagnose" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('diagnose', 'w-3.5 h-3.5') }} {{ _("Diagnose") }}</a>
         {% if user.role in ('admin', 'operator') %}
         <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Edit") }}</a>
-        <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm({{ _("Delete this subnet?") | tojson | forceescape }});">
+        <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm({{ _("Delete this subnet?") | tojson | forceescape }});">{{ csrf_input() }}
           <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} {{ _("Delete") }}</button>
         </form>
         {% endif %}

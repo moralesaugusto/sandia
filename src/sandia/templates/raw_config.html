@@ -4,7 +4,7 @@
 <h1 class="text-xl font-semibold mb-2">{{ _("Raw Configuration") }}</h1>
 <p class="text-sm text-slate-500 mb-6">{{ _("Full text of dhcpd.conf, including any constructs (shared-networks, classes, keys, ...) the structured pages don't manage.") }}</p>
 
-<form method="post" action="/config/raw/apply" class="space-y-4">
+<form method="post" action="/config/raw/apply" class="space-y-4">{{ csrf_input() }}
   <textarea name="text" rows="28" class="w-full font-mono text-sm bg-slate-900 border border-slate-800 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" {% if user.role == 'viewer' %}readonly{% endif %}>{{ text }}</textarea>
 
   {% if user.role in ('admin', 'operator') %}

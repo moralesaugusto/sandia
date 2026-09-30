@@ -21,12 +21,16 @@ class Settings:
     )
     backup_dir: Path = field(default_factory=lambda: Path(os.environ.get("SANDIA_BACKUP_DIR", "/var/backups/sandia")))
     service_name: str = field(default_factory=lambda: os.environ.get("SANDIA_SERVICE_NAME", "isc-dhcp-server"))
-    host: str = field(default_factory=lambda: os.environ.get("SANDIA_HOST", "0.0.0.0"))
+    # None resolves in __post_init__: all interfaces with HTTPS, loopback only with plain HTTP.
+    host: str | None = field(default_factory=lambda: os.environ.get("SANDIA_HOST"))
     port: int = field(default_factory=lambda: int(os.environ.get("SANDIA_PORT", "7001")))
     enable_https: bool = field(default_factory=lambda: os.environ.get("SANDIA_HTTPS", "1") != "0")
     dummy_data: bool = field(default_factory=lambda: os.environ.get("SANDIA_DUMMY_DATA", "0") != "0")
 
     def __post_init__(self) -> None:
+        if self.host is None:
+            self.host = "0.0.0.0" if self.enable_https else "127.0.0.1"
+
         if self.data_dir is None:
             if "SANDIA_DATA_DIR" in os.environ:
                 self.data_dir = Path(os.environ["SANDIA_DATA_DIR"])
@@ -64,6 +68,10 @@ class Settings:
         # AppArmor's mandatory access control, which root does not bypass -
         # even when Sandia itself runs as root.
         return self.dhcpd_conf_path.parent / ".sandia-staged.conf"
+
+    @property
+    def initial_password_path(self) -> Path:
+        return self.data_dir / "initial-admin-password"
 
     @property
     def tls_dir(self) -> Path:

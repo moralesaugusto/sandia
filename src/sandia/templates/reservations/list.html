@@ -25,7 +25,7 @@
   <a href="/reservations/export.csv?q={{ q | urlencode }}&amp;subnet_key={{ subnet_key | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} {{ _("Export CSV") }}</a>
 </div>
 
-<form method="post">
+<form method="post">{{ csrf_input() }}
   {% if user.role in ('admin', 'operator') %}
   <div class="flex items-center justify-between mb-3">
     <label class="flex items-center gap-2 text-sm text-slate-400">

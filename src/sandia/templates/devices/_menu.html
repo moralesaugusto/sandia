@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if not device %}
 <div class="px-3 py-2 text-slate-500">{{ _("Device not found") }}</div>
 {% else %}
@@ -10,7 +10,7 @@
 {% if user.role in ('admin', 'operator') %}
   {% if device.reservation %}
   <a href="/reservations/{{ device.reservation.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _("Edit reservation") }}</a>
-  <form method="post" action="/reservations/{{ device.reservation.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">
+  <form method="post" action="/reservations/{{ device.reservation.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete reservation") }}</button>
   </form>
   {% else %}
@@ -18,7 +18,7 @@
   {% endif %}
 
   {% if device.current_lease %}
-  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm({{ _("Delete the lease record for {ip}? This removes only Sandia's copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.", ip=device.current_lease.ip) | tojson | forceescape }});">
+  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm({{ _("Delete the lease record for {ip}? This removes only Sandia's copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.", ip=device.current_lease.ip) | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease record") }}</button>
   </form>
   {% endif %}
@@ -27,7 +27,7 @@
     {% if deny_host %}
     <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Client is denied - edit") }}</a>
     {% else %}
-    <form method="post" action="/leases/{{ device.current_ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+    <form method="post" action="/leases/{{ device.current_ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">{{ csrf_input() }}
       <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
     </form>
     {% endif %}

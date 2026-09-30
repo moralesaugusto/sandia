@@ -15,6 +15,14 @@ def test_https_can_be_disabled(monkeypatch):
     assert Settings().enable_https is False
 
 
+def test_plain_http_defaults_to_loopback(monkeypatch):
+    monkeypatch.setenv("SANDIA_HTTPS", "0")
+    monkeypatch.delenv("SANDIA_HOST", raising=False)
+    assert Settings().host == "127.0.0.1"
+    monkeypatch.setenv("SANDIA_HOST", "0.0.0.0")
+    assert Settings().host == "0.0.0.0"
+
+
 def test_https_enabled_for_other_values(monkeypatch):
     monkeypatch.setenv("SANDIA_HTTPS", "1")
     assert Settings().enable_https is True

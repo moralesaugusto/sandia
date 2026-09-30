@@ -2,7 +2,7 @@
 {% block title %}{{ _("Global Settings") }} - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-6">{{ _("Global Settings") }}</h1>
-<form method="post" action="/settings" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+<form method="post" action="/settings" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">{{ csrf_input() }}
   <label class="flex items-center gap-2 text-sm">
     <input type="checkbox" name="authoritative" {% if fields.authoritative %}checked{% endif %} class="rounded bg-slate-800 border-slate-700">
     {{ _("Authoritative") }}

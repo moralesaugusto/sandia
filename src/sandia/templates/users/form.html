@@ -2,7 +2,7 @@
 {% block title %}{% if is_new %}{{ _("New User") }}{% else %}{{ _("Edit User") }}{% endif %} - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-6">{% if is_new %}{{ _("New User") }}{% else %}{{ _("Edit User") }} {{ target.username }}{% endif %}</h1>
-<form method="post" action="{% if is_new %}/users/new{% else %}/users/{{ target.id }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">
+<form method="post" action="{% if is_new %}/users/new{% else %}/users/{{ target.id }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 max-w-lg">{{ csrf_input() }}
   {% if is_new %}
   <div>
     <label class="block text-sm text-slate-400 mb-1">{{ _("Username") }}</label>

@@ -46,6 +46,7 @@ def login_submit(
 
     clear_failures(rate_key)
     request.session["user_id"] = user.id
+    request.session.pop("csrf_token", None)  # a fresh token per login
     # Only seed from the account's saved preference if this browser hasn't
     # already picked one on the login page - never clobber a choice just made.
     request.session.setdefault("theme", user.theme)

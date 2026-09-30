@@ -1,4 +1,4 @@
-{% from "base.html" import icon %}
+{% from "base.html" import icon with context %}
 {% if query %}
 <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden text-sm max-h-80 overflow-y-auto">
   <a href="/devices?q={{ query | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 border-b border-slate-700">
