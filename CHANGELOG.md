@@ -2,10 +2,15 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 1.3.2
 
 ### Added
 - About page: a "Where the data comes from" section listing each data source, and explaining that DHCP events are parsed from the tail of the log on every request rather than stored, so their history is limited by that window and log rotation.
+- The "Somehow, Another Network DHCP Is Alive." tagline on the Dashboard and under the logo in the sidebar.
+- Version bumped to 1.3.2.
+
+### Changed
+- The About page now uses the full window width instead of a narrow column.
 
 ## 1.3.1
 
