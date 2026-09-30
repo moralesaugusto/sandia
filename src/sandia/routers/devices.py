@@ -11,13 +11,14 @@ from ..config_store import load_live_config
 from ..csv_export import csv_response
 from ..db import get_session
 from ..devices import (
-    DeviceStatus,
+    STATUS_LABELS,
     build_devices,
     filter_devices,
     find_device,
     sort_devices,
 )
 from ..diagnostics import diagnose_client, load_dhcp_events
+from ..i18n import N_, _
 from ..ip_map import build_subnet_map, denied_macs, next_available_ip
 from ..leases import load_lease_history, load_leases
 from ..leases_cleanup import delete_lease_records
@@ -27,7 +28,7 @@ from ..security import require_login, require_role
 
 router = APIRouter()
 
-STATUS_OPTIONS = [("", "All statuses")] + [(status.value, status.name.replace("_", " ").title()) for status in DeviceStatus]
+STATUS_OPTIONS = [("", N_("All statuses"))] + [(status.value, label) for status, label in STATUS_LABELS.items()]
 
 
 def _load_devices(settings: Settings):
@@ -57,7 +58,7 @@ async def devices_page(
     vendor: str = "",
     sort: str = "",
 ):
-    config, devices, _, _, log_unavailable = _load_devices(settings)
+    config, devices, _leases, _history, log_unavailable = _load_devices(settings)
     rows = _apply_filters(devices, q, status, reservation, lease, subnet_key, vendor, sort)
     return render(
         request,
@@ -91,7 +92,7 @@ async def devices_table(
     vendor: str = "",
     sort: str = "",
 ):
-    _, devices, _, _, _ = _load_devices(settings)
+    _config, devices, _leases, _history, _log = _load_devices(settings)
     rows = _apply_filters(devices, q, status, reservation, lease, subnet_key, vendor, sort)
     return render(request, "devices/_table.html", user=user, rows=rows, sort=sort)
 
@@ -108,7 +109,7 @@ async def export_devices_csv(
     vendor: str = "",
     sort: str = "",
 ):
-    _, devices, _, _, _ = _load_devices(settings)
+    _config, devices, _leases, _history, _log = _load_devices(settings)
     rows = _apply_filters(devices, q, status, reservation, lease, subnet_key, vendor, sort)
     csv_rows = [
         [
@@ -140,7 +141,7 @@ async def device_menu(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
 ):
-    config, devices, _, _, _ = _load_devices(settings)
+    config, devices, _leases, _history, _log = _load_devices(settings)
     device = find_device(devices, mac)
     deny_host = None
     if device and device.mac in denied_macs(config):
@@ -158,7 +159,7 @@ async def device_detail(
     config, devices, current_leases, events, log_unavailable = _load_devices(settings)
     device = find_device(devices, mac)
     if device is None:
-        set_flash(request, "Device not found - no reservation, lease, or DHCP activity matches this MAC.", kind="error")
+        set_flash(request, _("Device not found - no reservation, lease, or DHCP activity matches this MAC."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
     activity = [event for event in events if event.kind != "OTHER" and event.mac == device.mac] if not log_unavailable else []
@@ -183,16 +184,16 @@ async def device_lease_form(
     settings: Settings = Depends(get_settings),
     subnet_key: str = "",
 ):
-    config, devices, current_leases, _, _ = _load_devices(settings)
+    config, devices, current_leases, _history, _log = _load_devices(settings)
     device = find_device(devices, mac)
     if device is None:
-        set_flash(request, "Device not found.", kind="error")
+        set_flash(request, _("Device not found."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
     if device.reservation is not None:
         # Never offer to create a second, conflicting reservation for a MAC
         # that already has one - send the admin to edit the existing one.
-        set_flash(request, f"This device already has a reservation ('{device.reservation.name}') - edit it here.")
+        set_flash(request, _("This device already has a reservation ('{name}') - edit it here.", name=device.reservation.name))
         return RedirectResponse(f"/reservations/{device.reservation.name}/edit", status_code=303)
 
     selected_subnet = config.find_subnet(subnet_key) if subnet_key else (device.subnet or (config.subnets[0] if config.subnets else None))
@@ -222,21 +223,21 @@ async def delete_device_lease(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ):
-    _, devices, _, _, _ = _load_devices(settings)
+    _config, devices, _leases, _history, _log = _load_devices(settings)
     device = find_device(devices, mac)
     if device is None or device.current_lease is None:
-        set_flash(request, "This device has no current lease record to delete.", kind="error")
+        set_flash(request, _("This device has no current lease record to delete."), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
     ip = device.current_lease.ip
     if not settings.leases_path.exists():
-        set_flash(request, "No leases file found.", kind="error")
+        set_flash(request, _("No leases file found."), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
     text = settings.leases_path.read_text()
     cleaned, removed = delete_lease_records(text, ip)
     if removed == 0:
-        set_flash(request, "No lease record found for that address.", kind="error")
+        set_flash(request, _("No lease record found for that address."), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
     try:
@@ -246,11 +247,11 @@ async def delete_device_lease(
         settings.leases_path.write_text(cleaned)
     except OSError as exc:
         log_action(session, request, user, "device_lease_delete_failed", str(exc), success=False)
-        set_flash(request, f"Failed to delete lease record: {exc}", kind="error")
+        set_flash(request, _("Failed to delete lease record: {exc}", exc=exc), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
     log_action(session, request, user, "device_lease_delete", f"{device.mac} ({ip}), {removed} record(s)")
-    set_flash(request, f"Deleted {removed} lease record(s) for {ip}. This is Sandia's copy only - if the device is still active, dhcpd will write a new record on its next renewal.")
+    set_flash(request, _("Deleted {removed} lease record(s) for {ip}. This is Sandia's copy only - if the device is still active, dhcpd will write a new record on its next renewal.", removed=removed, ip=ip))
     return RedirectResponse(f"/devices/{mac}", status_code=303)
 
 
@@ -263,12 +264,12 @@ async def bulk_delete_device_leases(
     macs: list[str] = Form(default=[]),
 ):
     if not macs:
-        set_flash(request, "No devices selected.", kind="error")
+        set_flash(request, _("No devices selected."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
-    _, devices, _, _, _ = _load_devices(settings)
+    _config, devices, _leases, _history, _log = _load_devices(settings)
     if not settings.leases_path.exists():
-        set_flash(request, "No leases file found.", kind="error")
+        set_flash(request, _("No leases file found."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
     text = settings.leases_path.read_text()
@@ -284,7 +285,7 @@ async def bulk_delete_device_leases(
             affected.append(device.mac)
 
     if removed_total == 0:
-        set_flash(request, "None of the selected devices had a current lease record to delete.", kind="error")
+        set_flash(request, _("None of the selected devices had a current lease record to delete."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
     settings.backup_dir.mkdir(parents=True, exist_ok=True)
@@ -293,5 +294,5 @@ async def bulk_delete_device_leases(
     settings.leases_path.write_text(text)
 
     log_action(session, request, user, "device_bulk_lease_delete", f"{len(affected)} device(s): {', '.join(affected)}")
-    set_flash(request, f"Deleted {removed_total} lease record(s) across {len(affected)} device(s).")
+    set_flash(request, _("Deleted {removed_total} lease record(s) across {value} device(s).", removed_total=removed_total, value=len(affected)))
     return RedirectResponse("/devices", status_code=303)

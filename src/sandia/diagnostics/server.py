@@ -5,6 +5,7 @@ from __future__ import annotations
 from ..config import Settings
 from ..config_store import load_live_config
 from ..dhcpd import apply as apply_module
+from ..i18n import _
 from ..interfaces_conf import read_configured_interfaces
 from . import dhcp_log
 from .models import Action, Confidence, DiagnosticResult, Evidence, Finding, Status
@@ -16,12 +17,12 @@ async def _service_finding(settings: Settings) -> Finding | None:
         return None
     return Finding(
         status=Status.CRITICAL,
-        problem="isc-dhcp-server is not running",
-        root_cause=f"systemctl reports the service as '{status}'.",
+        problem=_("isc-dhcp-server is not running"),
+        root_cause=_("systemctl reports the service as '{status}'.", status=status),
         confidence=Confidence.CONFIRMED,
-        evidence=[Evidence("Service status", status), Evidence("Service name", settings.service_name)],
-        impact="No client can obtain or renew a lease while the service is not active.",
-        actions=[Action("View service page", "/service")],
+        evidence=[Evidence(_("Service status"), status), Evidence(_("Service name"), settings.service_name)],
+        impact=_("No client can obtain or renew a lease while the service is not active."),
+        actions=[Action(_("View service page"), "/service")],
     )
 
 
@@ -32,21 +33,21 @@ async def _config_finding(settings: Settings) -> Finding | None:
     if result.command_missing:
         return Finding(
             status=Status.WARNING,
-            problem="Could not validate the live configuration",
-            root_cause=f"The `dhcpd` command could not be run ({result.stderr}), so config validity is unknown.",
+            problem=_("Could not validate the live configuration"),
+            root_cause=_("The `dhcpd` command could not be run ({stderr}), so config validity is unknown.", stderr=result.stderr),
             confidence=Confidence.UNKNOWN,
-            evidence=[Evidence("dhcpd -t error", result.stderr)],
-            impact="Configuration correctness cannot currently be confirmed by this check.",
-            actions=[Action("View raw config", "/config/raw")],
+            evidence=[Evidence(_("dhcpd -t error"), result.stderr)],
+            impact=_("Configuration correctness cannot currently be confirmed by this check."),
+            actions=[Action(_("View raw config"), "/config/raw")],
         )
     return Finding(
         status=Status.CRITICAL,
-        problem="Live configuration is invalid",
-        root_cause="`dhcpd -t` failed against the configuration file currently on disk.",
+        problem=_("Live configuration is invalid"),
+        root_cause=_("`dhcpd -t` failed against the configuration file currently on disk."),
         confidence=Confidence.CONFIRMED,
-        evidence=[Evidence("dhcpd -t output", (result.stderr or result.stdout).strip())],
-        impact="dhcpd is either running on a stale configuration or will fail to start/restart.",
-        actions=[Action("View raw config", "/config/raw"), Action("View backups", "/backups")],
+        evidence=[Evidence(_("dhcpd -t output"), (result.stderr or result.stdout).strip())],
+        impact=_("dhcpd is either running on a stale configuration or will fail to start/restart."),
+        actions=[Action(_("View raw config"), "/config/raw"), Action(_("View backups"), "/backups")],
     )
 
 
@@ -54,11 +55,11 @@ def _leases_finding(settings: Settings) -> Finding | None:
     if not settings.leases_path.exists():
         return Finding(
             status=Status.WARNING,
-            problem="Leases file not found",
-            root_cause=f"No file exists at {settings.leases_path}.",
+            problem=_("Leases file not found"),
+            root_cause=_("No file exists at {leases_path}.", leases_path=settings.leases_path),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("Leases path", str(settings.leases_path))],
-            impact="Sandia cannot show current leases until the file exists (dhcpd creates it on first run).",
+            evidence=[Evidence(_("Leases path"), str(settings.leases_path))],
+            impact=_("Sandia cannot show current leases until the file exists (dhcpd creates it on first run)."),
             actions=[],
         )
     try:
@@ -66,11 +67,11 @@ def _leases_finding(settings: Settings) -> Finding | None:
     except OSError as exc:
         return Finding(
             status=Status.WARNING,
-            problem="Leases file is not readable",
+            problem=_("Leases file is not readable"),
             root_cause=str(exc),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("Leases path", str(settings.leases_path))],
-            impact="Sandia cannot show current leases or diagnose pool/client state until this is fixed.",
+            evidence=[Evidence(_("Leases path"), str(settings.leases_path))],
+            impact=_("Sandia cannot show current leases or diagnose pool/client state until this is fixed."),
             actions=[],
         )
     return None
@@ -82,12 +83,12 @@ def _interfaces_finding(settings: Settings) -> Finding | None:
         return None
     return Finding(
         status=Status.WARNING,
-        problem="No interfaces configured",
-        root_cause=f"INTERFACESv4 in {settings.interfaces_conf_path} is empty or unset.",
+        problem=_("No interfaces configured"),
+        root_cause=_("INTERFACESv4 in {interfaces_conf_path} is empty or unset.", interfaces_conf_path=settings.interfaces_conf_path),
         confidence=Confidence.CONFIRMED,
-        evidence=[Evidence("INTERFACESv4", "(empty)")],
-        impact="isc-dhcp-server may listen on every interface (default) or none, depending on your init system - verify this is intentional.",
-        actions=[Action("View interfaces", "/interfaces")],
+        evidence=[Evidence(_("INTERFACESv4"), "(empty)")],
+        impact=_("isc-dhcp-server may listen on every interface (default) or none, depending on your init system - verify this is intentional."),
+        actions=[Action(_("View interfaces"), "/interfaces")],
     )
 
 
@@ -97,11 +98,11 @@ def _recent_errors_finding(events: list) -> Finding | None:
         return None
     return Finding(
         status=Status.WARNING,
-        problem=f"{len(error_lines)} recent DHCP log line(s) matched error-related keywords",
-        root_cause="These log lines contain error/failure-related wording - review them below to determine the underlying cause.",
+        problem=_("{value} recent DHCP log line(s) matched error-related keywords", value=len(error_lines)),
+        root_cause=_("These log lines contain error/failure-related wording - review them below to determine the underlying cause."),
         confidence=Confidence.CONFIRMED,
         evidence=[Evidence(event.timestamp, event.raw) for event in error_lines],
-        impact="May indicate a recurring problem serving some clients.",
+        impact=_("May indicate a recurring problem serving some clients."),
         actions=[],
     )
 
@@ -134,11 +135,11 @@ async def diagnose_server(settings: Settings) -> DiagnosticResult:
         findings.append(
             Finding(
                 status=Status.WARNING,
-                problem="DHCP log not available",
+                problem=_("DHCP log not available"),
                 root_cause=log_unavailable,
                 confidence=Confidence.CONFIRMED,
-                evidence=[Evidence("Configured log path", str(settings.dhcp_log_path))],
-                impact="Recent DHCP protocol activity (offers, NAKs, declines) cannot be checked here or in client diagnostics.",
+                evidence=[Evidence(_("Configured log path"), str(settings.dhcp_log_path))],
+                impact=_("Recent DHCP protocol activity (offers, NAKs, declines) cannot be checked here or in client diagnostics."),
                 actions=[],
             )
         )
@@ -152,16 +153,16 @@ async def diagnose_server(settings: Settings) -> DiagnosticResult:
         findings = [
             Finding(
                 status=Status.HEALTHY,
-                problem="No issues detected",
+                problem=_("No issues detected"),
                 root_cause="",
                 confidence=Confidence.CONFIRMED,
                 evidence=[
-                    Evidence("Service", "active"),
-                    Evidence("Configuration", "valid"),
-                    Evidence("Subnets", str(len(config.subnets))),
-                    Evidence("Reservations", str(len(config.all_hosts))),
+                    Evidence(_("Service"), "active"),
+                    Evidence(_("Configuration"), "valid"),
+                    Evidence(_("Subnets"), str(len(config.subnets))),
+                    Evidence(_("Reservations"), str(len(config.all_hosts))),
                 ],
             )
         ]
 
-    return DiagnosticResult(title="Server diagnostics", target_description=settings.service_name, findings=findings)
+    return DiagnosticResult(title=_("Server diagnostics"), target_description=settings.service_name, findings=findings)

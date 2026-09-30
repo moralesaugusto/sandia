@@ -7,6 +7,7 @@ from ..config_store import load_live_config
 from ..devices import build_devices
 from ..diagnostics import diagnose_client, diagnose_server, load_dhcp_events
 from ..diagnostics.dhcp_log import EVENT_KINDS, DhcpEvent
+from ..i18n import _
 from ..leases import load_lease_history, load_leases
 from ..models import User
 from ..rendering import render
@@ -39,7 +40,7 @@ async def server_diagnostics(
     settings: Settings = Depends(get_settings),
 ):
     result = await diagnose_server(settings)
-    return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label="Diagnostics")
+    return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label=_("Diagnostics"))
 
 
 @router.get("/diagnostics/wall-of-shame")
@@ -161,4 +162,4 @@ async def client_diagnostics(
         ip=ip or None,
         hostname=hostname or None,
     )
-    return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label="Diagnostics")
+    return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label=_("Diagnostics"))

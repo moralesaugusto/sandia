@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Leases - Sandia{% endblock %}
+{% block title %}{{ _("Leases") }} - Sandia{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl font-semibold">Leases</h1>
+  <h1 class="text-xl font-semibold">{{ _("Leases") }}</h1>
   <div class="flex items-center gap-4">
     {% if user.role in ('admin', 'operator') %}
-    <form method="post" action="/leases/clean" onsubmit="return confirm('Clean the leases file? This keeps the current state of every lease and only removes superseded renewal history. A backup is taken first.');">
-      <button type="submit" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100">{{ icon('trash', 'w-4 h-4') }} Clean leases</button>
+    <form method="post" action="/leases/clean" onsubmit="return confirm({{ _("Clean the leases file? This keeps the current state of every lease and only removes superseded renewal history. A backup is taken first.") | tojson | forceescape }});">
+      <button type="submit" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100">{{ icon('trash', 'w-4 h-4') }} {{ _("Clean leases") }}</button>
     </form>
     {% endif %}
-    <a href="/leases/export.csv?q={{ q | urlencode }}&amp;state={{ state | urlencode }}&amp;sort={{ sort | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+    <a href="/leases/export.csv?q={{ q | urlencode }}&amp;state={{ state | urlencode }}&amp;sort={{ sort | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300">{{ icon('download', 'w-4 h-4') }} {{ _("Export CSV") }}</a>
   </div>
 </div>
 
@@ -27,18 +27,18 @@
       type="search"
       name="q"
       value="{{ q }}"
-      placeholder="Search by IP, MAC or hostname..."
+      placeholder="{{ _("Search by IP, MAC or hostname...") }}"
       class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
     >
   </div>
   <select name="state" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
     {% for value, label in state_options %}
-    <option value="{{ value }}" {% if state == value %}selected{% endif %}>{{ label }}</option>
+    <option value="{{ value }}" {% if state == value %}selected{% endif %}>{{ _(label) }}</option>
     {% endfor %}
   </select>
   <input type="hidden" name="sort" value="{{ sort }}">
 </form>
-<p class="text-xs text-slate-500 -mt-2 mb-4">Click a column header to sort.</p>
+<p class="text-xs text-slate-500 -mt-2 mb-4">{{ _("Click a column header to sort.") }}</p>
 
 <div id="leases-table">
   {% include "leases/_table.html" %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Reservations - Sandia{% endblock %}
+{% block title %}{{ _("Reservations") }} - Sandia{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl font-semibold">Reservations</h1>
+  <h1 class="text-xl font-semibold">{{ _("Reservations") }}</h1>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/reservations/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New reservation</a>
+  <a href="/reservations/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} {{ _("New reservation") }}</a>
   {% endif %}
 </div>
 
@@ -12,17 +12,17 @@
   <form method="get" action="/reservations" class="flex-1 max-w-lg flex items-center gap-3">
     <div class="relative flex-1">
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
-      <input type="search" name="q" value="{{ q }}" placeholder="Search by name, MAC or IP..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      <input type="search" name="q" value="{{ q }}" placeholder="{{ _("Search by name, MAC or IP...") }}" class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
     </div>
     <select name="subnet_key" onchange="this.form.submit()" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-      <option value="">All subnets</option>
-      <option value="__global__" {% if subnet_key == "__global__" %}selected{% endif %}>Global (no subnet)</option>
+      <option value="">{{ _("All subnets") }}</option>
+      <option value="__global__" {% if subnet_key == "__global__" %}selected{% endif %}>{{ _("Global (no subnet)") }}</option>
       {% for subnet in subnets %}
       <option value="{{ subnet.key }}" {% if subnet_key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
       {% endfor %}
     </select>
   </form>
-  <a href="/reservations/export.csv?q={{ q | urlencode }}&amp;subnet_key={{ subnet_key | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <a href="/reservations/export.csv?q={{ q | urlencode }}&amp;subnet_key={{ subnet_key | urlencode }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} {{ _("Export CSV") }}</a>
 </div>
 
 <form method="post">
@@ -30,9 +30,9 @@
   <div class="flex items-center justify-between mb-3">
     <label class="flex items-center gap-2 text-sm text-slate-400">
       <input type="checkbox" id="select-all" class="rounded bg-slate-800 border-slate-700" onchange="document.querySelectorAll('.reservation-checkbox').forEach(cb => cb.checked = this.checked)">
-      Select all
+    {{ _("Select all") }}
     </label>
-    <button type="submit" formaction="/reservations/bulk-delete" onclick="return confirm('Delete all selected reservations?');" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} Delete selected</button>
+    <button type="submit" formaction="/reservations/bulk-delete" onclick="return confirm({{ _("Delete all selected reservations?") | tojson | forceescape }});" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete selected") }}</button>
   </div>
   {% endif %}
 
@@ -47,23 +47,23 @@
         <div>
           <div class="font-medium">{{ row.host.name }}</div>
           <div class="text-sm text-slate-500">
-            {{ row.host.mac or 'no MAC' }}
+            {{ row.host.mac or _('no MAC') }}
             {% set v = row.host.mac | vendor %}
             {% if v %}<span class="text-slate-600">({{ v }})</span>{% endif %}
-            &rarr; {{ row.host.fixed_address or 'no IP' }} &middot; {% if row.subnet %}{{ row.subnet.network }}/{{ row.subnet.netmask }}{% else %}global{% endif %}
+            &rarr; {{ row.host.fixed_address or _('no IP') }} &middot; {% if row.subnet %}{{ row.subnet.network }}/{{ row.subnet.netmask }}{% else %}{{ _("global") }}{% endif %}
           </div>
         </div>
       </div>
       <div class="flex gap-3 text-sm shrink-0">
-        <button type="button" onclick="showHostDetails('{{ row.host.name }}')" class="flex items-center gap-1 text-slate-400 hover:text-slate-100">{{ icon('info', 'w-3.5 h-3.5') }} Details</button>
+        <button type="button" onclick="showHostDetails('{{ row.host.name }}')" class="flex items-center gap-1 text-slate-400 hover:text-slate-100">{{ icon('info', 'w-3.5 h-3.5') }} {{ _("Details") }}</button>
         {% if user.role in ('admin', 'operator') %}
-        <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
-        <button type="submit" formaction="/reservations/{{ row.host.name }}/delete" onclick="return confirm('Delete this reservation?');" class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
+        <a href="/reservations/{{ row.host.name }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Edit") }}</a>
+        <button type="submit" formaction="/reservations/{{ row.host.name }}/delete" onclick="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});" class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} {{ _("Delete") }}</button>
         {% endif %}
       </div>
     </div>
     {% else %}
-    <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No reservations found.</div>
+    <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No reservations found.") }}</div>
     {% endfor %}
   </div>
 </form>
@@ -72,7 +72,7 @@
 <div id="host-details-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
   <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md pointer-events-auto">
     <div class="flex items-center justify-between mb-2">
-      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Host details</div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ _("Host details") }}</div>
       <button type="button" onclick="hideHostDetails()" class="text-slate-500 hover:text-slate-100 text-lg leading-none">&times;</button>
     </div>
     <div id="host-details-content"></div>

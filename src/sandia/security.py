@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from .db import get_session
+from .i18n import _
 from .models import User
 
 _hasher = PasswordHasher()
@@ -45,7 +46,7 @@ def require_role(*roles: str):
 
     def dependency(user: User = Depends(require_login)) -> User:
         if ROLE_RANK[user.role] < minimum_rank:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="insufficient role")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=_("insufficient role"))
         return user
 
     return dependency

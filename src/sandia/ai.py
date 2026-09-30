@@ -20,6 +20,7 @@ from .config_store import load_live_config
 from .dhcpd import serialize
 from .dhcpd.apply import service_status
 from .diagnostics import load_dhcp_events
+from .i18n import _, current_language
 from .leases import load_leases
 from .models import AiSettings
 
@@ -41,6 +42,11 @@ relevant Sandia page (Subnets, Reservations, Leases, Devices, Advanced \
 Settings > Raw Config, Diagnostics). Be concise."""
 
 
+def system_prompt() -> str:
+    # The data snapshot stays in English; only the reply language follows the UI.
+    return SYSTEM_PROMPT + (" Reply in Spanish." if current_language() == "es" else "")
+
+
 def load_ai_settings(session: Session) -> AiSettings:
     return session.get(AiSettings, 1) or AiSettings(id=1)
 
@@ -58,8 +64,8 @@ def normalize_ollama_url(value: str) -> str:
             value = f"http://{parts.netloc}:{DEFAULT_OLLAMA_PORT}{parts.path}"
     parts = urlsplit(value)
     if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise ValueError(f"Not a valid Ollama address: {value}")
-    _ = parts.port  # raises ValueError on a malformed or out-of-range port
+        raise ValueError(_("Not a valid Ollama address: {value}", value=value))
+    parts.port  # noqa: B018 - accessing it raises ValueError on a malformed or out-of-range port
     return value
 
 
@@ -129,17 +135,17 @@ async def chat_stream(url: str, model: str, messages: list[dict]) -> AsyncIterat
         ):
             if response.status_code != 200:
                 body = (await response.aread()).decode(errors="replace")
-                yield f"[Ollama returned HTTP {response.status_code}: {body[:300]}]"
+                yield "[" + _("Ollama returned HTTP {status}: {body}", status=response.status_code, body=body[:300]) + "]"
                 return
             async for line in response.aiter_lines():
                 if not line.strip():
                     continue
                 data = json.loads(line)
                 if "error" in data:
-                    yield f"\n[Ollama error: {data['error']}]"
+                    yield "\n[" + _("Ollama error: {error}", error=data["error"]) + "]"
                     return
                 chunk = data.get("message", {}).get("content", "")
                 if chunk:
                     yield chunk
     except httpx.HTTPError as exc:
-        yield f"\n[Could not reach Ollama at {url}: {type(exc).__name__}: {exc}]"
+        yield "\n[" + _("Could not reach Ollama at {url}: {error}", url=url, error=f"{type(exc).__name__}: {exc}") + "]"

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Service - Sandia{% endblock %}
+{% block title %}{{ _("Service") }} - Sandia{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('service', 'w-5 h-5 text-slate-500') }} {{ service_name }}</h1>
-  <a href="/diagnostics/server" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} Run diagnostics</a>
+  <a href="/diagnostics/server" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Run diagnostics") }}</a>
 </div>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
@@ -15,16 +15,16 @@
 {% if user.role in ('admin', 'operator') %}
 <div class="flex gap-3">
   <form method="post" action="/service/restart">
-    <button class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('refresh', 'w-4 h-4') }} Restart</button>
+    <button class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('refresh', 'w-4 h-4') }} {{ _("Restart") }}</button>
   </form>
   {% if user.role == 'admin' %}
   {% if enabled %}
   <form method="post" action="/service/disable">
-    <button class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('power', 'w-4 h-4') }} Disable at boot</button>
+    <button class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('power', 'w-4 h-4') }} {{ _("Disable at boot") }}</button>
   </form>
   {% else %}
   <form method="post" action="/service/enable">
-    <button class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('power', 'w-4 h-4') }} Enable at boot</button>
+    <button class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('power', 'w-4 h-4') }} {{ _("Enable at boot") }}</button>
   </form>
   {% endif %}
   {% endif %}

@@ -9,6 +9,7 @@ from ..db import get_session
 from ..dhcpd import serialize
 from ..dhcpd.apply import apply_new_config, check_config, stage
 from ..diff import unified_diff_lines
+from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -67,9 +68,9 @@ async def raw_config_apply(
     result = await apply_new_config(settings, text)
     if not result.ok:
         log_action(session, request, user, "raw_config_apply_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/config/raw", status_code=303)
 
     log_action(session, request, user, "raw_config_apply", "applied raw config edit")
-    set_flash(request, "Configuration applied. isc-dhcp-server restarted.")
+    set_flash(request, _("Configuration applied. isc-dhcp-server restarted."))
     return RedirectResponse("/config/raw", status_code=303)

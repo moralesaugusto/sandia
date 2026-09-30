@@ -20,6 +20,7 @@ from .device_icons import device_icon_for
 from .dhcpd import DhcpdConfig, Host, Subnet
 from .diagnostics import normalize_mac
 from .diagnostics.dhcp_log import DhcpEvent
+from .i18n import N_, _
 from .ip_map import denied_macs
 from .leases import Lease, parse_lease_timestamp
 from .utilization import find_containing_subnet
@@ -41,12 +42,12 @@ class DeviceStatus(str, Enum):
 
 
 STATUS_LABELS: dict[DeviceStatus, str] = {
-    DeviceStatus.PROBLEM: "Problem",
-    DeviceStatus.ACTIVE: "Active",
-    DeviceStatus.RECENTLY_SEEN: "Recently seen",
-    DeviceStatus.INACTIVE: "Inactive",
-    DeviceStatus.RESERVED: "Reserved",
-    DeviceStatus.UNKNOWN: "Unknown",
+    DeviceStatus.PROBLEM: N_("Problem"),
+    DeviceStatus.ACTIVE: N_("Active"),
+    DeviceStatus.RECENTLY_SEEN: N_("Recently seen"),
+    DeviceStatus.INACTIVE: N_("Inactive"),
+    DeviceStatus.RESERVED: N_("Reserved"),
+    DeviceStatus.UNKNOWN: N_("Unknown"),
 }
 
 _STATUS_SORT_RANK = {
@@ -106,30 +107,30 @@ class Device:
 
     @property
     def status_label(self) -> str:
-        return STATUS_LABELS[self.status]
+        return _(STATUS_LABELS[self.status])
 
 
 def _format_delta(delta: timedelta) -> str:
     seconds = max(int(delta.total_seconds()), 0)
     days, remainder = divmod(seconds, 86400)
     hours, remainder = divmod(remainder, 3600)
-    minutes, _ = divmod(remainder, 60)
+    minutes = remainder // 60
     if days:
         return f"{days}d {hours}h" if hours else f"{days}d"
     if hours:
         return f"{hours}h {minutes}m" if minutes else f"{hours}h"
     if minutes:
         return f"{minutes}m"
-    return "under a minute"
+    return _("under a minute")
 
 
 def _lease_status_detail(lease: Lease, now: datetime) -> str:
     ends = parse_lease_timestamp(lease.ends)
     if ends is None:
-        return "Active - lease state active"
+        return _("Active - lease state active")
     if ends > now:
-        return f"Active - lease expires in {_format_delta(ends - now)}"
-    return f"Active - lease expired {_format_delta(now - ends)} ago (dhcpd has not updated its state yet)"
+        return _("Active - lease expires in {delta}", delta=_format_delta(ends - now))
+    return _("Active - lease expired {delta} ago (dhcpd has not updated its state yet)", delta=_format_delta(now - ends))
 
 
 def _build_status(
@@ -141,17 +142,17 @@ def _build_status(
     now: datetime,
 ) -> tuple[DeviceStatus, str]:
     if has_problem:
-        return DeviceStatus.PROBLEM, f"Problem - {problem_summary}"
+        return DeviceStatus.PROBLEM, _("Problem - {summary}", summary=problem_summary)
     if current_lease and current_lease.is_active:
         return DeviceStatus.ACTIVE, _lease_status_detail(current_lease, now)
     if last_seen is not None:
         delta = now - last_seen
         if delta <= RECENT_WINDOW:
-            return DeviceStatus.RECENTLY_SEEN, f"Recently seen - last DHCP activity {_format_delta(delta)} ago"
-        return DeviceStatus.INACTIVE, f"Inactive - last DHCP activity {_format_delta(delta)} ago"
+            return DeviceStatus.RECENTLY_SEEN, _("Recently seen - last DHCP activity {delta} ago", delta=_format_delta(delta))
+        return DeviceStatus.INACTIVE, _("Inactive - last DHCP activity {delta} ago", delta=_format_delta(delta))
     if reservation:
-        return DeviceStatus.RESERVED, "Reserved - no DHCP activity recorded"
-    return DeviceStatus.UNKNOWN, "Unknown - insufficient evidence"
+        return DeviceStatus.RESERVED, _("Reserved - no DHCP activity recorded")
+    return DeviceStatus.UNKNOWN, _("Unknown - insufficient evidence")
 
 
 def _duplicate_reservation_macs(config: DhcpdConfig) -> set[str]:
@@ -239,11 +240,11 @@ def build_devices(
 
         problems = []
         if mac in denied:
-            problems.append("client is denied")
+            problems.append(_("client is denied"))
         if mac in conflict_macs:
-            problems.append("reservation conflict with another device")
+            problems.append(_("reservation conflict with another device"))
         if mac in nak_macs:
-            problems.append("recent DHCPNAK observed")
+            problems.append(_("recent DHCPNAK observed"))
         problem_summary = "; ".join(problems) if problems else None
 
         status, status_detail = _build_status(current_lease, last_seen, reservation, bool(problems), problem_summary, now)

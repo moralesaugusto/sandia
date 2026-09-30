@@ -16,6 +16,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
     last_login: datetime | None = None
     theme: str = "dark"  # "dark" | "light"
+    language: str = "en"  # "en" | "es"
 
 
 class AuditLog(SQLModel, table=True):

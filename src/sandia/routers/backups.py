@@ -6,6 +6,7 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
 from ..dhcpd.apply import apply_new_config
+from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -35,15 +36,15 @@ async def restore_backup(
 ):
     path = settings.backup_dir / filename
     if "/" in filename or not path.is_file():
-        set_flash(request, "Backup file not found.", kind="error")
+        set_flash(request, _("Backup file not found."), kind="error")
         return RedirectResponse("/backups", status_code=303)
 
     result = await apply_new_config(settings, path.read_text())
     if not result.ok:
         log_action(session, request, user, "backup_restore_failed", result.output, success=False)
-        set_flash(request, f"Restore failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Restore failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/backups", status_code=303)
 
     log_action(session, request, user, "backup_restore", filename)
-    set_flash(request, "Backup restored (a fresh backup of the prior config was taken first). isc-dhcp-server restarted.")
+    set_flash(request, _("Backup restored (a fresh backup of the prior config was taken first). isc-dhcp-server restarted."))
     return RedirectResponse("/backups", status_code=303)

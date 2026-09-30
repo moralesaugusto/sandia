@@ -53,7 +53,9 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
   Settings > AI Settings (`AiSettings` table). Read-only, answers from a
   server-built snapshot of config/leases/log/service status.
 - Ruff lint configured (`uv run ruff check .`).
-- 383 tests, all passing as of the end of this pass.
+- English/Spanish UI (`i18n.py`, catalog in `i18n_es.py`): selector in the
+  top-right corner, saved per session and per account (`User.language`).
+- 398 tests, all passing as of the end of this pass.
 
 ## Gaps identified and closed across recent passes
 

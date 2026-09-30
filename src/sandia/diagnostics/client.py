@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from ..dhcpd import DhcpdConfig, Host, Subnet
 from ..dhcpd.subnet_interface import get_subnet_interface
+from ..i18n import _
 from ..leases import Lease
 from ..utilization import find_containing_subnet, range_bounds, subnet_utilization
 from ..vendors import lookup_vendor
@@ -73,62 +74,62 @@ def normalize_mac(mac: str | None) -> str | None:
 def _identity_step(mac: str | None, ip: str | None, hostname: str | None, reservation: Host | None, lease: Lease | None) -> FlowStep:
     evidence = []
     if mac:
-        evidence.append(Evidence("MAC address", mac))
+        evidence.append(Evidence(_("MAC address"), mac))
         vendor = lookup_vendor(mac)
         if vendor:
-            evidence.append(Evidence("Vendor", vendor))
+            evidence.append(Evidence(_("Vendor"), vendor))
     if ip:
-        evidence.append(Evidence("IP address", ip))
+        evidence.append(Evidence(_("IP address"), ip))
     known_hostname = hostname or (reservation.name if reservation else None) or (lease.hostname if lease else None)
     if known_hostname:
-        evidence.append(Evidence("Hostname", known_hostname))
+        evidence.append(Evidence(_("Hostname"), known_hostname))
 
     if not mac and not ip:
-        return FlowStep("Client", Status.UNKNOWN, "No MAC address, IP address, or hostname was provided to identify this client.", evidence)
-    return FlowStep("Client", Status.HEALTHY if evidence else Status.UNKNOWN, "Identified from the provided MAC/IP.", evidence)
+        return FlowStep(_("Client"), Status.UNKNOWN, _("No MAC address, IP address, or hostname was provided to identify this client."), evidence)
+    return FlowStep(_("Client"), Status.HEALTHY if evidence else Status.UNKNOWN, _("Identified from the provided MAC/IP."), evidence)
 
 
 def _activity_step(events: list[DhcpEvent], log_unavailable: str | None) -> FlowStep:
     if log_unavailable:
-        return FlowStep("DHCP activity", Status.UNKNOWN, log_unavailable, [])
+        return FlowStep(_("DHCP activity"), Status.UNKNOWN, log_unavailable, [])
     if not events:
-        return FlowStep("DHCP activity", Status.UNKNOWN, "No DHCP protocol activity for this client was found in the log.", [])
+        return FlowStep(_("DHCP activity"), Status.UNKNOWN, _("No DHCP protocol activity for this client was found in the log."), [])
     evidence = [Evidence(event.timestamp, event.raw) for event in events[-10:]]
     has_nak = any(event.kind == "DHCPNAK" for event in events)
     has_ack = any(event.kind == "DHCPACK" for event in events)
     status = Status.CRITICAL if has_nak and not has_ack else Status.HEALTHY if has_ack else Status.WARNING
-    return FlowStep("DHCP activity", status, f"{len(events)} matching log entr{'y' if len(events) == 1 else 'ies'} found.", evidence)
+    return FlowStep(_("DHCP activity"), status, _("1 matching log entry found.") if len(events) == 1 else _("{n} matching log entries found.", n=len(events)), evidence)
 
 
 def _subnet_step(subnet: Subnet | None, ip: str | None, candidate_subnets: list[Subnet]) -> FlowStep:
     if subnet:
-        return FlowStep("Subnet selection", Status.HEALTHY, f"{_subnet_label(subnet)} covers this address.", [Evidence("Subnet", _subnet_label(subnet))])
+        return FlowStep(_("Subnet selection"), Status.HEALTHY, _("{value} covers this address.", value=_subnet_label(subnet)), [Evidence(_("Subnet"), _subnet_label(subnet))])
     if ip:
-        return FlowStep("Subnet selection", Status.CRITICAL, f"No configured subnet's network contains {ip}.", [Evidence("IP address", ip)])
+        return FlowStep(_("Subnet selection"), Status.CRITICAL, _("No configured subnet's network contains {ip}.", ip=ip), [Evidence(_("IP address"), ip)])
     if candidate_subnets:
         return FlowStep(
-            "Subnet selection",
+            _("Subnet selection"),
             Status.UNKNOWN,
-            "No IP is known yet, but the log shows this client's traffic arriving on an interface tagged to these subnet(s). Interface tags are organizational metadata, not a live directive, so this is a guess, not a fact.",
-            [Evidence("Candidate subnet", _subnet_label(s)) for s in candidate_subnets],
+            _("No IP is known yet, but the log shows this client's traffic arriving on an interface tagged to these subnet(s). Interface tags are organizational metadata, not a live directive, so this is a guess, not a fact."),
+            [Evidence(_("Candidate subnet"), _subnet_label(s)) for s in candidate_subnets],
         )
-    return FlowStep("Subnet selection", Status.UNKNOWN, "No IP address is known yet, so the subnet cannot be determined.", [])
+    return FlowStep(_("Subnet selection"), Status.UNKNOWN, _("No IP address is known yet, so the subnet cannot be determined."), [])
 
 
 def _reservation_step(reservation: Host | None, subnet: Subnet | None) -> FlowStep:
     if reservation:
-        evidence = [Evidence("Reservation", reservation.name), Evidence("Fixed address", reservation.fixed_address or "(none)")]
-        return FlowStep("Reservation lookup", Status.HEALTHY, f"'{reservation.name}' reserves this MAC to {reservation.fixed_address or '(no address set)'}.", evidence)
-    return FlowStep("Reservation lookup", Status.HEALTHY, "No static reservation for this MAC - expected to use the dynamic pool.", [])
+        evidence = [Evidence(_("Reservation"), reservation.name), Evidence(_("Fixed address"), reservation.fixed_address or "(none)")]
+        return FlowStep(_("Reservation lookup"), Status.HEALTHY, _("'{name}' reserves this MAC to {value}.", name=reservation.name, value=reservation.fixed_address or _("(no address set)")), evidence)
+    return FlowStep(_("Reservation lookup"), Status.HEALTHY, _("No static reservation for this MAC - expected to use the dynamic pool."), [])
 
 
 def _pool_step(subnet: Subnet | None) -> FlowStep:
     if subnet is None:
-        return FlowStep("Pool selection", Status.UNKNOWN, "No subnet identified, so the pool cannot be determined.", [])
+        return FlowStep(_("Pool selection"), Status.UNKNOWN, _("No subnet identified, so the pool cannot be determined."), [])
     bounds = range_bounds(subnet)
     if bounds is None:
-        return FlowStep("Pool selection", Status.CRITICAL, f"{_subnet_label(subnet)} has no pool range configured.", [])
-    return FlowStep("Pool selection", Status.HEALTHY, f"Pool range: {subnet.get('range')}", [Evidence("range", subnet.get("range") or "")])
+        return FlowStep(_("Pool selection"), Status.CRITICAL, _("{value} has no pool range configured.", value=_subnet_label(subnet)), [])
+    return FlowStep(_("Pool selection"), Status.HEALTHY, _("Pool range: {value}", value=subnet.get('range')), [Evidence(_("range"), subnet.get("range") or "")])
 
 
 def _reservation_conflict(reservation: Host | None, leases: list[Lease]) -> Lease | None:
@@ -145,19 +146,19 @@ def _availability_step(subnet: Subnet | None, reservation: Host | None, leases: 
         conflicting = _reservation_conflict(reservation, leases)
         if conflicting:
             return FlowStep(
-                "Address availability",
+                _("Address availability"),
                 Status.CRITICAL,
-                f"{reservation.fixed_address} is reserved for {reservation.mac}, but is currently actively leased to a different MAC ({conflicting.mac}).",
-                [Evidence("Reserved to", reservation.mac or ""), Evidence("Actually leased to", conflicting.mac or "")],
+                _("{fixed_address} is reserved for {mac}, but is currently actively leased to a different MAC ({mac2}).", fixed_address=reservation.fixed_address, mac=reservation.mac, mac2=conflicting.mac),
+                [Evidence(_("Reserved to"), reservation.mac or ""), Evidence(_("Actually leased to"), conflicting.mac or "")],
             )
-        return FlowStep("Address availability", Status.HEALTHY, f"{reservation.fixed_address} is not held by any other active lease.", [])
+        return FlowStep(_("Address availability"), Status.HEALTHY, _("{fixed_address} is not held by any other active lease.", fixed_address=reservation.fixed_address), [])
     if subnet is None:
-        return FlowStep("Address availability", Status.UNKNOWN, "No subnet identified, so pool availability cannot be checked.", [])
+        return FlowStep(_("Address availability"), Status.UNKNOWN, _("No subnet identified, so pool availability cannot be checked."), [])
     used, total = subnet_utilization(subnet, leases)
     if total == 0:
-        return FlowStep("Address availability", Status.UNKNOWN, "No pool range configured on this subnet.", [])
+        return FlowStep(_("Address availability"), Status.UNKNOWN, _("No pool range configured on this subnet."), [])
     status = Status.CRITICAL if used >= total else Status.HEALTHY
-    return FlowStep("Address availability", status, f"{used}/{total} pool addresses allocated.", [Evidence("Allocated", str(used)), Evidence("Usable", str(total))])
+    return FlowStep(_("Address availability"), status, _("{used}/{total} pool addresses allocated.", used=used, total=total), [Evidence(_("Allocated"), str(used)), Evidence(_("Usable"), str(total))])
 
 
 def _response_step(events: list[DhcpEvent]) -> FlowStep:
@@ -167,28 +168,28 @@ def _response_step(events: list[DhcpEvent]) -> FlowStep:
     discover = _most_recent(events, "DHCPDISCOVER")
 
     if nak and (ack is None or events.index(nak) > events.index(ack)):
-        detail = f"dhcpd sent DHCPNAK.{f' Reason: {nak.reason}.' if nak.reason else ' No reason was recorded in the log.'}"
-        return FlowStep("DHCP response", Status.CRITICAL, detail, [Evidence(nak.timestamp, nak.raw)])
+        detail = _("dhcpd sent DHCPNAK. Reason: {reason}.", reason=nak.reason) if nak.reason else _("dhcpd sent DHCPNAK. No reason was recorded in the log.")
+        return FlowStep(_("DHCP response"), Status.CRITICAL, detail, [Evidence(nak.timestamp, nak.raw)])
     if ack:
-        return FlowStep("DHCP response", Status.HEALTHY, "dhcpd sent DHCPACK.", [Evidence(ack.timestamp, ack.raw)])
+        return FlowStep(_("DHCP response"), Status.HEALTHY, _("dhcpd sent DHCPACK."), [Evidence(ack.timestamp, ack.raw)])
     if discover and offer is None:
-        detail = discover.reason or "DHCPDISCOVER was logged but no matching DHCPOFFER followed."
-        return FlowStep("DHCP response", Status.WARNING, detail, [Evidence(discover.timestamp, discover.raw)])
+        detail = discover.reason or _("DHCPDISCOVER was logged but no matching DHCPOFFER followed.")
+        return FlowStep(_("DHCP response"), Status.WARNING, detail, [Evidence(discover.timestamp, discover.raw)])
     if offer:
-        return FlowStep("DHCP response", Status.WARNING, "dhcpd offered an address, but no DHCPACK confirming it was found.", [Evidence(offer.timestamp, offer.raw)])
-    return FlowStep("DHCP response", Status.UNKNOWN, "No DHCP response activity found in the log for this client.", [])
+        return FlowStep(_("DHCP response"), Status.WARNING, _("dhcpd offered an address, but no DHCPACK confirming it was found."), [Evidence(offer.timestamp, offer.raw)])
+    return FlowStep(_("DHCP response"), Status.UNKNOWN, _("No DHCP response activity found in the log for this client."), [])
 
 
 def _lease_step(lease: Lease | None) -> FlowStep:
     if lease is None:
-        return FlowStep("Lease", Status.UNKNOWN, "No lease record exists for this client.", [])
+        return FlowStep(_("Lease"), Status.UNKNOWN, _("No lease record exists for this client."), [])
     evidence = [
-        Evidence("IP", lease.ip),
-        Evidence("State", lease.binding_state or "unknown"),
-        Evidence("Ends", lease.ends or "unknown"),
+        Evidence(_("IP"), lease.ip),
+        Evidence(_("State"), lease.binding_state or "unknown"),
+        Evidence(_("Ends"), lease.ends or "unknown"),
     ]
     status = Status.HEALTHY if lease.is_active else Status.WARNING
-    return FlowStep("Lease", status, f"Lease state: {lease.binding_state or 'unknown'}.", evidence)
+    return FlowStep(_("Lease"), status, _("Lease state: {value}.", value=lease.binding_state or 'unknown'), evidence)
 
 
 def _root_cause_findings(
@@ -209,17 +210,17 @@ def _root_cause_findings(
             return [
                 Finding(
                     status=Status.CRITICAL,
-                    problem="Reserved address is in use by another client",
-                    root_cause=f"'{reservation.name}' is fixed to {reservation.fixed_address}, but that address is currently actively leased to {conflicting.mac}, not {reservation.mac}.",
+                    problem=_("Reserved address is in use by another client"),
+                    root_cause=_("'{name}' is fixed to {fixed_address}, but that address is currently actively leased to {mac}, not {mac2}.", name=reservation.name, fixed_address=reservation.fixed_address, mac=conflicting.mac, mac2=reservation.mac),
                     confidence=Confidence.CONFIRMED,
                     evidence=[
-                        Evidence("Reservation", reservation.name),
-                        Evidence("Reserved address", reservation.fixed_address),
-                        Evidence("Reserved to MAC", reservation.mac or ""),
-                        Evidence("Currently leased to MAC", conflicting.mac or ""),
+                        Evidence(_("Reservation"), reservation.name),
+                        Evidence(_("Reserved address"), reservation.fixed_address),
+                        Evidence(_("Reserved to MAC"), reservation.mac or ""),
+                        Evidence(_("Currently leased to MAC"), conflicting.mac or ""),
                     ],
-                    impact="This client cannot obtain its reserved address until the conflicting lease is released or denied.",
-                    actions=[Action("Edit reservation", f"/reservations/{reservation.name}/edit"), Action("View leases", "/leases")],
+                    impact=_("This client cannot obtain its reserved address until the conflicting lease is released or denied."),
+                    actions=[Action(_("Edit reservation"), f"/reservations/{reservation.name}/edit"), Action(_("View leases"), "/leases")],
                 )
             ]
 
@@ -230,11 +231,11 @@ def _root_cause_findings(
         return [
             Finding(
                 status=Status.CRITICAL,
-                problem="dhcpd sent DHCPNAK",
-                root_cause=nak.reason or "dhcpd rejected this client's request; no reason text was recorded in the log.",
+                problem=_("dhcpd sent DHCPNAK"),
+                root_cause=nak.reason or _("dhcpd rejected this client's request; no reason text was recorded in the log."),
                 confidence=Confidence.CONFIRMED if nak.reason else Confidence.STRONG,
                 evidence=[Evidence(nak.timestamp, nak.raw)],
-                impact="The client was denied the address it requested and must restart DHCP negotiation.",
+                impact=_("The client was denied the address it requested and must restart DHCP negotiation."),
                 actions=[],
             )
         ]
@@ -250,12 +251,12 @@ def _root_cause_findings(
         return [
             Finding(
                 status=Status.WARNING,
-                problem="Address not covered by any configured subnet",
-                root_cause=f"No subnet in dhcpd.conf's network/netmask contains {ip}.",
+                problem=_("Address not covered by any configured subnet"),
+                root_cause=_("No subnet in dhcpd.conf's network/netmask contains {ip}.", ip=ip),
                 confidence=Confidence.CONFIRMED,
-                evidence=[Evidence("IP address", ip)],
-                impact="dhcpd cannot serve this address at all under the current configuration.",
-                actions=[Action("View subnets", "/subnets")],
+                evidence=[Evidence(_("IP address"), ip)],
+                impact=_("dhcpd cannot serve this address at all under the current configuration."),
+                actions=[Action(_("View subnets"), "/subnets")],
             )
         ]
 
@@ -267,11 +268,11 @@ def _root_cause_findings(
         return [
             Finding(
                 status=Status.WARNING,
-                problem="No DHCPOFFER followed this client's DHCPDISCOVER",
-                root_cause=(f"dhcpd logged: {reason}" if reason else "dhcpd logged a DHCPDISCOVER from this client but never logged an offer - the underlying reason isn't recorded."),
+                problem=_("No DHCPOFFER followed this client's DHCPDISCOVER"),
+                root_cause=(_("dhcpd logged: {reason}", reason=reason) if reason else _("dhcpd logged a DHCPDISCOVER from this client but never logged an offer - the underlying reason isn't recorded.")),
                 confidence=Confidence.STRONG if reason else Confidence.POSSIBLE,
                 evidence=[Evidence(discover.timestamp, discover.raw)],
-                impact="This client did not receive an address on this attempt.",
+                impact=_("This client did not receive an address on this attempt."),
                 actions=[],
             )
         ]
@@ -334,18 +335,18 @@ def diagnose_client(
             findings.append(
                 Finding(
                     status=Status.HEALTHY,
-                    problem="Client has a valid, active lease",
+                    problem=_("Client has a valid, active lease"),
                     root_cause="",
                     confidence=Confidence.CONFIRMED,
-                    evidence=[Evidence("IP", lease.ip), Evidence("Ends", lease.ends or "unknown")],
+                    evidence=[Evidence(_("IP"), lease.ip), Evidence(_("Ends"), lease.ends or "unknown")],
                 )
             )
         elif mac is None and ip is None:
             findings.append(
                 Finding(
                     status=Status.UNKNOWN,
-                    problem="Insufficient evidence",
-                    root_cause="No MAC address, IP address, or hostname was provided, so no reservation, lease, or log activity could be checked.",
+                    problem=_("Insufficient evidence"),
+                    root_cause=_("No MAC address, IP address, or hostname was provided, so no reservation, lease, or log activity could be checked."),
                     confidence=Confidence.UNKNOWN,
                     evidence=[],
                 )
@@ -354,31 +355,30 @@ def diagnose_client(
             findings.append(
                 Finding(
                     status=Status.UNKNOWN,
-                    problem="Insufficient evidence",
-                    root_cause="No reservation, lease, or DHCP log activity matches this identifier.",
+                    problem=_("Insufficient evidence"),
+                    root_cause=_("No reservation, lease, or DHCP log activity matches this identifier."),
                     confidence=Confidence.UNKNOWN,
-                    evidence=[Evidence("MAC", mac or "unknown"), Evidence("IP", ip or "unknown")],
-                    impact="Cannot determine whether this client has ever attempted to obtain an address.",
+                    evidence=[Evidence(_("MAC"), mac or "unknown"), Evidence(_("IP"), ip or "unknown")],
+                    impact=_("Cannot determine whether this client has ever attempted to obtain an address."),
                 )
             )
         else:
             findings.append(
                 Finding(
                     status=Status.UNKNOWN,
-                    problem="No active lease, and no evidence of why",
+                    problem=_("No active lease, and no evidence of why"),
                     root_cause=(
-                        "A reservation and/or pool capacity exist for this client, but there is no active lease and no "
-                        "DHCP log activity explaining why - it may simply be offline, or have not requested an address recently."
+                        _("A reservation and/or pool capacity exist for this client, but there is no active lease and no DHCP log activity explaining why - it may simply be offline, or have not requested an address recently.")
                     ),
                     confidence=Confidence.UNKNOWN,
                     evidence=[
-                        Evidence("Reservation", reservation.name if reservation else "(none)"),
-                        Evidence("Lease", lease.binding_state if lease else "(none)"),
+                        Evidence(_("Reservation"), reservation.name if reservation else "(none)"),
+                        Evidence(_("Lease"), lease.binding_state if lease else "(none)"),
                     ],
-                    impact="Client cannot reach the network until it successfully requests and receives a lease.",
-                    actions=[Action("View reservation", f"/reservations/{reservation.name}/edit")] if reservation else [],
+                    impact=_("Client cannot reach the network until it successfully requests and receives a lease."),
+                    actions=[Action(_("View reservation"), f"/reservations/{reservation.name}/edit")] if reservation else [],
                 )
             )
 
-    description = mac or ip or hostname or "unknown client"
-    return DiagnosticResult(title="Client diagnostics", target_description=description, findings=findings, steps=steps, resolved_mac=mac)
+    description = mac or ip or hostname or _("unknown client")
+    return DiagnosticResult(title=_("Client diagnostics"), target_description=description, findings=findings, steps=steps, resolved_mac=mac)

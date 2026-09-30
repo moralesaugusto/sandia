@@ -1,58 +1,58 @@
 {% from "base.html" import icon %}
 {% if not subnet or not cell %}
-<div class="px-3 py-2 text-slate-500">Address not found</div>
+<div class="px-3 py-2 text-slate-500">{{ _("Address not found") }}</div>
 {% else %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ cell.ip }}</div>
 
 {% if cell.status in ('reserved', 'reserved-online') %}
   {% if cell.host.mac %}
-  <a href="/devices/{{ cell.host.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
+  <a href="/devices/{{ cell.host.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} {{ _("Open device") }}</a>
   {% endif %}
-  <a href="/diagnostics/client?mac={{ (cell.host.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ cell.host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose device</a>
+  <a href="/diagnostics/client?mac={{ (cell.host.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ cell.host.name | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/reservations/{{ cell.host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation "{{ cell.host.name }}"</a>
-  <form method="post" action="/reservations/{{ cell.host.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
-    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} Delete reservation</button>
+  <a href="/reservations/{{ cell.host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _('Edit reservation "{name}"', name=cell.host.name) }}</a>
+  <form method="post" action="/reservations/{{ cell.host.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete reservation") }}</button>
   </form>
   {% endif %}
   {% if cell.host.mac %}
-  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.host.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.host.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy MAC address") }}</button>
   {% endif %}
 
 {% elif cell.status == 'leased' %}
   {% if cell.lease.mac %}
-  <a href="/devices/{{ cell.lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
+  <a href="/devices/{{ cell.lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} {{ _("Open device") }}</a>
   {% endif %}
-  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose device</a>
+  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/reservations/new?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this lease</a>
-  <form method="post" action="/leases/{{ cell.ip }}/deny" onsubmit="return confirm('Deny this client from obtaining a lease?');">
-    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} Deny this client</button>
+  <a href="/reservations/new?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}&hostname={{ (cell.lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} {{ _("Reserve this lease") }}</a>
+  <form method="post" action="/leases/{{ cell.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
   </form>
   {% endif %}
   {% if cell.lease.mac %}
-  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.lease.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.lease.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy MAC address") }}</button>
   {% endif %}
 
 {% elif cell.status == 'denied' %}
-  <div class="px-3 py-2 text-red-400 flex items-center gap-2">{{ icon('block', 'w-4 h-4') }} Client denied</div>
+  <div class="px-3 py-2 text-red-400 flex items-center gap-2">{{ icon('block', 'w-4 h-4') }} {{ _("Client denied") }}</div>
   {% if cell.lease.mac %}
-  <a href="/devices/{{ cell.lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
+  <a href="/devices/{{ cell.lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} {{ _("Open device") }}</a>
   {% endif %}
-  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose device</a>
+  <a href="/diagnostics/client?mac={{ (cell.lease.mac or '') | urlencode }}&ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
   {% if deny_host and user.role in ('admin', 'operator') %}
-  <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit denial</a>
+  <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _("Edit denial") }}</a>
   {% endif %}
   {% if cell.lease.mac %}
-  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.lease.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+  <button type="button" onclick="navigator.clipboard.writeText('{{ cell.lease.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy MAC address") }}</button>
   {% endif %}
 
 {% else %}
-  <a href="/diagnostics/client?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose IP</a>
+  <a href="/diagnostics/client?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose IP") }}</a>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/reservations/new?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this IP</a>
+  <a href="/reservations/new?ip={{ cell.ip | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} {{ _("Reserve this IP") }}</a>
   {% endif %}
 {% endif %}
 
-<button type="button" onclick="navigator.clipboard.writeText('{{ cell.ip }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy IP address</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ cell.ip }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy IP address") }}</button>
 {% endif %}

@@ -8,12 +8,12 @@
 <table class="w-full text-sm bg-slate-900">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
-      {{ sort_th('IP address', 'ip', sort) }}
-      {{ sort_th('MAC address', 'mac', sort) }}
-      {{ sort_th('Vendor', 'vendor', sort) }}
-      {{ sort_th('Hostname', 'hostname', sort) }}
-      {{ sort_th('State', 'state', sort) }}
-      {{ sort_th('Ends', 'ends', sort) }}
+      {{ sort_th(_('IP address'), 'ip', sort) }}
+      {{ sort_th(_('MAC address'), 'mac', sort) }}
+      {{ sort_th(_('Vendor'), 'vendor', sort) }}
+      {{ sort_th(_('Hostname'), 'hostname', sort) }}
+      {{ sort_th(_('State'), 'state', sort) }}
+      {{ sort_th(_('Ends'), 'ends', sort) }}
       <th class="text-left px-4 py-2"></th>
     </tr>
   </thead>
@@ -25,14 +25,14 @@
       <td class="px-4 py-2 text-slate-500">{{ lease.mac | vendor or '-' }}</td>
       <td class="px-4 py-2">{{ lease.hostname or '-' }}</td>
       <td class="px-4 py-2">
-        <span class="px-2 py-0.5 rounded-full text-xs {% if lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ lease.binding_state or 'unknown' }}</span>
-        {% if lease.mac in reserved_macs %}<span class="px-2 py-0.5 rounded-full text-xs bg-pink-950 text-pink-400 ml-1">reserved</span>{% endif %}
+        <span class="px-2 py-0.5 rounded-full text-xs {% if lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ lease.binding_state or _('unknown') }}</span>
+        {% if lease.mac in reserved_macs %}<span class="px-2 py-0.5 rounded-full text-xs bg-pink-950 text-pink-400 ml-1">{{ _("reserved") }}</span>{% endif %}
       </td>
       <td class="px-4 py-2 text-slate-500">{{ lease.ends or '-' }}</td>
       <td class="px-4 py-2 text-right text-slate-500">&#8942;</td>
     </tr>
     {% else %}
-    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No leases found.</span></td></tr>
+    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No leases found.") }}</span></td></tr>
     {% endfor %}
   </tbody>
 </table>

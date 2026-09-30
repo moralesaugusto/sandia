@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 
 from ..audit import log_action
 from ..db import get_session
+from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import ROLES, hash_password, require_role
@@ -36,17 +37,17 @@ async def create_user(
     role: str = Form(...),
 ):
     if role not in ROLES:
-        set_flash(request, "Invalid role.", kind="error")
+        set_flash(request, _("Invalid role."), kind="error")
         return RedirectResponse("/users/new", status_code=303)
     if session.exec(select(User).where(User.username == username)).first() is not None:
-        set_flash(request, "A user with that username already exists.", kind="error")
+        set_flash(request, _("A user with that username already exists."), kind="error")
         return RedirectResponse("/users/new", status_code=303)
 
     new_user = User(username=username, password_hash=hash_password(password), role=role)
     session.add(new_user)
     session.commit()
     log_action(session, request, user, "user_create", f"{username} ({role})")
-    set_flash(request, "User created.")
+    set_flash(request, _("User created."))
     return RedirectResponse("/users", status_code=303)
 
 
@@ -59,7 +60,7 @@ async def edit_user_form(
 ):
     target = session.get(User, user_id)
     if target is None:
-        set_flash(request, "User not found.", kind="error")
+        set_flash(request, _("User not found."), kind="error")
         return RedirectResponse("/users", status_code=303)
     return render(request, "users/form.html", user=user, target=target, is_new=False, roles=ROLES)
 
@@ -76,13 +77,13 @@ async def update_user(
 ):
     target = session.get(User, user_id)
     if target is None:
-        set_flash(request, "User not found.", kind="error")
+        set_flash(request, _("User not found."), kind="error")
         return RedirectResponse("/users", status_code=303)
     if role not in ROLES:
-        set_flash(request, "Invalid role.", kind="error")
+        set_flash(request, _("Invalid role."), kind="error")
         return RedirectResponse(f"/users/{user_id}/edit", status_code=303)
     if target.id == user.id and (role != "admin" or not is_active):
-        set_flash(request, "You cannot demote or deactivate your own account.", kind="error")
+        set_flash(request, _("You cannot demote or deactivate your own account."), kind="error")
         return RedirectResponse(f"/users/{user_id}/edit", status_code=303)
 
     target.role = role
@@ -92,7 +93,7 @@ async def update_user(
     session.add(target)
     session.commit()
     log_action(session, request, user, "user_update", target.username)
-    set_flash(request, "User updated.")
+    set_flash(request, _("User updated."))
     return RedirectResponse("/users", status_code=303)
 
 
@@ -105,14 +106,14 @@ async def delete_user(
 ):
     target = session.get(User, user_id)
     if target is None:
-        set_flash(request, "User not found.", kind="error")
+        set_flash(request, _("User not found."), kind="error")
         return RedirectResponse("/users", status_code=303)
     if target.id == user.id:
-        set_flash(request, "You cannot delete your own account.", kind="error")
+        set_flash(request, _("You cannot delete your own account."), kind="error")
         return RedirectResponse("/users", status_code=303)
 
     session.delete(target)
     session.commit()
     log_action(session, request, user, "user_delete", target.username)
-    set_flash(request, "User deleted.")
+    set_flash(request, _("User deleted."))
     return RedirectResponse("/users", status_code=303)

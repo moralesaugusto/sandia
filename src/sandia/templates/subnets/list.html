@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Subnets - Sandia{% endblock %}
+{% block title %}{{ _("Subnets") }} - Sandia{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl font-semibold">Subnets</h1>
+  <h1 class="text-xl font-semibold">{{ _("Subnets") }}</h1>
   {% if user.role in ('admin', 'operator') %}
-  <a href="/subnets/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} New subnet</a>
+  <a href="/subnets/new" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('plus', 'w-4 h-4') }} {{ _("New subnet") }}</a>
   {% endif %}
 </div>
 
@@ -17,17 +17,17 @@
         {% if row.interface %}<span class="flex items-center gap-1 text-xs font-mono font-normal text-emerald-400 bg-emerald-950 rounded-full px-2 py-0.5">{{ icon('device-network', 'w-3 h-3') }} {{ row.interface }}</span>{% endif %}
       </div>
       <div class="flex gap-3 text-sm">
-        <a href="/subnets/{{ row.subnet.key }}/map" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('subnets', 'w-3.5 h-3.5') }} Map</a>
-        <a href="/subnets/{{ row.subnet.key }}/diagnose" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('diagnose', 'w-3.5 h-3.5') }} Diagnose</a>
+        <a href="/subnets/{{ row.subnet.key }}/map" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('subnets', 'w-3.5 h-3.5') }} {{ _("Map") }}</a>
+        <a href="/subnets/{{ row.subnet.key }}/diagnose" class="flex items-center gap-1 text-slate-300 hover:underline">{{ icon('diagnose', 'w-3.5 h-3.5') }} {{ _("Diagnose") }}</a>
         {% if user.role in ('admin', 'operator') %}
-        <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
-        <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm('Delete this subnet?');">
-          <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} Delete</button>
+        <a href="/subnets/{{ row.subnet.key }}/edit" class="flex items-center gap-1 text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Edit") }}</a>
+        <form method="post" action="/subnets/{{ row.subnet.key }}/delete" onsubmit="return confirm({{ _("Delete this subnet?") | tojson | forceescape }});">
+          <button class="flex items-center gap-1 text-red-400 hover:underline">{{ icon('trash', 'w-3.5 h-3.5') }} {{ _("Delete") }}</button>
         </form>
         {% endif %}
       </div>
     </div>
-    <div class="text-sm text-slate-500 mb-2">range {{ row.subnet.get('range') or 'none' }} &middot; {{ row.used }}/{{ row.total }} used &middot; {{ row.subnet.hosts | length }} reservations</div>
+    <div class="text-sm text-slate-500 mb-2">{{ _("range {range} · {used}/{total} used · {n} reservations", range=row.subnet.get('range') or _('none'), used=row.used, total=row.total, n=row.subnet.hosts | length) }}</div>
     {% if row.total %}
     <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
       <div class="h-full {{ utilization_color(row.used, row.total) }}" style="width: {{ (row.used / row.total * 100) | round(1) }}%"></div>
@@ -36,7 +36,7 @@
   </div>
   {% else %}
   <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">
-    {{ icon('inbox', 'w-5 h-5 text-slate-600') }} No subnets configured yet.
+    {{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No subnets configured yet.") }}
   </div>
   {% endfor %}
 </div>

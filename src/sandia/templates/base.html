@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="h-full bg-slate-950{% if theme == 'light' %} light{% endif %}">
+<html lang="{{ lang or 'en' }}" class="h-full bg-slate-950{% if theme == 'light' %} light{% endif %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -154,10 +154,19 @@
 <form method="post" action="/account/theme">
   <input type="hidden" name="theme" value="{{ 'dark' if theme == 'light' else 'light' }}">
   <input type="hidden" name="next" value="{{ next_path }}">
-  <button type="submit" title="Switch to {{ 'dark' if theme == 'light' else 'light' }} mode" class="{{ css }}">
+  <button type="submit" title="{{ _('Switch to dark mode') if theme == 'light' else _('Switch to light mode') }}" class="{{ css }}">
     {{ icon('sun' if theme == 'light' else 'moon', 'w-4 h-4') }}
-    {{ 'Light mode' if theme == 'light' else 'Dark mode' }}
+    {{ _('Light mode') if theme == 'light' else _('Dark mode') }}
   </button>
+</form>
+{% endmacro %}
+{% macro lang_toggle(lang, next_path) %}
+<form method="post" action="/account/language" class="inline-flex rounded-lg border border-slate-700 bg-slate-900/80 p-0.5 text-xs font-medium backdrop-blur" aria-label="Language / Idioma">
+  <input type="hidden" name="next" value="{{ next_path }}">
+  {% for code, name in [('en', 'English'), ('es', 'Español')] %}
+  <button type="submit" name="lang" value="{{ code }}" title="{{ name }}" aria-pressed="{{ 'true' if lang == code else 'false' }}"
+    class="px-2 py-1 rounded-md transition-colors {% if lang == code %}bg-gradient-to-r from-pink-600/30 to-emerald-600/30 text-slate-100{% else %}text-slate-400 hover:text-slate-100{% endif %}">{{ code | upper }}</button>
+  {% endfor %}
 </form>
 {% endmacro %}
 {% macro nav_group(label, icon_name, group_paths, items, current_path) %}
@@ -201,7 +210,7 @@
         <input
           type="search"
           name="q"
-          placeholder="Search IP, MAC, hostname..."
+          placeholder="{{ _('Search IP, MAC, hostname...') }}"
           autocomplete="off"
           class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           hx-get="/search/suggest"
@@ -214,12 +223,12 @@
       </div>
       <div class="flex-1 py-3 flex flex-col gap-0.5 px-2.5 overflow-y-auto">
         {% for href, label, icon_name in [
-          ('/', 'Dashboard', 'dashboard'),
-          ('/devices', 'Devices', 'devices'),
-          ('/subnets', 'Subnets', 'subnets'),
-          ('/reservations', 'Reservations', 'reservations'),
-          ('/leases', 'Leases', 'leases'),
-          ('/interfaces', 'Interfaces', 'device-network'),
+          ('/', _('Dashboard'), 'dashboard'),
+          ('/devices', _('Devices'), 'devices'),
+          ('/subnets', _('Subnets'), 'subnets'),
+          ('/reservations', _('Reservations'), 'reservations'),
+          ('/leases', _('Leases'), 'leases'),
+          ('/interfaces', _('Interfaces'), 'device-network'),
         ] %}
         <a href="{{ href }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == href %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon(icon_name) }}
@@ -227,30 +236,30 @@
         </a>
         {% endfor %}
         {{ nav_group(
-          'Advanced Settings', 'settings',
+          _('Advanced Settings'), 'settings',
           ['/settings', '/config/raw', '/service', '/backups', '/settings/ai'],
-          [('/settings', 'General'), ('/config/raw', 'Raw Config'), ('/service', 'Service'), ('/backups', 'Backups'), ('/settings/ai', 'AI Settings')],
+          [('/settings', _('General')), ('/config/raw', _('Raw Config')), ('/service', _('Service')), ('/backups', _('Backups')), ('/settings/ai', _('AI Settings'))],
           request.url.path
         ) }}
         {{ nav_group(
-          'Diagnostics', 'diagnose',
+          _('Diagnostics'), 'diagnose',
           ['/diagnostics', '/diagnostics/server', '/diagnostics/client', '/diagnostics/wall-of-shame', '/diagnostics/events'],
-          [('/diagnostics', 'Overview'), ('/diagnostics/events', 'Event Log'), ('/diagnostics/wall-of-shame', 'Wall of Shame')],
+          [('/diagnostics', _('Overview')), ('/diagnostics/events', _('Event Log')), ('/diagnostics/wall-of-shame', _('Wall of Shame'))],
           request.url.path
         ) }}
         <a href="/about" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/about' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
           {{ icon('info') }}
-          About
+          {{ _('About') }}
         </a>
         {% if user.role == 'admin' %}
         <div class="mt-2 pt-2 border-t border-slate-800"></div>
         <a href="/users" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/users' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
-          {{ icon('users') }} Users
+          {{ icon('users') }} {{ _('Users') }}
         </a>
         {% endif %}
         {% if user.role in ('admin', 'operator') %}
         <a href="/audit" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors {% if request.url.path == '/audit' %}bg-gradient-to-r from-pink-600/20 to-emerald-600/20 text-slate-100 ring-1 ring-inset ring-emerald-500/30{% else %}text-slate-400 hover:bg-slate-800 hover:text-slate-100{% endif %}">
-          {{ icon('audit') }} Audit Log
+          {{ icon('audit') }} {{ _('Audit Log') }}
         </a>
         {% endif %}
       </div>
@@ -262,14 +271,16 @@
             <div class="text-xs uppercase text-slate-500">{{ user.role }}</div>
           </div>
         </div>
-        <a href="/account/password" class="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors">{{ icon('key', 'w-4 h-4') }} Change password</a>
+        <a href="/account/password" class="flex items-center gap-2 text-slate-400 hover:text-emerald-400 text-sm transition-colors">{{ icon('key', 'w-4 h-4') }} {{ _('Change password') }}</a>
         {{ theme_toggle(theme, request.url.path) }}
         <form method="post" action="/logout">
-          <button class="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition-colors">{{ icon('logout', 'w-4 h-4') }} Log out</button>
+          <button class="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition-colors">{{ icon('logout', 'w-4 h-4') }} {{ _('Log out') }}</button>
         </form>
       </div>
     </nav>
     <main class="flex-1 min-w-0 p-8">
+      {# Its own row, so it never overlaps a page header's right-hand buttons. #}
+      <div class="flex justify-end -mt-4 mb-2">{{ lang_toggle(lang, request.url.path) }}</div>
       {% block content %}{% endblock %}
     </main>
   </div>
@@ -280,21 +291,21 @@
   {% if flash %}data-flash-message="{{ flash.message }}" data-flash-kind="{{ flash.kind }}"{% endif %}></div>
 <div id="context-menu" class="hidden fixed z-50 bg-slate-800 border border-slate-700 rounded-md shadow-lg text-sm py-1 min-w-44"></div>
 {% if user and ai_enabled %}
-<button id="ai-toggle" type="button" title="AI assistant" aria-label="Open AI assistant" onclick="aiToggle()"
+<button id="ai-toggle" type="button" title="{{ _('AI assistant') }}" aria-label="{{ _('Open AI assistant') }}" onclick="aiToggle()"
   class="fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-emerald-600 text-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform">{{ icon('chat', 'w-6 h-6') }}</button>
-<div id="ai-assistant" role="dialog" aria-label="AI assistant"
+<div id="ai-assistant" role="dialog" aria-label="{{ _('AI assistant') }}"
   class="hidden fixed bottom-20 right-5 z-40 w-96 max-w-[calc(100vw-2.5rem)] h-[32rem] max-h-[calc(100vh-7rem)] flex-col bg-slate-900 border border-slate-700 rounded-xl shadow-2xl">
   <div id="ai-header" class="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800 cursor-move select-none">
     {{ icon('chat', 'w-4 h-4 text-emerald-400') }}
-    <span class="flex-1 text-sm font-semibold">AI assistant</span>
-    <button type="button" onclick="aiClear()" class="text-xs text-slate-400 hover:text-slate-100">Clear</button>
-    <button type="button" onclick="aiToggle(false)" aria-label="Close assistant" class="text-slate-400 hover:text-slate-100 text-lg leading-none">&times;</button>
+    <span class="flex-1 text-sm font-semibold">{{ _('AI assistant') }}</span>
+    <button type="button" onclick="aiClear()" class="text-xs text-slate-400 hover:text-slate-100">{{ _('Clear') }}</button>
+    <button type="button" onclick="aiToggle(false)" aria-label="{{ _('Close assistant') }}" class="text-slate-400 hover:text-slate-100 text-lg leading-none">&times;</button>
   </div>
   <div id="ai-messages" class="flex-1 overflow-y-auto p-3 space-y-3 text-sm" aria-live="polite"></div>
   <form id="ai-form" class="border-t border-slate-800 p-2 flex gap-2 items-end">
-    <textarea id="ai-input" rows="2" placeholder="Ask about config, leases, logs... (Enter to send)" aria-label="Question"
+    <textarea id="ai-input" rows="2" placeholder="{{ _('Ask about config, leases, logs... (Enter to send)') }}" aria-label="{{ _('Question') }}"
       class="flex-1 resize-none rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-    <button id="ai-send" type="submit" aria-label="Send"
+    <button id="ai-send" type="submit" aria-label="{{ _('Send') }}"
       class="shrink-0 rounded-md bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white p-2.5 disabled:opacity-50">{{ icon('send', 'w-4 h-4') }}</button>
   </form>
 </div>
@@ -331,7 +342,7 @@
     if (!state.messages.length) {
       const hint = document.createElement('p');
       hint.className = 'text-slate-500 text-xs';
-      hint.textContent = 'Ask about subnets, reservations, leases, DHCP log events or why a client is not getting an address. Answers are based on the current config, leases and log.';
+      hint.textContent = {{ _('Ask about subnets, reservations, leases, DHCP log events or why a client is not getting an address. Answers are based on the current config, leases and log.') | tojson }};
       list.appendChild(hint);
     }
     state.messages.forEach(m => bubble(m.role, m.content));
@@ -388,7 +399,7 @@
         body: JSON.stringify({messages: state.messages}),
       });
       if (res.redirected) {
-        role = 'error'; content = 'Your session has expired. Reload the page and log in again.';
+        role = 'error'; content = {{ _('Your session has expired. Reload the page and log in again.') | tojson }};
       } else if (!res.ok) {
         role = 'error'; content = await res.text();
       } else {
@@ -403,9 +414,9 @@
         }
       }
     } catch (e) {
-      role = 'error'; content = 'Request failed: ' + e.message;
+      role = 'error'; content = {{ _('Request failed:') | tojson }} + ' ' + e.message;
     }
-    content = content || 'The model returned an empty reply.';
+    content = content || {{ _('The model returned an empty reply.') | tojson }};
     reply.className = 'whitespace-pre-wrap break-words rounded-lg px-3 py-2 ' + STYLES[role];
     reply.textContent = content;
     state.messages.push({role, content});
@@ -462,11 +473,11 @@ function showToast(message, kind) {
   if (isError) {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'text-current opacity-60 hover:opacity-100 shrink-0 text-xs underline';
-    copyBtn.textContent = 'Copy';
+    copyBtn.textContent = {{ _('Copy') | tojson }};
     copyBtn.onclick = () => {
       navigator.clipboard.writeText(message).then(() => {
-        copyBtn.textContent = 'Copied';
-        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+        copyBtn.textContent = {{ _('Copied') | tojson }};
+        setTimeout(() => { copyBtn.textContent = {{ _('Copy') | tojson }}; }, 1500);
       });
     };
     toast.appendChild(copyBtn);

@@ -11,6 +11,7 @@ from ..device_icons import DEVICE_LABELS, device_icon_for, guess_os
 from ..dhcpd import Host, serialize
 from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
+from ..i18n import _
 from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
@@ -189,9 +190,9 @@ async def reservation_details(
     details = {
         "vendor": lookup_vendor(host.mac),
         "device_icon": icon_name,
-        "device_label": DEVICE_LABELS.get(icon_name, "Unknown device"),
-        "os_guess": guess_os(host.name, host.mac),
-        "subnet_label": f"{subnet.network}/{subnet.netmask}" if subnet else "Global",
+        "device_label": _(DEVICE_LABELS.get(icon_name, DEVICE_LABELS["device-generic"])),
+        "os_guess": _(os_guess) if (os_guess := guess_os(host.name, host.mac)) else None,
+        "subnet_label": f"{subnet.network}/{subnet.netmask}" if subnet else _("Global"),
         "client_hostname": _unquote(host.get("host-name")),
         "next_server": host.get("next-server"),
         "boot_filename": _unquote(host.get("filename")),
@@ -240,7 +241,7 @@ async def create_reservation(
 ):
     config = load_live_config(settings)
     if config.find_host(name) is not None:
-        set_flash(request, "A reservation with that name already exists.", kind="error")
+        set_flash(request, _("A reservation with that name already exists."), kind="error")
         return RedirectResponse("/reservations/new", status_code=303)
 
     host = Host(name=name, body=[])
@@ -249,7 +250,7 @@ async def create_reservation(
     if subnet_key:
         subnet = config.find_subnet(subnet_key)
         if subnet is None:
-            set_flash(request, "Selected subnet not found.", kind="error")
+            set_flash(request, _("Selected subnet not found."), kind="error")
             return RedirectResponse("/reservations/new", status_code=303)
         subnet.body.append(host)
     else:
@@ -258,11 +259,11 @@ async def create_reservation(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "reservation_create_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/reservations/new", status_code=303)
 
     log_action(session, request, user, "reservation_create", f"{name} ({mac} -> {fixed_address})")
-    set_flash(request, "Reservation created. isc-dhcp-server restarted.")
+    set_flash(request, _("Reservation created. isc-dhcp-server restarted."))
     return RedirectResponse("/reservations", status_code=303)
 
 
@@ -276,7 +277,7 @@ async def edit_reservation_form(
     config = load_live_config(settings)
     host = config.find_host(name)
     if host is None:
-        set_flash(request, "Reservation not found.", kind="error")
+        set_flash(request, _("Reservation not found."), kind="error")
         return RedirectResponse("/reservations", status_code=303)
     return render(
         request,
@@ -306,7 +307,7 @@ async def update_reservation(
     config = load_live_config(settings)
     host = config.find_host(name)
     if host is None:
-        set_flash(request, "Reservation not found.", kind="error")
+        set_flash(request, _("Reservation not found."), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     _apply_host_fields(host, mac, fixed_address, client_hostname, next_server, boot_filename, extra_options)
@@ -314,11 +315,11 @@ async def update_reservation(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "reservation_update_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse(f"/reservations/{name}/edit", status_code=303)
 
     log_action(session, request, user, "reservation_update", name)
-    set_flash(request, "Reservation updated. isc-dhcp-server restarted.")
+    set_flash(request, _("Reservation updated. isc-dhcp-server restarted."))
     return RedirectResponse("/reservations", status_code=303)
 
 
@@ -332,17 +333,17 @@ async def delete_reservation(
 ):
     config = load_live_config(settings)
     if not config.remove_host(name):
-        set_flash(request, "Reservation not found.", kind="error")
+        set_flash(request, _("Reservation not found."), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "reservation_delete_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     log_action(session, request, user, "reservation_delete", name)
-    set_flash(request, "Reservation deleted. isc-dhcp-server restarted.")
+    set_flash(request, _("Reservation deleted. isc-dhcp-server restarted."))
     return RedirectResponse("/reservations", status_code=303)
 
 
@@ -355,21 +356,21 @@ async def bulk_delete_reservations(
     names: list[str] = Form(default=[]),
 ):
     if not names:
-        set_flash(request, "No reservations selected.", kind="error")
+        set_flash(request, _("No reservations selected."), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     config = load_live_config(settings)
     removed = [name for name in names if config.remove_host(name)]
     if not removed:
-        set_flash(request, "None of the selected reservations were found.", kind="error")
+        set_flash(request, _("None of the selected reservations were found."), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "reservation_bulk_delete_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/reservations", status_code=303)
 
     log_action(session, request, user, "reservation_bulk_delete", ", ".join(removed))
-    set_flash(request, f"Deleted {len(removed)} reservation(s). isc-dhcp-server restarted.")
+    set_flash(request, _("Deleted {value} reservation(s). isc-dhcp-server restarted.", value=len(removed)))
     return RedirectResponse("/reservations", status_code=303)

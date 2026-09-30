@@ -5,6 +5,7 @@ from sqlmodel import Session
 from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
+from ..i18n import DEFAULT_LANGUAGE, LANGUAGES, _
 from ..models import User, utcnow
 from ..rate_limit import clear_failures, record_failure, seconds_locked
 from ..rendering import render, set_flash
@@ -33,14 +34,14 @@ def login_submit(
     rate_key = username.strip().lower()
     remaining = seconds_locked(rate_key)
     if remaining > 0:
-        set_flash(request, f"Too many failed attempts. Try again in {int(remaining) + 1}s.", kind="error")
+        set_flash(request, _("Too many failed attempts. Try again in {value}s.", value=int(remaining) + 1), kind="error")
         return render(request, "login.html", status_code=429)
 
     user = find_user(session, username)
     if user is None or not user.is_active or not verify_password(password, user.password_hash):
         record_failure(rate_key)
         log_action(session, request, user, "login_failed", f"username={username}", success=False)
-        set_flash(request, "Invalid username or password.", kind="error")
+        set_flash(request, _("Invalid username or password."), kind="error")
         return render(request, "login.html", status_code=401)
 
     clear_failures(rate_key)
@@ -48,6 +49,7 @@ def login_submit(
     # Only seed from the account's saved preference if this browser hasn't
     # already picked one on the login page - never clobber a choice just made.
     request.session.setdefault("theme", user.theme)
+    request.session.setdefault("lang", user.language)
     user.last_login = utcnow()
     session.add(user)
     session.commit()
@@ -98,18 +100,40 @@ def change_password_submit(
     confirm_password: str = Form(...),
 ):
     if not verify_password(current_password, user.password_hash):
-        set_flash(request, "Current password is incorrect.", kind="error")
+        set_flash(request, _("Current password is incorrect."), kind="error")
         return RedirectResponse("/account/password", status_code=303)
     if not new_password:
-        set_flash(request, "New password cannot be empty.", kind="error")
+        set_flash(request, _("New password cannot be empty."), kind="error")
         return RedirectResponse("/account/password", status_code=303)
     if new_password != confirm_password:
-        set_flash(request, "New passwords do not match.", kind="error")
+        set_flash(request, _("New passwords do not match."), kind="error")
         return RedirectResponse("/account/password", status_code=303)
 
     user.password_hash = hash_password(new_password)
     session.add(user)
     session.commit()
     log_action(session, request, user, "password_change", "self-service password change")
-    set_flash(request, "Password updated.")
+    set_flash(request, _("Password updated."))
     return RedirectResponse("/account/password", status_code=303)
+
+
+@router.post("/account/language")
+def set_language(
+    request: Request,
+    lang: str = Form(...),
+    next: str = Form("/"),
+    session: Session = Depends(get_session),
+):
+    if lang not in LANGUAGES:
+        lang = DEFAULT_LANGUAGE
+    request.session["lang"] = lang
+    user_id = request.session.get("user_id")
+    if user_id is not None:
+        user = session.get(User, user_id)
+        if user is not None:
+            user.language = lang
+            session.add(user)
+            session.commit()
+    if not next.startswith("/") or next.startswith("//"):
+        next = "/"
+    return RedirectResponse(next, status_code=303)

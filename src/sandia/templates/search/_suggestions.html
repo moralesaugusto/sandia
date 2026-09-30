@@ -3,10 +3,10 @@
 <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden text-sm max-h-80 overflow-y-auto">
   <a href="/devices?q={{ query | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 border-b border-slate-700">
     {{ icon('devices', 'w-4 h-4 text-emerald-400') }}
-    <span>Search devices for "{{ query }}"</span>
+    <span>{{ _('Search devices for "{query}"', query=query) }}</span>
   </a>
   {% if reservations %}
-  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Reservations</div>
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">{{ _("Reservations") }}</div>
   {% for r in reservations %}
   <a href="/reservations/{{ r.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
     {{ icon(r.icon, 'w-4 h-4 text-emerald-400') }}
@@ -15,7 +15,7 @@
   {% endfor %}
   {% endif %}
   {% if leases %}
-  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Leases</div>
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">{{ _("Leases") }}</div>
   {% for lease in leases %}
   <a href="/leases?q={{ lease.ip }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
     {{ icon('leases', 'w-4 h-4 text-slate-500') }}
@@ -24,7 +24,7 @@
   {% endfor %}
   {% endif %}
   {% if subnets %}
-  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">Subnets</div>
+  <div class="px-3 py-1.5 text-xs uppercase text-slate-500 bg-slate-900/50">{{ _("Subnets") }}</div>
   {% for subnet in subnets %}
   <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">
     {{ icon('subnets', 'w-4 h-4 text-slate-500') }}
@@ -33,7 +33,7 @@
   {% endfor %}
   {% endif %}
   {% if not reservations and not leases and not subnets %}
-  <div class="px-3 py-2 text-slate-500">No matches in reservations, leases, or subnets for "{{ query }}"</div>
+  <div class="px-3 py-2 text-slate-500">{{ _('No matches in reservations, leases, or subnets for "{query}"', query=query) }}</div>
   {% endif %}
 </div>
 {% endif %}

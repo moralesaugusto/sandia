@@ -17,15 +17,15 @@
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
       <th class="px-3 py-2"></th>
-      {{ sort_th('Device', 'hostname', sort) }}
-      {{ sort_th('MAC', 'mac', sort) }}
-      {{ sort_th('Current IP', 'current_ip', sort) }}
-      {{ sort_th('Vendor', 'vendor', sort) }}
-      {{ sort_th('Subnet', 'subnet', sort) }}
-      {{ sort_th('Lease', 'lease', sort) }}
-      {{ sort_th('Reservation', 'reservation', sort) }}
-      {{ sort_th('Last seen', 'last_seen', sort) }}
-      {{ sort_th('Status', 'status', sort) }}
+      {{ sort_th(_('Device'), 'hostname', sort) }}
+      {{ sort_th(_('MAC'), 'mac', sort) }}
+      {{ sort_th(_('Current IP'), 'current_ip', sort) }}
+      {{ sort_th(_('Vendor'), 'vendor', sort) }}
+      {{ sort_th(_('Subnet'), 'subnet', sort) }}
+      {{ sort_th(_('Lease'), 'lease', sort) }}
+      {{ sort_th(_('Reservation'), 'reservation', sort) }}
+      {{ sort_th(_('Last seen'), 'last_seen', sort) }}
+      {{ sort_th(_('Status'), 'status', sort) }}
     </tr>
   </thead>
   <tbody class="divide-y divide-slate-800">
@@ -49,25 +49,25 @@
       <td class="px-3 py-2 text-slate-500">{% if device.subnet %}{{ device.subnet.network }}/{{ device.subnet.netmask }}{% else %}-{% endif %}</td>
       <td class="px-3 py-2">
         {% if device.current_lease %}
-        <span class="px-2 py-0.5 rounded-full text-xs {% if device.current_lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ device.current_lease.binding_state or 'unknown' }}</span>
+        <span class="px-2 py-0.5 rounded-full text-xs {% if device.current_lease.is_active %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ device.current_lease.binding_state or _('unknown') }}</span>
         {% else %}
-        <span class="text-slate-600">none</span>
+        <span class="text-slate-600">{{ _("none") }}</span>
         {% endif %}
       </td>
       <td class="px-3 py-2">
         {% if device.reservation %}
         <span class="px-2 py-0.5 rounded-full text-xs bg-pink-950 text-pink-400">{{ device.reservation.name }}</span>
         {% else %}
-        <span class="text-slate-600">none</span>
+        <span class="text-slate-600">{{ _("none") }}</span>
         {% endif %}
       </td>
-      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ device.last_seen.strftime('%Y-%m-%d %H:%M') if device.last_seen else 'unknown' }}</td>
+      <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ device.last_seen.strftime('%Y-%m-%d %H:%M') if device.last_seen else _('unknown') }}</td>
       <td class="px-3 py-2">
         <span title="{{ device.status_detail }}" class="px-2 py-0.5 rounded-full text-xs bg-{{ c }}-950 text-{{ c }}-400 whitespace-nowrap">{{ device.status_label }}</span>
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No devices match the current filters.</span></td></tr>
+    <tr><td colspan="10" class="px-4 py-8 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No devices match the current filters.") }}</span></td></tr>
     {% endfor %}
   </tbody>
 </table>

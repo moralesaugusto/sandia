@@ -12,6 +12,7 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
 from ..diagnostics.dhcp_log import MAX_LOG_BYTES
+from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -87,9 +88,9 @@ async def refresh_oui_cache(
     if it fails."""
     started = oui_cache.start_refresh(settings.data_dir)
     if not started:
-        set_flash(request, "An OUI database refresh is already in progress.", kind="error")
+        set_flash(request, _("An OUI database refresh is already in progress."), kind="error")
         return RedirectResponse("/about", status_code=303)
 
     log_action(session, request, user, "oui_cache_refresh", "started background refresh")
-    set_flash(request, "OUI database refresh started in the background - reload this page in a moment to see progress.")
+    set_flash(request, _("OUI database refresh started in the background - reload this page in a moment to see progress."))
     return RedirectResponse("/about", status_code=303)

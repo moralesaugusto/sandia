@@ -246,3 +246,24 @@ gain at this data size. Settings live in a single-row `AiSettings` table
 (created by `create_all`, no migration needed), admin-only because the
 configured server receives the full config with every question.
 
+## Translation: a dict catalog, not gettext
+
+Two languages don't justify Babel/gettext's `.po` -> `.mo` compile step,
+which would break the "no build step" rule. English source strings are the
+keys (`_("Save")`), so English needs no catalog and a missing Spanish entry
+falls back to English; `i18n_es.ES` maps them to Spanish. The language is a
+contextvar set once per request by a small ASGI middleware (inside
+`SessionMiddleware`), so the same `_()` works in templates, routers and the
+diagnostics engine. Templates use `template_gettext`, which escapes only the
+`{placeholder}` values (via `Markup.format`) and not the trusted catalog
+text, so quotes in messages render as before. Module-level label tables use
+`N_()` (a no-op marker) and are passed through `_()` at display time.
+`tests/test_i18n.py` scans every `_()`/`N_()` literal and fails if one has no
+Spanish entry or if a translation drops a placeholder.
+
+What stays English in the Spanish UI: acronyms, config keywords, paths,
+data values (IPs, MACs, hostnames, log lines), audit action identifiers,
+CSV headers, the AI assistant's data snapshot, and the terms lease,
+subnet, pool, host and gateway (as Spanish-speaking sysadmins say them).
+The tagline stays English because it is the SANDIA backronym.
+

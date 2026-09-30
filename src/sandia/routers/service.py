@@ -6,6 +6,7 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
 from ..dhcpd import apply as apply_module
+from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -44,7 +45,7 @@ async def restart(
 ):
     result = await apply_module.restart_service(settings)
     log_action(session, request, user, "service_restart", result.stdout or result.stderr, success=result.ok)
-    set_flash(request, "Service restarted." if result.ok else f"Restart failed: {result.stderr}", kind="success" if result.ok else "error")
+    set_flash(request, _("Service restarted.") if result.ok else _("Restart failed: {error}", error=result.stderr), kind="success" if result.ok else "error")
     return RedirectResponse("/service", status_code=303)
 
 
@@ -57,7 +58,7 @@ async def enable(
 ):
     result = await apply_module.enable_service(settings)
     log_action(session, request, user, "service_enable", result.stdout or result.stderr, success=result.ok)
-    set_flash(request, "Service enabled at boot." if result.ok else f"Enable failed: {result.stderr}", kind="success" if result.ok else "error")
+    set_flash(request, _("Service enabled at boot.") if result.ok else _("Enable failed: {error}", error=result.stderr), kind="success" if result.ok else "error")
     return RedirectResponse("/service", status_code=303)
 
 
@@ -70,5 +71,5 @@ async def disable(
 ):
     result = await apply_module.disable_service(settings)
     log_action(session, request, user, "service_disable", result.stdout or result.stderr, success=result.ok)
-    set_flash(request, "Service disabled at boot." if result.ok else f"Disable failed: {result.stderr}", kind="success" if result.ok else "error")
+    set_flash(request, _("Service disabled at boot.") if result.ok else _("Disable failed: {error}", error=result.stderr), kind="success" if result.ok else "error")
     return RedirectResponse("/service", status_code=303)

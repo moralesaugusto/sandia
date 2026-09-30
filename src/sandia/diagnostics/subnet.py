@@ -15,6 +15,7 @@ import ipaddress
 
 from ..dhcpd import DhcpdConfig, Subnet
 from ..dhcpd.subnet_interface import get_subnet_interface
+from ..i18n import _
 from ..leases import Lease
 from ..utilization import range_bounds, subnet_utilization
 from .models import Action, Confidence, DiagnosticResult, Evidence, Finding, Status
@@ -27,16 +28,16 @@ def _subnet_label(subnet: Subnet) -> str:
 
 
 def _map_action(subnet: Subnet) -> Action:
-    return Action("View subnet map", f"/subnets/{subnet.key}/map")
+    return Action(_("View subnet map"), f"/subnets/{subnet.key}/map")
 
 
 def _leases_action(state: str = "") -> Action:
     suffix = f"?state={state}" if state else ""
-    return Action("View leases", f"/leases{suffix}")
+    return Action(_("View leases"), f"/leases{suffix}")
 
 
 def _reservations_action() -> Action:
-    return Action("View reservations", "/reservations")
+    return Action(_("View reservations"), "/reservations")
 
 
 def pool_finding(subnet: Subnet, leases: list[Lease]) -> Finding | None:
@@ -44,12 +45,12 @@ def pool_finding(subnet: Subnet, leases: list[Lease]) -> Finding | None:
     if bounds is None:
         return Finding(
             status=Status.WARNING,
-            problem="No pool range configured",
-            root_cause=f"Subnet {_subnet_label(subnet)} has no `range` statement, so it cannot hand out dynamic leases.",
+            problem=_("No pool range configured"),
+            root_cause=_("Subnet {value} has no `range` statement, so it cannot hand out dynamic leases.", value=_subnet_label(subnet)),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("Subnet", _subnet_label(subnet)), Evidence("range", "not set")],
-            impact="Clients without a reservation on this subnet cannot obtain an address.",
-            actions=[Action("Edit subnet", f"/subnets/{subnet.key}/edit")],
+            evidence=[Evidence(_("Subnet"), _subnet_label(subnet)), Evidence(_("range"), _("not set"))],
+            impact=_("Clients without a reservation on this subnet cannot obtain an address."),
+            actions=[Action(_("Edit subnet"), f"/subnets/{subnet.key}/edit")],
         )
 
     used, total = subnet_utilization(subnet, leases)
@@ -60,32 +61,32 @@ def pool_finding(subnet: Subnet, leases: list[Lease]) -> Finding | None:
     if used >= total:
         return Finding(
             status=Status.CRITICAL,
-            problem="DHCP pool exhausted",
-            root_cause="All usable addresses in the pool are currently allocated to active leases.",
+            problem=_("DHCP pool exhausted"),
+            root_cause=_("All usable addresses in the pool are currently allocated to active leases."),
             confidence=Confidence.CONFIRMED,
             evidence=[
-                Evidence("Pool", subnet.get("range") or ""),
-                Evidence("Usable", str(total)),
-                Evidence("Allocated", str(used)),
-                Evidence("Available", str(total - used)),
+                Evidence(_("Pool"), subnet.get("range") or ""),
+                Evidence(_("Usable"), str(total)),
+                Evidence(_("Allocated"), str(used)),
+                Evidence(_("Available"), str(total - used)),
             ],
-            impact="New clients cannot obtain leases on this subnet until an existing lease expires or is freed.",
+            impact=_("New clients cannot obtain leases on this subnet until an existing lease expires or is freed."),
             actions=[_leases_action("active"), _map_action(subnet)],
         )
 
     if ratio >= HIGH_UTILIZATION_THRESHOLD:
         return Finding(
             status=Status.WARNING,
-            problem="High pool utilization",
-            root_cause=f"{used} of {total} addresses ({ratio * 100:.0f}%) are currently allocated.",
+            problem=_("High pool utilization"),
+            root_cause=_("{used} of {total} addresses ({value:.0f}%) are currently allocated.", used=used, total=total, value=ratio * 100),
             confidence=Confidence.CONFIRMED,
             evidence=[
-                Evidence("Pool", subnet.get("range") or ""),
-                Evidence("Usable", str(total)),
-                Evidence("Allocated", str(used)),
-                Evidence("Available", str(total - used)),
+                Evidence(_("Pool"), subnet.get("range") or ""),
+                Evidence(_("Usable"), str(total)),
+                Evidence(_("Allocated"), str(used)),
+                Evidence(_("Available"), str(total - used)),
             ],
-            impact="This subnet is close to exhaustion; new clients may soon be unable to obtain a lease.",
+            impact=_("This subnet is close to exhaustion; new clients may soon be unable to obtain a lease."),
             actions=[_leases_action("active"), _map_action(subnet)],
         )
 
@@ -113,14 +114,13 @@ def abandoned_leases_finding(subnet: Subnet, leases: list[Lease]) -> Finding | N
 
     return Finding(
         status=Status.WARNING,
-        problem=f"{len(abandoned)} abandoned address(es) in this pool",
+        problem=_("{value} abandoned address(es) in this pool", value=len(abandoned)),
         root_cause=(
-            "dhcpd marked these addresses abandoned, meaning a client declined them (DHCPDECLINE) or dhcpd "
-            "could not verify them as free - typically because another device is already using that IP outside DHCP."
+            _("dhcpd marked these addresses abandoned, meaning a client declined them (DHCPDECLINE) or dhcpd could not verify them as free - typically because another device is already using that IP outside DHCP.")
         ),
         confidence=Confidence.STRONG,
-        evidence=[Evidence("Abandoned addresses", ", ".join(lease.ip for lease in abandoned))],
-        impact="Abandoned addresses are excluded from the available pool until manually cleared, reducing effective pool size.",
+        evidence=[Evidence(_("Abandoned addresses"), ", ".join(lease.ip for lease in abandoned))],
+        impact=_("Abandoned addresses are excluded from the available pool until manually cleared, reducing effective pool size."),
         actions=[_leases_action("abandoned"), _map_action(subnet)],
     )
 
@@ -133,12 +133,12 @@ def range_validity_finding(subnet: Subnet) -> Finding | None:
     if len(parts) != 2:
         return Finding(
             status=Status.CRITICAL,
-            problem="Malformed pool range",
-            root_cause=f"The `range` statement (`{range_value}`) does not have exactly two addresses.",
+            problem=_("Malformed pool range"),
+            root_cause=_("The `range` statement (`{range_value}`) does not have exactly two addresses.", range_value=range_value),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("range", range_value)],
-            impact="This subnet will fail config validation and cannot be applied.",
-            actions=[Action("Edit subnet", f"/subnets/{subnet.key}/edit")],
+            evidence=[Evidence(_("range"), range_value)],
+            impact=_("This subnet will fail config validation and cannot be applied."),
+            actions=[Action(_("Edit subnet"), f"/subnets/{subnet.key}/edit")],
         )
     try:
         start = ipaddress.IPv4Address(parts[0])
@@ -146,23 +146,23 @@ def range_validity_finding(subnet: Subnet) -> Finding | None:
     except ValueError:
         return Finding(
             status=Status.CRITICAL,
-            problem="Malformed pool range",
-            root_cause=f"`{range_value}` does not contain two valid IPv4 addresses.",
+            problem=_("Malformed pool range"),
+            root_cause=_("`{range_value}` does not contain two valid IPv4 addresses.", range_value=range_value),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("range", range_value)],
-            impact="This subnet will fail config validation and cannot be applied.",
-            actions=[Action("Edit subnet", f"/subnets/{subnet.key}/edit")],
+            evidence=[Evidence(_("range"), range_value)],
+            impact=_("This subnet will fail config validation and cannot be applied."),
+            actions=[Action(_("Edit subnet"), f"/subnets/{subnet.key}/edit")],
         )
 
     if start > end:
         return Finding(
             status=Status.CRITICAL,
-            problem="Pool range is backwards",
-            root_cause=f"The range start ({start}) is after the range end ({end}).",
+            problem=_("Pool range is backwards"),
+            root_cause=_("The range start ({start}) is after the range end ({end}).", start=start, end=end),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("range", range_value)],
-            impact="dhcpd will reject this configuration.",
-            actions=[Action("Edit subnet", f"/subnets/{subnet.key}/edit")],
+            evidence=[Evidence(_("range"), range_value)],
+            impact=_("dhcpd will reject this configuration."),
+            actions=[Action(_("Edit subnet"), f"/subnets/{subnet.key}/edit")],
         )
 
     try:
@@ -172,12 +172,12 @@ def range_validity_finding(subnet: Subnet) -> Finding | None:
     if start not in network or end not in network:
         return Finding(
             status=Status.CRITICAL,
-            problem="Pool range outside subnet network",
-            root_cause=f"The pool range {start}-{end} is not contained within {network}.",
+            problem=_("Pool range outside subnet network"),
+            root_cause=_("The pool range {start}-{end} is not contained within {network}.", start=start, end=end, network=network),
             confidence=Confidence.CONFIRMED,
-            evidence=[Evidence("Subnet network", str(network)), Evidence("range", range_value)],
-            impact="dhcpd will reject this configuration.",
-            actions=[Action("Edit subnet", f"/subnets/{subnet.key}/edit")],
+            evidence=[Evidence(_("Subnet network"), str(network)), Evidence(_("range"), range_value)],
+            impact=_("dhcpd will reject this configuration."),
+            actions=[Action(_("Edit subnet"), f"/subnets/{subnet.key}/edit")],
         )
     return None
 
@@ -200,15 +200,15 @@ def overlap_findings(config: DhcpdConfig, subnet: Subnet) -> list[Finding]:
             findings.append(
                 Finding(
                     status=Status.CRITICAL,
-                    problem="Pool range overlaps another subnet",
-                    root_cause=f"This subnet's pool ({start}-{end}) overlaps {_subnet_label(other)}'s pool ({other_start}-{other_end}).",
+                    problem=_("Pool range overlaps another subnet"),
+                    root_cause=_("This subnet's pool ({start}-{end}) overlaps {value}'s pool ({other_start}-{other_end}).", start=start, end=end, value=_subnet_label(other), other_start=other_start, other_end=other_end),
                     confidence=Confidence.CONFIRMED,
                     evidence=[
-                        Evidence("This pool", f"{start}-{end}"),
-                        Evidence("Overlapping subnet", _subnet_label(other)),
-                        Evidence("Overlapping pool", f"{other_start}-{other_end}"),
+                        Evidence(_("This pool"), f"{start}-{end}"),
+                        Evidence(_("Overlapping subnet"), _subnet_label(other)),
+                        Evidence(_("Overlapping pool"), f"{other_start}-{other_end}"),
                     ],
-                    impact="dhcpd's behavior when two pools can hand out the same address is undefined; a client could be offered an address another subnet is already using.",
+                    impact=_("dhcpd's behavior when two pools can hand out the same address is undefined; a client could be offered an address another subnet is already using."),
                     actions=[_map_action(subnet), _map_action(other)],
                 )
             )
@@ -226,12 +226,12 @@ def duplicate_reservation_findings(config: DhcpdConfig, subnet: Subnet) -> list[
                 findings.append(
                     Finding(
                         status=Status.CRITICAL,
-                        problem="Duplicate reservation IP address",
-                        root_cause=f"{len(names)} reservations declare the same fixed address ({host.fixed_address}).",
+                        problem=_("Duplicate reservation IP address"),
+                        root_cause=_("{value} reservations declare the same fixed address ({fixed_address}).", value=len(names), fixed_address=host.fixed_address),
                         confidence=Confidence.CONFIRMED,
-                        evidence=[Evidence("Fixed address", host.fixed_address), Evidence("Reservations", ", ".join(names))],
-                        impact="dhcpd's behavior is undefined when two reservations claim the same address; the wrong client may receive it, or neither will.",
-                        actions=[Action(f"Edit {name}", f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
+                        evidence=[Evidence(_("Fixed address"), host.fixed_address), Evidence(_("Reservations"), ", ".join(names))],
+                        impact=_("dhcpd's behavior is undefined when two reservations claim the same address; the wrong client may receive it, or neither will."),
+                        actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
                     )
                 )
         if host.mac:
@@ -241,12 +241,12 @@ def duplicate_reservation_findings(config: DhcpdConfig, subnet: Subnet) -> list[
                 findings.append(
                     Finding(
                         status=Status.CRITICAL,
-                        problem="Duplicate reservation MAC address",
-                        root_cause=f"{len(names)} reservations declare the same hardware address ({host.mac}).",
+                        problem=_("Duplicate reservation MAC address"),
+                        root_cause=_("{value} reservations declare the same hardware address ({mac}).", value=len(names), mac=host.mac),
                         confidence=Confidence.CONFIRMED,
-                        evidence=[Evidence("MAC address", host.mac), Evidence("Reservations", ", ".join(names))],
-                        impact="dhcpd will only honor one of these reservations for this client; which one is unpredictable.",
-                        actions=[Action(f"Edit {name}", f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
+                        evidence=[Evidence(_("MAC address"), host.mac), Evidence(_("Reservations"), ", ".join(names))],
+                        impact=_("dhcpd will only honor one of these reservations for this client; which one is unpredictable."),
+                        actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
                     )
                 )
 
@@ -274,24 +274,24 @@ def invalid_reservation_findings(subnet: Subnet) -> list[Finding]:
             findings.append(
                 Finding(
                     status=Status.WARNING,
-                    problem="Reservation has no MAC address",
-                    root_cause=f"Reservation '{host.name}' has no `hardware ethernet` statement.",
+                    problem=_("Reservation has no MAC address"),
+                    root_cause=_("Reservation '{name}' has no `hardware ethernet` statement.", name=host.name),
                     confidence=Confidence.CONFIRMED,
-                    evidence=[Evidence("Reservation", host.name)],
-                    impact="dhcpd cannot match any client to this reservation.",
-                    actions=[Action("Edit reservation", f"/reservations/{host.name}/edit")],
+                    evidence=[Evidence(_("Reservation"), host.name)],
+                    impact=_("dhcpd cannot match any client to this reservation."),
+                    actions=[Action(_("Edit reservation"), f"/reservations/{host.name}/edit")],
                 )
             )
         if not host.fixed_address:
             findings.append(
                 Finding(
                     status=Status.WARNING,
-                    problem="Reservation has no fixed address",
-                    root_cause=f"Reservation '{host.name}' has no `fixed-address` statement.",
+                    problem=_("Reservation has no fixed address"),
+                    root_cause=_("Reservation '{name}' has no `fixed-address` statement.", name=host.name),
                     confidence=Confidence.CONFIRMED,
-                    evidence=[Evidence("Reservation", host.name)],
-                    impact="This reservation has no effect - the client will be treated as a dynamic (non-reserved) client.",
-                    actions=[Action("Edit reservation", f"/reservations/{host.name}/edit")],
+                    evidence=[Evidence(_("Reservation"), host.name)],
+                    impact=_("This reservation has no effect - the client will be treated as a dynamic (non-reserved) client."),
+                    actions=[Action(_("Edit reservation"), f"/reservations/{host.name}/edit")],
                 )
             )
             continue
@@ -301,12 +301,12 @@ def invalid_reservation_findings(subnet: Subnet) -> list[Finding]:
             findings.append(
                 Finding(
                     status=Status.CRITICAL,
-                    problem="Reservation has an invalid fixed address",
-                    root_cause=f"'{host.fixed_address}' on reservation '{host.name}' is not a valid IPv4 address.",
+                    problem=_("Reservation has an invalid fixed address"),
+                    root_cause=_("'{fixed_address}' on reservation '{name}' is not a valid IPv4 address.", fixed_address=host.fixed_address, name=host.name),
                     confidence=Confidence.CONFIRMED,
-                    evidence=[Evidence("Reservation", host.name), Evidence("fixed-address", host.fixed_address)],
-                    impact="This subnet will fail config validation and cannot be applied.",
-                    actions=[Action("Edit reservation", f"/reservations/{host.name}/edit")],
+                    evidence=[Evidence(_("Reservation"), host.name), Evidence(_("fixed-address"), host.fixed_address)],
+                    impact=_("This subnet will fail config validation and cannot be applied."),
+                    actions=[Action(_("Edit reservation"), f"/reservations/{host.name}/edit")],
                 )
             )
             continue
@@ -314,12 +314,12 @@ def invalid_reservation_findings(subnet: Subnet) -> list[Finding]:
             findings.append(
                 Finding(
                     status=Status.WARNING,
-                    problem="Reservation address outside subnet network",
-                    root_cause=f"Reservation '{host.name}' is fixed to {ip}, which is not part of {network}.",
+                    problem=_("Reservation address outside subnet network"),
+                    root_cause=_("Reservation '{name}' is fixed to {ip}, which is not part of {network}.", name=host.name, ip=ip, network=network),
                     confidence=Confidence.CONFIRMED,
-                    evidence=[Evidence("Reservation", host.name), Evidence("fixed-address", str(ip)), Evidence("Subnet network", str(network))],
-                    impact="This reservation is nested under a subnet it doesn't belong to, which is confusing and may indicate a typo.",
-                    actions=[Action("Edit reservation", f"/reservations/{host.name}/edit")],
+                    evidence=[Evidence(_("Reservation"), host.name), Evidence(_("fixed-address"), str(ip)), Evidence(_("Subnet network"), str(network))],
+                    impact=_("This reservation is nested under a subnet it doesn't belong to, which is confusing and may indicate a typo."),
+                    actions=[Action(_("Edit reservation"), f"/reservations/{host.name}/edit")],
                 )
             )
     return findings
@@ -331,12 +331,12 @@ def interface_mismatch_finding(config: DhcpdConfig, subnet: Subnet, configured_i
         return None
     return Finding(
         status=Status.WARNING,
-        problem="Subnet tagged with an interface dhcpd isn't listening on",
-        root_cause=f"This subnet is tagged `{tag}`, but INTERFACESv4 does not include it.",
+        problem=_("Subnet tagged with an interface dhcpd isn't listening on"),
+        root_cause=_("This subnet is tagged `{tag}`, but INTERFACESv4 does not include it.", tag=tag),
         confidence=Confidence.CONFIRMED,
-        evidence=[Evidence("Interface tag", tag), Evidence("Listening interfaces", ", ".join(configured_interfaces) or "(none)")],
-        impact="If this subnet's traffic actually arrives on that interface, dhcpd never sees it and cannot hand out leases for this subnet.",
-        actions=[Action("Edit interfaces", "/interfaces")],
+        evidence=[Evidence(_("Interface tag"), tag), Evidence(_("Listening interfaces"), ", ".join(configured_interfaces) or "(none)")],
+        impact=_("If this subnet's traffic actually arrives on that interface, dhcpd never sees it and cannot hand out leases for this subnet."),
+        actions=[Action(_("Edit interfaces"), "/interfaces")],
     )
 
 
@@ -370,14 +370,14 @@ def diagnose_subnet(config: DhcpdConfig, subnet: Subnet, leases: list[Lease], co
         findings.append(
             Finding(
                 status=Status.HEALTHY,
-                problem="No issues detected",
+                problem=_("No issues detected"),
                 root_cause="",
                 confidence=Confidence.CONFIRMED,
                 evidence=[
-                    Evidence("Pool utilization", f"{used}/{total} used" if total else "no pool configured"),
-                    Evidence("Reservations", str(len(subnet.hosts))),
+                    Evidence(_("Pool utilization"), _("{used}/{total} used", used=used, total=total) if total else _("no pool configured")),
+                    Evidence(_("Reservations"), str(len(subnet.hosts))),
                 ],
             )
         )
 
-    return DiagnosticResult(title=f"Subnet {_subnet_label(subnet)}", target_description=_subnet_label(subnet), findings=findings)
+    return DiagnosticResult(title=_("Subnet {value}", value=_subnet_label(subnet)), target_description=_subnet_label(subnet), findings=findings)

@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Backups - Sandia{% endblock %}
+{% block title %}{{ _("Backups") }} - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-2">Backups</h1>
-<p class="text-sm text-slate-500 mb-6">A timestamped copy of dhcpd.conf is taken automatically before every applied change.</p>
+<h1 class="text-xl font-semibold mb-2">{{ _("Backups") }}</h1>
+<p class="text-sm text-slate-500 mb-6">{{ _("A timestamped copy of dhcpd.conf is taken automatically before every applied change.") }}</p>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for name in backups %}
   <div class="px-4 py-3 flex items-center justify-between">
     <span class="flex items-center gap-2.5 font-mono text-sm">{{ icon('backups', 'w-4 h-4 text-slate-600') }} {{ name }}</span>
     {% if user.role in ('admin', 'operator') %}
-    <form method="post" action="/backups/{{ name }}/restore" onsubmit="return confirm('Restore this backup? The current config will itself be backed up first.');">
-      <button class="flex items-center gap-1 text-emerald-400 hover:underline text-sm">{{ icon('refresh', 'w-3.5 h-3.5') }} Restore</button>
+    <form method="post" action="/backups/{{ name }}/restore" onsubmit="return confirm({{ _("Restore this backup? The current config will itself be backed up first.") | tojson | forceescape }});">
+      <button class="flex items-center gap-1 text-emerald-400 hover:underline text-sm">{{ icon('refresh', 'w-3.5 h-3.5') }} {{ _("Restore") }}</button>
     </form>
     {% endif %}
   </div>
   {% else %}
-  <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No backups yet.</div>
+  <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No backups yet.") }}</div>
   {% endfor %}
 </div>
 {% endblock %}

@@ -1,45 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Lease {{ device.display_name }} - Sandia{% endblock %}
+{% block title %}{{ _("Lease") }} {{ device.display_name }} - Sandia{% endblock %}
 {% block content %}
 <a href="/devices/{{ device.mac | urlencode }}" class="text-sm text-slate-500 hover:text-slate-100">&larr; {{ device.display_name }}</a>
-<h1 class="text-xl font-semibold flex items-center gap-2 mt-1 mb-6">{{ icon('reservations', 'w-5 h-5 text-slate-500') }} Lease IP</h1>
+<h1 class="text-xl font-semibold flex items-center gap-2 mt-1 mb-6">{{ icon('reservations', 'w-5 h-5 text-slate-500') }} {{ _("Lease IP") }}</h1>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4 max-w-lg">
-  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Device</div>
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">{{ _("Device") }}</div>
   <dl class="text-sm space-y-2">
     <div class="flex justify-between gap-3"><dt class="text-slate-500">MAC</dt><dd class="font-mono">{{ device.mac }}</dd></div>
-    <div class="flex justify-between gap-3"><dt class="text-slate-500">Hostname</dt><dd>{{ device.hostname or 'Unknown' }}</dd></div>
-    <div class="flex justify-between gap-3"><dt class="text-slate-500">Current IP</dt><dd class="font-mono">{{ device.current_ip or 'None - no current lease' }}</dd></div>
-    <div class="flex justify-between gap-3"><dt class="text-slate-500">Reservation</dt><dd>None yet</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ _("Hostname") }}</dt><dd>{{ device.hostname or _('Unknown') }}</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ _("Current IP") }}</dt><dd class="font-mono">{{ device.current_ip or _('None - no current lease') }}</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ _("Reservation") }}</dt><dd>{{ _("None yet") }}</dd></div>
   </dl>
 </div>
 
 <form method="get" action="/devices/{{ device.mac | urlencode }}/lease" class="mb-4 max-w-lg">
-  <label class="block text-sm text-slate-400 mb-1">Subnet</label>
+  <label class="block text-sm text-slate-400 mb-1">{{ _("Subnet") }}</label>
   <select name="subnet_key" onchange="this.form.submit()" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
     {% for subnet in subnets %}
     <option value="{{ subnet.key }}" {% if selected_subnet and selected_subnet.key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
     {% else %}
-    <option value="">No subnets configured</option>
+    <option value="">{{ _("No subnets configured") }}</option>
     {% endfor %}
   </select>
 </form>
 
 {% if selected_subnet and subnet_map %}
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6 max-w-lg">
-  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Pool</div>
+  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">{{ _("Pool") }}</div>
   <dl class="text-sm space-y-2 mb-4">
-    <div class="flex justify-between gap-3"><dt class="text-slate-500">Range</dt><dd class="font-mono">{{ selected_subnet.get('range') or 'not configured' }}</dd></div>
-    <div class="flex justify-between gap-3"><dt class="text-slate-500">Usable / allocated</dt><dd>{{ subnet_map.total - (subnet_map.cells | selectattr('status', 'eq', 'free') | list | length) }} / {{ subnet_map.total }}</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ _("Range") }}</dt><dd class="font-mono">{{ selected_subnet.get('range') or _('not configured') }}</dd></div>
+    <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ _("Usable / allocated") }}</dt><dd>{{ subnet_map.total - (subnet_map.cells | selectattr('status', 'eq', 'free') | list | length) }} / {{ subnet_map.total }}</dd></div>
     <div class="flex justify-between gap-3">
-      <dt class="text-slate-500">Suggested address</dt>
-      <dd class="font-mono">{% if suggestion %}{{ suggestion }}{% else %}<span class="text-amber-400">none free</span>{% endif %}</dd>
+      <dt class="text-slate-500">{{ _("Suggested address") }}</dt>
+      <dd class="font-mono">{% if suggestion %}{{ suggestion }}{% else %}<span class="text-amber-400">{{ _("none free") }}</span>{% endif %}</dd>
     </div>
   </dl>
 
   {% if device.current_lease and device.current_lease.ip and device.subnet and device.subnet.key != selected_subnet.key %}
   <div class="rounded-lg px-3 py-2 text-sm bg-amber-950 text-amber-300 border border-amber-900 flex items-center gap-2 mb-4">
-    {{ icon('warning', 'w-4 h-4 shrink-0') }} This device currently has an active lease at {{ device.current_lease.ip }} on a different subnet ({{ device.subnet.network }}/{{ device.subnet.netmask }}) - reserving it here won't match where it's currently connected.
+    {{ icon('warning', 'w-4 h-4 shrink-0') }} {{ _("This device currently has an active lease at {ip} on a different subnet ({subnet}) - reserving it here won't match where it's currently connected.", ip=device.current_lease.ip, subnet=device.subnet.network ~ '/' ~ device.subnet.netmask) }}
   </div>
   {% endif %}
 
@@ -47,16 +47,16 @@
   <a
     href="/reservations/new?mac={{ device.mac | urlencode }}&ip={{ (suggestion or device.current_ip) | urlencode }}&hostname={{ (device.hostname or '') | urlencode }}&subnet_key={{ selected_subnet.key | urlencode }}"
     class="flex items-center gap-1.5 w-fit bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2"
-  >{{ icon('check', 'w-4 h-4') }} Continue with {{ suggestion or device.current_ip }}</a>
+  >{{ icon('check', 'w-4 h-4') }} {{ _("Continue with {ip}", ip=suggestion or device.current_ip) }}</a>
   {% else %}
-  <div class="text-sm text-slate-500">No free address in this pool to suggest - pick a subnet with room, or set a fixed address manually on the reservation form.</div>
-  <a href="/reservations/new?mac={{ device.mac | urlencode }}&hostname={{ (device.hostname or '') | urlencode }}&subnet_key={{ selected_subnet.key | urlencode }}" class="inline-flex items-center gap-1.5 mt-3 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Continue anyway, choose an address manually</a>
+  <div class="text-sm text-slate-500">{{ _("No free address in this pool to suggest - pick a subnet with room, or set a fixed address manually on the reservation form.") }}</div>
+  <a href="/reservations/new?mac={{ device.mac | urlencode }}&hostname={{ (device.hostname or '') | urlencode }}&subnet_key={{ selected_subnet.key | urlencode }}" class="inline-flex items-center gap-1.5 mt-3 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Continue anyway, choose an address manually") }}</a>
   {% endif %}
 </div>
 {% elif not subnets %}
 <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl max-w-lg">
-  {{ icon('inbox', 'w-5 h-5 text-slate-600') }} No subnets configured yet - <a href="/subnets/new" class="text-emerald-400 hover:underline ml-1">create one</a>, or reserve this device without a subnet.
-  <a href="/reservations/new?mac={{ device.mac | urlencode }}&hostname={{ (device.hostname or '') | urlencode }}" class="text-emerald-400 hover:underline ml-1">Continue</a>
+  {{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No subnets configured yet.") }} <a href="/subnets/new" class="text-emerald-400 hover:underline ml-1">{{ _("Create one") }}</a>{{ _(", or reserve this device without a subnet.") }}
+  <a href="/reservations/new?mac={{ device.mac | urlencode }}&hostname={{ (device.hostname or '') | urlencode }}" class="text-emerald-400 hover:underline ml-1">{{ _("Continue") }}</a>
 </div>
 {% endif %}
 {% endblock %}

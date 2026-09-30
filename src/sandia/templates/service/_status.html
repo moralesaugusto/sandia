@@ -3,5 +3,5 @@
     <span class="h-2.5 w-2.5 rounded-full {% if status == 'active' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
     <span class="font-medium">{{ status }}</span>
   </div>
-  <div class="text-sm text-slate-500">{% if enabled %}enabled at boot{% else %}disabled at boot{% endif %}</div>
+  <div class="text-sm text-slate-500">{% if enabled %}{{ _("enabled at boot") }}{% else %}{{ _("disabled at boot") }}{% endif %}</div>
 </div>

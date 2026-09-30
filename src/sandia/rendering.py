@@ -3,12 +3,14 @@ from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from .ai import load_ai_settings
+from .i18n import current_language
 
 
 def render(request: Request, template_name: str, status_code: int = 200, **context) -> HTMLResponse:
     templates = request.app.state.templates
     context.setdefault("user", None)
     context.setdefault("theme", request.session.get("theme", "dark"))
+    context["lang"] = current_language()
     if context["user"] is not None:
         # Drives the floating assistant in base.html.
         with Session(request.app.state.engine) as session:

@@ -2,20 +2,20 @@
 {% if lease %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ lease.ip }}</div>
 {% if lease.mac %}
-<a href="/devices/{{ lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
+<a href="/devices/{{ lease.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} {{ _("Open device") }}</a>
 {% endif %}
-<a href="/diagnostics/client?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose device</a>
+<a href="/diagnostics/client?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
 {% if user.role in ('admin', 'operator') %}
   {% if not reserved_host %}
-  <a href="/reservations/new?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Reserve this lease</a>
+  <a href="/reservations/new?mac={{ (lease.mac or '') | urlencode }}&ip={{ lease.ip | urlencode }}&hostname={{ (lease.hostname or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} {{ _("Reserve this lease") }}</a>
   {% else %}
-  <a href="/reservations/{{ reserved_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation "{{ reserved_host.name }}"</a>
+  <a href="/reservations/{{ reserved_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _('Edit reservation "{name}"', name=reserved_host.name) }}</a>
   {% endif %}
-  <form method="post" action="/leases/{{ lease.ip }}/deny" onsubmit="return confirm('Deny this client from obtaining a lease?');">
-    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} Deny this client</button>
+  <form method="post" action="/leases/{{ lease.ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
   </form>
 {% endif %}
-<button type="button" onclick="navigator.clipboard.writeText('{{ lease.mac or '' }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ lease.mac or '' }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy MAC address") }}</button>
 {% else %}
-<div class="px-3 py-2 text-slate-500">Lease not found</div>
+<div class="px-3 py-2 text-slate-500">{{ _("Lease not found") }}</div>
 {% endif %}

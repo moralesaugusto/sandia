@@ -3,6 +3,7 @@ device category from the hostname and MAC vendor so the Reservations page
 shows a relevant icon per row automatically, the way most IPAM/DHCP UIs
 badge known device types."""
 
+from .i18n import N_
 from .vendors import lookup_vendor
 
 _HOSTNAME_HINTS: list[tuple[str, str]] = [
@@ -74,16 +75,16 @@ def device_icon_for(name: str, mac: str | None) -> str:
 
 
 DEVICE_LABELS: dict[str, str] = {
-    "device-printer": "Printer",
-    "device-phone": "Phone / tablet",
-    "device-laptop": "Computer",
-    "device-tv": "TV / media player",
-    "device-camera": "Camera",
-    "device-server": "Server / NAS",
-    "device-iot": "IoT device",
-    "device-network": "Network equipment",
-    "device-game": "Game console",
-    "device-generic": "Unknown device",
+    "device-printer": N_("Printer"),
+    "device-phone": N_("Phone / tablet"),
+    "device-laptop": N_("Computer"),
+    "device-tv": N_("TV / media player"),
+    "device-camera": N_("Camera"),
+    "device-server": N_("Server / NAS"),
+    "device-iot": N_("IoT device"),
+    "device-network": N_("Network equipment"),
+    "device-game": N_("Game console"),
+    "device-generic": N_("Unknown device"),
 }
 
 # Hostname/vendor -> best-effort OS guess. There's no real client
@@ -101,21 +102,21 @@ _HOSTNAME_OS_HINTS: list[tuple[str, str]] = [
 ]
 
 _VENDOR_OS_HINTS: list[tuple[str, str]] = [
-    ("Raspberry Pi", "Linux (likely Raspberry Pi OS)"),
-    ("Espressif", "Embedded firmware (ESP8266/ESP32)"),
+    ("Raspberry Pi", N_("Linux (likely Raspberry Pi OS)")),
+    ("Espressif", N_("Embedded firmware (ESP8266/ESP32)")),
     ("Apple", "iOS/macOS"),
     ("Samsung", "Android"),
-    ("Sonos", "Embedded firmware"),
-    ("Roku", "Embedded firmware"),
-    ("Nintendo", "Console firmware"),
-    ("PlayStation", "Console firmware"),
-    ("Ubiquiti", "Network device firmware"),
-    ("TP-Link", "Network device firmware"),
-    ("Netgear", "Network device firmware"),
-    ("Cisco", "Network device firmware"),
-    ("Dell", "Windows or Linux (likely)"),
-    ("Lenovo", "Windows or Linux (likely)"),
-    ("HP", "Windows or Linux (likely)"),
+    ("Sonos", N_("Embedded firmware")),
+    ("Roku", N_("Embedded firmware")),
+    ("Nintendo", N_("Console firmware")),
+    ("PlayStation", N_("Console firmware")),
+    ("Ubiquiti", N_("Network device firmware")),
+    ("TP-Link", N_("Network device firmware")),
+    ("Netgear", N_("Network device firmware")),
+    ("Cisco", N_("Network device firmware")),
+    ("Dell", N_("Windows or Linux (likely)")),
+    ("Lenovo", N_("Windows or Linux (likely)")),
+    ("HP", N_("Windows or Linux (likely)")),
     ("Microsoft", "Windows"),
 ]
 

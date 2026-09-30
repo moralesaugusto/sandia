@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}About - Sandia{% endblock %}
+{% block title %}{{ _('About') }} - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-1 flex items-center gap-2">{{ icon('info', 'w-5 h-5 text-slate-500') }} About Sandia</h1>
+<h1 class="text-xl font-semibold mb-1 flex items-center gap-2">{{ icon('info', 'w-5 h-5 text-slate-500') }} {{ _('About Sandia') }}</h1>
 <p class="text-sm text-slate-500 mb-6">Somehow, Another Network DHCP Is Alive.</p>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for label, value in [
-    ('Version', info.version),
-    ('Uptime', info.uptime),
+    (_('Version'), info.version),
+    (_('Uptime'), info.uptime),
     ('Python', info.python_version),
-    ('Platform', info.platform),
+    (_('Platform'), info.platform),
     ('FastAPI', info.fastapi_version),
     ('Uvicorn', info.uvicorn_version),
-    ('DHCP service', info.service_name),
-    ('Dummy mode', 'enabled' if info.dummy_mode else 'disabled'),
-    ('HTTPS', 'enabled' if info.https_enabled else 'disabled'),
-    ('dhcpd.conf path', info.dhcpd_conf_path),
-    ('leases path', info.leases_path),
-    ('Data directory', info.data_dir),
+    (_('DHCP service'), info.service_name),
+    (_('Dummy mode'), _('enabled') if info.dummy_mode else _('disabled')),
+    ('HTTPS', _('enabled') if info.https_enabled else _('disabled')),
+    (_('dhcpd.conf path'), info.dhcpd_conf_path),
+    (_('leases path'), info.leases_path),
+    (_('Data directory'), info.data_dir),
   ] %}
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
     <span class="text-slate-500">{{ label }}</span>
@@ -27,19 +27,19 @@
 </div>
 
 <p class="text-sm text-slate-500 mt-6">
-  Sandia is a standalone web UI for managing an ISC isc-dhcp-server instance.
-  See <code class="text-slate-400">INSTRUCTIONS.md</code> in the project directory for setup and usage.
+  {{ _('Sandia is a standalone web UI for managing an ISC isc-dhcp-server instance.') }}
+  {{ _('See INSTRUCTIONS.md in the project directory for setup and usage.') }}
 </p>
 
-<h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} Where the data comes from</h2>
+<h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} {{ _('Where the data comes from') }}</h2>
 {% set window = '{:g}'.format(data_sources.log_window_mb) %}
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for label, value, note in [
-    ('DHCP configuration', info.dhcpd_conf_path, 'read live on every page'),
-    ('Leases', info.leases_path, 'read live on every page'),
-    ('DHCP events', data_sources.dhcp_log_path, 'found (' ~ '{:.1f}'.format(data_sources.dhcp_log_size_mb) ~ ' MB)' if data_sources.dhcp_log_size_mb is not none else 'not found'),
-    ('Events read per request', 'last ' ~ window ~ ' MB of the log', 'parsed fresh each time'),
-    ('Sandia database', data_sources.db_path, 'users, audit log, AI settings'),
+    (_('DHCP configuration'), info.dhcpd_conf_path, _('read live on every page')),
+    (_('Leases'), info.leases_path, _('read live on every page')),
+    (_('DHCP events'), data_sources.dhcp_log_path, _('found ({size} MB)', size='{:.1f}'.format(data_sources.dhcp_log_size_mb)) if data_sources.dhcp_log_size_mb is not none else _('not found')),
+    (_('Events read per request'), _('last {mb} MB of the log', mb=window), _('parsed fresh each time')),
+    (_('Sandia database'), data_sources.db_path, _('users, audit log, AI settings')),
   ] %}
   <div class="px-4 py-3 flex items-start justify-between text-sm gap-4">
     <span class="text-slate-500 shrink-0">{{ label }}</span>
@@ -51,56 +51,44 @@
   {% endfor %}
 </div>
 <p class="text-sm text-slate-500 mt-3">
-  DHCP events (DISCOVER, OFFER, REQUEST, ACK, NAK, ...) are not stored in a
-  database. Each time a page needs them, Sandia reads the last {{ window }} MB
-  of the DHCP log and parses it. History therefore only reaches back as far
-  as that window and whatever syslog rotation has not yet removed - often a
-  few days to a few weeks, depending on traffic and what else writes to the
-  log. This limits the Event Log, the Wall of Shame's "All available" range,
-  device activity on Device 360, and the log lines the AI assistant sees.
-  Leases and configuration have no such limit: they come straight from the
-  files dhcpd itself maintains.
+  {{ _('DHCP events (DISCOVER, OFFER, REQUEST, ACK, NAK, ...) are not stored in a database. Each time a page needs them, Sandia reads the last {mb} MB of the DHCP log and parses it. History therefore only reaches back as far as that window and whatever syslog rotation has not yet removed - often a few days to a few weeks, depending on traffic and what else writes to the log. This limits the Event Log, the "All available" range of the Wall of Shame, device activity on Device 360, and the log lines the AI assistant sees. Leases and configuration have no such limit: they come straight from the files dhcpd itself maintains.', mb=window) }}
 </p>
 
-<h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} OUI vendor database</h2>
+<h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} {{ _('OUI vendor database') }}</h2>
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
-    <span class="text-slate-500">Source</span>
+    <span class="text-slate-500">{{ _('Source') }}</span>
     <span class="text-slate-200 text-right">
-      {% if oui_status.cached %}IEEE OUI registry (cached locally){% else %}Built-in list only (~100 common vendors){% endif %}
+      {% if oui_status.cached %}{{ _('IEEE OUI registry (cached locally)') }}{% else %}{{ _('Built-in list only (~100 common vendors)') }}{% endif %}
     </span>
   </div>
   {% if oui_status.cached %}
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
-    <span class="text-slate-500">Version</span>
-    <span class="text-slate-200 font-mono text-right">{{ oui_status.fetched_at }} &middot; {{ "{:,}".format(oui_status.entry_count) }} entries</span>
+    <span class="text-slate-500">{{ _('Version') }}</span>
+    <span class="text-slate-200 font-mono text-right">{{ oui_status.fetched_at }} &middot; {{ _('{n} entries', n="{:,}".format(oui_status.entry_count)) }}</span>
   </div>
   {% endif %}
   {% if oui_status.refreshing %}
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
-    <span class="text-slate-500">Status</span>
-    <span class="text-amber-400">Refreshing in background&hellip;</span>
+    <span class="text-slate-500">{{ _('Status') }}</span>
+    <span class="text-amber-400">{{ _('Refreshing in background...') }}</span>
   </div>
   {% elif oui_status.last_error %}
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
-    <span class="text-slate-500">Last refresh</span>
-    <span class="text-rose-400 text-right break-all">Failed: {{ oui_status.last_error }}</span>
+    <span class="text-slate-500">{{ _('Last refresh') }}</span>
+    <span class="text-rose-400 text-right break-all">{{ _('Failed:') }} {{ oui_status.last_error }}</span>
   </div>
   {% endif %}
 </div>
 <p class="text-sm text-slate-500 mt-3">
-  Downloads the full public IEEE OUI registry (tens of thousands of vendor
-  prefixes) to improve vendor identification on the Leases and
-  Reservations pages, beyond Sandia's small built-in list. Runs in the
-  background and never blocks the app; if it fails (e.g. no internet
-  access), the built-in list keeps working unchanged.
+  {{ _("Downloads the full public IEEE OUI registry (tens of thousands of vendor prefixes) to improve vendor identification on the Leases and Reservations pages, beyond Sandia's small built-in list. Runs in the background and never blocks the app; if it fails (e.g. no internet access), the built-in list keeps working unchanged.") }}
 </p>
 {% if user.role in ('admin', 'operator') %}
 <form method="post" action="/about/oui-refresh" class="mt-3">
   <button type="submit" {% if oui_status.refreshing %}disabled{% endif %}
     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
     {{ icon('refresh', 'w-4 h-4') }}
-    {% if oui_status.cached %}Update OUI database{% else %}Download OUI database{% endif %}
+    {% if oui_status.cached %}{{ _('Update OUI database') }}{% else %}{{ _('Download OUI database') }}{% endif %}
   </button>
 </form>
 {% endif %}

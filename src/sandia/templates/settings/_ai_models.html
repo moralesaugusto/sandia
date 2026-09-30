@@ -4,5 +4,5 @@
 <datalist id="ollama-models">
   {% for name in models %}<option value="{{ name }}">{% endfor %}
 </datalist>
-<p class="text-xs text-emerald-400 mt-1">{{ models | length }} model{{ '' if models | length == 1 else 's' }} available: {{ models | join(', ') }}</p>
+<p class="text-xs text-emerald-400 mt-1">{{ _("{n} models available: {names}", n=models | length, names=models | join(', ')) }}</p>
 {% endif %}

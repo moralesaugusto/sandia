@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 1.4.0
+
+### Added
+- English/Spanish language selector (EN | ES) in the top-right corner of every page, including the login page. English is the default. The choice is saved in the session immediately and, once logged in, on the account, so it follows the user to other browsers, the same as the light/dark theme.
+- Full Spanish translation of the web UI: pages, menus, context menus, confirmation dialogs, flash and error messages, and the diagnostic findings. Acronyms (DHCP, IP, MAC, DNS, NTP, PXE, OUI...), config keywords, file paths and the networking terms lease, subnet, pool, host and gateway stay in English. The AI assistant replies in the selected language.
+- Version bumped to 1.4.0.
+
 ## 1.3.2
 
 ### Added

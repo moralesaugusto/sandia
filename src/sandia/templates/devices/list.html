@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Devices - Sandia{% endblock %}
+{% block title %}{{ _("Devices") }} - Sandia{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <div>
-    <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('devices', 'w-5 h-5 text-slate-500') }} Devices</h1>
-    <p class="text-sm text-slate-500 mt-1">{{ total_count }} device{{ 's' if total_count != 1 else '' }} known from reservations, leases, and DHCP activity.</p>
+    <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('devices', 'w-5 h-5 text-slate-500') }} {{ _("Devices") }}</h1>
+    <p class="text-sm text-slate-500 mt-1">{{ _("{n} device known from reservations, leases, and DHCP activity.", n=total_count) if total_count == 1 else _("{n} devices known from reservations, leases, and DHCP activity.", n=total_count) }}</p>
   </div>
-  <a href="/devices/export.csv?{{ request.url.query }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} Export CSV</a>
+  <a href="/devices/export.csv?{{ request.url.query }}" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 whitespace-nowrap">{{ icon('download', 'w-4 h-4') }} {{ _("Export CSV") }}</a>
 </div>
 
 {% if log_unavailable %}
 <div class="mb-4 rounded-lg px-4 py-3 text-sm bg-amber-950 text-amber-300 border border-amber-900 flex items-center gap-2">
-  {{ icon('warning', 'w-4 h-4 shrink-0') }} {{ log_unavailable }} - DHCP activity/status for devices with no current lease may be incomplete.
+  {{ icon('warning', 'w-4 h-4 shrink-0') }} {{ log_unavailable }} {{ _("- DHCP activity/status for devices with no current lease may be incomplete.") }}
 </div>
 {% endif %}
 
@@ -25,42 +25,42 @@
 >
   <div class="relative w-full max-w-xs">
     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
-    <input type="search" name="q" value="{{ q }}" placeholder="Search MAC, hostname, IP, vendor..." class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <input type="search" name="q" value="{{ q }}" placeholder="{{ _("Search MAC, hostname, IP, vendor...") }}" class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
   </div>
   <select name="status" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
     {% for value, label in status_options %}
-    <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+    <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ _(label) }}</option>
     {% endfor %}
   </select>
   <select name="reservation" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-    <option value="" {% if reservation == "" %}selected{% endif %}>Reservation: any</option>
-    <option value="yes" {% if reservation == "yes" %}selected{% endif %}>Has reservation</option>
-    <option value="no" {% if reservation == "no" %}selected{% endif %}>No reservation</option>
+    <option value="" {% if reservation == "" %}selected{% endif %}>{{ _("Reservation: any") }}</option>
+    <option value="yes" {% if reservation == "yes" %}selected{% endif %}>{{ _("Has reservation") }}</option>
+    <option value="no" {% if reservation == "no" %}selected{% endif %}>{{ _("No reservation") }}</option>
   </select>
   <select name="lease" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-    <option value="" {% if lease == "" %}selected{% endif %}>Lease: any</option>
-    <option value="yes" {% if lease == "yes" %}selected{% endif %}>Has current lease</option>
-    <option value="no" {% if lease == "no" %}selected{% endif %}>No current lease</option>
+    <option value="" {% if lease == "" %}selected{% endif %}>{{ _("Lease: any") }}</option>
+    <option value="yes" {% if lease == "yes" %}selected{% endif %}>{{ _("Has current lease") }}</option>
+    <option value="no" {% if lease == "no" %}selected{% endif %}>{{ _("No current lease") }}</option>
   </select>
   <select name="subnet_key" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-    <option value="">All subnets</option>
+    <option value="">{{ _("All subnets") }}</option>
     {% for subnet in subnets %}
     <option value="{{ subnet.key }}" {% if subnet_key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
     {% endfor %}
   </select>
-  <input type="search" name="vendor" value="{{ vendor }}" placeholder="Vendor..." class="w-36 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+  <input type="search" name="vendor" value="{{ vendor }}" placeholder="{{ _("Vendor...") }}" class="w-36 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
   <input type="hidden" name="sort" value="{{ sort }}">
 </form>
-<p class="text-xs text-slate-500 -mt-2 mb-4">Click a column header to sort.</p>
+<p class="text-xs text-slate-500 -mt-2 mb-4">{{ _("Click a column header to sort.") }}</p>
 
 <form method="post" id="devices-form">
 {% if user.role in ('admin', 'operator') %}
 <div class="flex items-center justify-between mb-3">
   <label class="flex items-center gap-2 text-sm text-slate-400">
     <input type="checkbox" id="select-all" class="rounded bg-slate-800 border-slate-700" onchange="document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = this.checked)">
-    Select all
+    {{ _("Select all") }}
   </label>
-  <button type="submit" formaction="/devices/bulk-delete-lease" onclick="return confirm('Delete the current lease record for every selected device? This only removes Sandia\'s copy of the lease file entry - if a device is still active, dhcpd will write a new one on its next renewal.');" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} Delete lease records for selected</button>
+  <button type="submit" formaction="/devices/bulk-delete-lease" onclick="return confirm({{ _("Delete the current lease record for every selected device? This only removes Sandia's copy of the lease file entry - if a device is still active, dhcpd will write a new one on its next renewal.") | tojson | forceescape }});" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease records for selected") }}</button>
 </div>
 {% endif %}
 <div id="devices-table">

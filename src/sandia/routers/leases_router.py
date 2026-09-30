@@ -13,6 +13,7 @@ from ..csv_export import csv_response
 from ..db import get_session
 from ..dhcpd import Host, Parameter, serialize
 from ..dhcpd.apply import apply_new_config
+from ..i18n import N_, _
 from ..leases import Lease, load_leases, parse_lease_timestamp
 from ..leases_cleanup import clean_leases_text
 from ..models import User
@@ -27,14 +28,14 @@ router = APIRouter()
 # "active": the leases file accumulates stale/expired history dhcpd never
 # removes, so an unfiltered view is mostly noise for day-to-day use.
 STATE_OPTIONS = [
-    ("", "All states"),
-    ("active", "Active"),
-    ("free", "Free"),
-    ("expired", "Expired"),
-    ("released", "Released"),
-    ("abandoned", "Abandoned"),
-    ("backup", "Backup"),
-    ("reset", "Reset"),
+    ("", N_("All states")),
+    ("active", N_("Active")),
+    ("free", N_("Free")),
+    ("expired", N_("Expired")),
+    ("released", N_("Released")),
+    ("abandoned", N_("Abandoned")),
+    ("backup", N_("Backup")),
+    ("reset", N_("Reset")),
 ]
 
 
@@ -156,13 +157,13 @@ async def clean_leases(
     dropping superseded renewal history. Never touches any other content
     in the file, and backs up the original first."""
     if not settings.leases_path.exists():
-        set_flash(request, "No leases file found.", kind="error")
+        set_flash(request, _("No leases file found."), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     text = settings.leases_path.read_text()
     cleaned, removed = clean_leases_text(text)
     if removed == 0:
-        set_flash(request, "Leases file is already clean - no stale records found.")
+        set_flash(request, _("Leases file is already clean - no stale records found."))
         return RedirectResponse("/leases", status_code=303)
 
     try:
@@ -172,11 +173,11 @@ async def clean_leases(
         settings.leases_path.write_text(cleaned)
     except OSError as exc:
         log_action(session, request, user, "leases_clean_failed", str(exc), success=False)
-        set_flash(request, f"Failed to clean leases file: {exc}", kind="error")
+        set_flash(request, _("Failed to clean leases file: {exc}", exc=exc), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     log_action(session, request, user, "leases_clean", f"removed {removed} stale lease record(s)")
-    set_flash(request, f"Cleaned {removed} stale lease record(s) from the leases file.")
+    set_flash(request, _("Cleaned {removed} stale lease record(s) from the leases file.", removed=removed))
     return RedirectResponse("/leases", status_code=303)
 
 
@@ -207,13 +208,13 @@ async def deny_lease(
     leases = load_leases(settings.leases_path)
     lease = next((lease for lease in leases if lease.ip == ip), None)
     if lease is None or not lease.mac:
-        set_flash(request, "Lease not found or has no MAC address.", kind="error")
+        set_flash(request, _("Lease not found or has no MAC address."), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     config = load_live_config(settings)
     name = f"deny-{lease.mac.replace(':', '')}"
     if config.find_host(name) is not None:
-        set_flash(request, "This client is already denied.", kind="error")
+        set_flash(request, _("This client is already denied."), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     host = Host(name=name, body=[])
@@ -224,9 +225,9 @@ async def deny_lease(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "lease_deny_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     log_action(session, request, user, "lease_deny", f"{lease.mac} ({ip})")
-    set_flash(request, "Client denied. isc-dhcp-server restarted.")
+    set_flash(request, _("Client denied. isc-dhcp-server restarted."))
     return RedirectResponse("/leases", status_code=303)

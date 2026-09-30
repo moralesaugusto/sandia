@@ -94,6 +94,10 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   sends a snapshot of the service status, `dhcpd.conf`, active leases and
   the last 150 DHCP log lines to that server, so point it only at an
   Ollama instance you trust with that data.
+- English/Spanish UI: the EN | ES switch in the top-right corner (also on
+  the login page). English is the default; the choice is saved on your
+  account. Acronyms, config keywords and the terms lease, subnet, pool,
+  host and gateway stay in English in the Spanish UI.
 - Light/dark mode toggle (sidebar, and on the login page). Saved
   immediately in the browser session, and on the account once logged in,
   so it follows you to a new browser or device.

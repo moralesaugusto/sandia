@@ -568,7 +568,7 @@ def test_about_page_explains_data_sources_and_log_window(viewer_client, settings
     assert str(settings.dhcp_log_path) in body
     assert "not found" in body
     assert str(settings.db_path) in body
-    assert "are not stored in a\n  database" in body
+    assert "are not stored in a database" in body
     assert f"last {MAX_LOG_BYTES / 1_000_000:g} MB of the log" in body
 
     settings.dhcp_log_path.write_text("x" * 300_000)

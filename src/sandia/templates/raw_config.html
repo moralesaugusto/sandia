@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Raw Config - Sandia{% endblock %}
+{% block title %}{{ _("Raw Config") }} - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-2">Raw Configuration</h1>
-<p class="text-sm text-slate-500 mb-6">Full text of dhcpd.conf, including any constructs (shared-networks, classes, keys, ...) the structured pages don't manage.</p>
+<h1 class="text-xl font-semibold mb-2">{{ _("Raw Configuration") }}</h1>
+<p class="text-sm text-slate-500 mb-6">{{ _("Full text of dhcpd.conf, including any constructs (shared-networks, classes, keys, ...) the structured pages don't manage.") }}</p>
 
 <form method="post" action="/config/raw/apply" class="space-y-4">
   <textarea name="text" rows="28" class="w-full font-mono text-sm bg-slate-900 border border-slate-800 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" {% if user.role == 'viewer' %}readonly{% endif %}>{{ text }}</textarea>
@@ -11,9 +11,9 @@
   <div id="validate-result"></div>
   <div id="diff-result"></div>
   <div class="flex gap-3">
-    <button type="button" hx-post="/config/raw/validate" hx-target="#validate-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Validate</button>
-    <button type="button" hx-post="/config/raw/diff" hx-target="#diff-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('diff', 'w-4 h-4') }} Show diff</button>
-    <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('send', 'w-4 h-4') }} Apply</button>
+    <button type="button" hx-post="/config/raw/validate" hx-target="#validate-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} {{ _("Validate") }}</button>
+    <button type="button" hx-post="/config/raw/diff" hx-target="#diff-result" hx-swap="innerHTML" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ icon('diff', 'w-4 h-4') }} {{ _("Show diff") }}</button>
+    <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('send', 'w-4 h-4') }} {{ _("Apply") }}</button>
   </div>
   {% endif %}
 </form>

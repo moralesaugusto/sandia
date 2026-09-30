@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ subnet.network }}/{{ subnet.netmask }} map - Sandia{% endblock %}
+{% block title %}{{ subnet.network }}/{{ subnet.netmask }} {{ _("map") }} - Sandia{% endblock %}
 {% block content %}
 {% set colors = {
   "free": "text-slate-700",
@@ -9,32 +9,32 @@
   "denied": "text-red-500",
 } %}
 {% set labels = {
-  "free": "Free",
-  "leased": "Dynamically leased",
-  "reserved": "Reserved (no active lease)",
-  "reserved-online": "Reserved and currently leased",
-  "denied": "Denied client",
+  "free": _("Free"),
+  "leased": _("Dynamically leased"),
+  "reserved": _("Reserved (no active lease)"),
+  "reserved-online": _("Reserved and currently leased"),
+  "denied": _("Denied client"),
 } %}
 <div class="flex items-center justify-between mb-2">
   <div>
-    <a href="/subnets" class="text-sm text-slate-500 hover:text-slate-100">&larr; Subnets</a>
+    <a href="/subnets" class="text-sm text-slate-500 hover:text-slate-100">{{ _("← Subnets") }}</a>
     <h1 class="text-xl font-semibold flex items-center gap-2 mt-1">{{ icon('subnets', 'w-5 h-5 text-slate-500') }} {{ subnet.network }} / {{ subnet.netmask }}</h1>
   </div>
   <div class="flex items-center gap-4">
-    <a href="/subnets/{{ subnet.key }}/diagnose" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} Diagnose subnet &amp; pool</a>
+    <a href="/subnets/{{ subnet.key }}/diagnose" class="flex items-center gap-1.5 text-sm text-slate-300 hover:underline">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose subnet & pool") }}</a>
     {% if user.role in ('admin', 'operator') %}
-    <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-4 h-4') }} Edit subnet</a>
+    <a href="/subnets/{{ subnet.key }}/edit" class="flex items-center gap-1.5 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-4 h-4') }} {{ _("Edit subnet") }}</a>
     {% endif %}
   </div>
 </div>
 
 {% if not map.total %}
 <div class="flex items-center gap-3 px-4 py-6 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">
-  {{ icon('inbox', 'w-5 h-5 text-slate-600') }} This subnet has no pool range configured, so there's nothing to map.
+  {{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("This subnet has no pool range configured, so there's nothing to map.") }}
 </div>
 {% else %}
 {% set used = map.cells | selectattr('status', 'ne', 'free') | list | length %}
-<div class="text-sm text-slate-400 mb-4">range {{ subnet.get('range') or 'none' }} &middot; {{ used }} / {{ map.total }} used</div>
+<div class="text-sm text-slate-400 mb-4">{{ _("range {range} · {used} / {total} used", range=subnet.get('range') or _('none'), used=used, total=map.total) }}</div>
 
 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
   <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400">
@@ -44,7 +44,7 @@
   </div>
   <div class="relative w-full max-w-xs">
     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
-    <input type="search" placeholder="Highlight by IP, MAC or hostname..." oninput="filterSubnetMap(this.value)"
+    <input type="search" placeholder="{{ _("Highlight by IP, MAC or hostname...") }}" oninput="filterSubnetMap(this.value)"
       class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
   </div>
 </div>
@@ -52,7 +52,7 @@
 {% if map.too_large %}
 <div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-400 bg-slate-900 border border-slate-800 rounded-xl mb-6">
   {{ icon('warning', 'w-5 h-5 text-amber-400 shrink-0') }}
-  This pool has {{ map.total }} addresses - too many to visualize individually (cap is {{ max_cells }}). Use the Subnets list utilization bar, or narrow the pool range, instead.
+  {{ _("This pool has {total} addresses - too many to visualize individually (cap is {cap}). Use the Subnets list utilization bar, or narrow the pool range, instead.", total=map.total, cap=max_cells) }}
 </div>
 {% else %}
 <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 overflow-x-auto">
@@ -76,16 +76,16 @@
 {% endif %}
 
 {% if map.outside_range %}
-<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">Reservations outside the pool range</h2>
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">{{ _("Reservations outside the pool range") }}</h2>
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for host in map.outside_range %}
   <div class="px-4 py-3 flex items-center justify-between">
     <div>
       <div class="font-medium">{{ host.name }}</div>
-      <div class="text-sm text-slate-500">{{ host.mac or 'no MAC' }} &rarr; {{ host.fixed_address or 'no IP' }}</div>
+      <div class="text-sm text-slate-500">{{ host.mac or _('no MAC') }} &rarr; {{ host.fixed_address or _('no IP') }}</div>
     </div>
     {% if user.role in ('admin', 'operator') %}
-    <a href="/reservations/{{ host.name }}/edit" class="flex items-center gap-1 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} Edit</a>
+    <a href="/reservations/{{ host.name }}/edit" class="flex items-center gap-1 text-sm text-emerald-400 hover:underline">{{ icon('edit', 'w-3.5 h-3.5') }} {{ _("Edit") }}</a>
     {% endif %}
   </div>
   {% endfor %}

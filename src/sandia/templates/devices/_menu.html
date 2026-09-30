@@ -1,52 +1,52 @@
 {% from "base.html" import icon %}
 {% if not device %}
-<div class="px-3 py-2 text-slate-500">Device not found</div>
+<div class="px-3 py-2 text-slate-500">{{ _("Device not found") }}</div>
 {% else %}
 <div class="px-3 py-2 text-xs text-slate-400 border-b border-slate-700 font-mono">{{ device.mac }}</div>
 
-<a href="/devices/{{ device.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} Open device</a>
-<a href="/diagnostics/client?mac={{ device.mac | urlencode }}&ip={{ (device.current_ip or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose device</a>
+<a href="/devices/{{ device.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('devices', 'w-4 h-4') }} {{ _("Open device") }}</a>
+<a href="/diagnostics/client?mac={{ device.mac | urlencode }}&ip={{ (device.current_ip or '') | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose device") }}</a>
 
 {% if user.role in ('admin', 'operator') %}
   {% if device.reservation %}
-  <a href="/reservations/{{ device.reservation.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} Edit reservation</a>
-  <form method="post" action="/reservations/{{ device.reservation.name }}/delete" onsubmit="return confirm('Delete this reservation?');">
-    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} Delete reservation</button>
+  <a href="/reservations/{{ device.reservation.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('edit', 'w-4 h-4') }} {{ _("Edit reservation") }}</a>
+  <form method="post" action="/reservations/{{ device.reservation.name }}/delete" onsubmit="return confirm({{ _("Delete this reservation?") | tojson | forceescape }});">
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete reservation") }}</button>
   </form>
   {% else %}
-  <a href="/devices/{{ device.mac | urlencode }}/lease" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} Lease IP</a>
+  <a href="/devices/{{ device.mac | urlencode }}/lease" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('reservations', 'w-4 h-4') }} {{ _("Lease IP") }}</a>
   {% endif %}
 
   {% if device.current_lease %}
-  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm('Delete the lease record for {{ device.current_lease.ip }}? This removes only Sandia\'s copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.');">
-    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} Delete lease record</button>
+  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm({{ _("Delete the lease record for {ip}? This removes only Sandia's copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.", ip=device.current_lease.ip) | tojson | forceescape }});">
+    <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease record") }}</button>
   </form>
   {% endif %}
 
   {% if device.current_ip %}
     {% if deny_host %}
-    <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} Client is denied - edit</a>
+    <a href="/reservations/{{ deny_host.name }}/edit" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Client is denied - edit") }}</a>
     {% else %}
-    <form method="post" action="/leases/{{ device.current_ip }}/deny" onsubmit="return confirm('Deny this client from obtaining a lease?');">
-      <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} Deny this client</button>
+    <form method="post" action="/leases/{{ device.current_ip }}/deny" onsubmit="return confirm({{ _("Deny this client from obtaining a lease?") | tojson | forceescape }});">
+      <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('block', 'w-4 h-4') }} {{ _("Deny this client") }}</button>
     </form>
     {% endif %}
   {% endif %}
 {% endif %}
 
-<a href="/devices/{{ device.mac | urlencode }}#history" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('leases', 'w-4 h-4') }} View lease history</a>
-<a href="/devices/{{ device.mac | urlencode }}#activity" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} View DHCP activity</a>
+<a href="/devices/{{ device.mac | urlencode }}#history" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('leases', 'w-4 h-4') }} {{ _("View lease history") }}</a>
+<a href="/devices/{{ device.mac | urlencode }}#activity" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("View DHCP activity") }}</a>
 {% if device.subnet %}
-<a href="/subnets/{{ device.subnet.key }}/map" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('subnets', 'w-4 h-4') }} View subnet map</a>
-<a href="/subnets/{{ device.subnet.key }}/diagnose" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} Diagnose subnet &amp; pool</a>
+<a href="/subnets/{{ device.subnet.key }}/map" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('subnets', 'w-4 h-4') }} {{ _("View subnet map") }}</a>
+<a href="/subnets/{{ device.subnet.key }}/diagnose" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('diagnose', 'w-4 h-4') }} {{ _("Diagnose subnet & pool") }}</a>
 {% endif %}
-<a href="/devices?q={{ device.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('search', 'w-4 h-4') }} Search MAC</a>
+<a href="/devices?q={{ device.mac | urlencode }}" class="flex items-center gap-2 px-3 py-2 hover:bg-slate-700">{{ icon('search', 'w-4 h-4') }} {{ _("Search MAC") }}</a>
 
-<button type="button" onclick="navigator.clipboard.writeText('{{ device.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy MAC address</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ device.mac }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy MAC address") }}</button>
 {% if device.current_ip %}
-<button type="button" onclick="navigator.clipboard.writeText('{{ device.current_ip }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy IP address</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ device.current_ip }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy IP address") }}</button>
 {% endif %}
 {% if device.hostname %}
-<button type="button" onclick="navigator.clipboard.writeText('{{ device.hostname }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} Copy hostname</button>
+<button type="button" onclick="navigator.clipboard.writeText('{{ device.hostname }}')" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700">{{ icon('clipboard', 'w-4 h-4') }} {{ _("Copy hostname") }}</button>
 {% endif %}
 {% endif %}

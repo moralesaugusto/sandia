@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{% if is_new %}New Reservation{% else %}Edit Reservation{% endif %} - Sandia{% endblock %}
+{% block title %}{% if is_new %}{{ _("New Reservation") }}{% else %}{{ _("Edit Reservation") }}{% endif %} - Sandia{% endblock %}
 {% block content %}
-<h1 class="text-xl font-semibold mb-6">{% if is_new %}New Reservation{% else %}Edit Reservation {{ host.name }}{% endif %}</h1>
+<h1 class="text-xl font-semibold mb-6">{% if is_new %}{{ _("New Reservation") }}{% else %}{{ _("Edit Reservation") }} {{ host.name }}{% endif %}</h1>
 <form method="post" action="{% if is_new %}/reservations/new{% else %}/reservations/{{ host.name }}/edit{% endif %}" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 max-w-lg">
   <div>
-    <label class="block text-sm text-slate-400 mb-1">Name</label>
+    <label class="block text-sm text-slate-400 mb-1">{{ _("Name") }}</label>
     {% if is_new %}
     <input name="name" required value="{{ prefill.name }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="printer">
     {% else %}
@@ -12,18 +12,18 @@
     {% endif %}
   </div>
   <div>
-    <label class="block text-sm text-slate-400 mb-1">MAC address</label>
+    <label class="block text-sm text-slate-400 mb-1">{{ _("MAC address") }}</label>
     <input name="mac" required value="{{ (host.mac if host else prefill.mac) or '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono" placeholder="00:11:22:33:44:55">
   </div>
   <div>
-    <label class="block text-sm text-slate-400 mb-1">Fixed IP address</label>
+    <label class="block text-sm text-slate-400 mb-1">{{ _("Fixed IP address") }}</label>
     <input name="fixed_address" required value="{{ (host.fixed_address if host else prefill.fixed_address) or '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.50">
   </div>
   {% if is_new %}
   <div>
-    <label class="block text-sm text-slate-400 mb-1">Subnet (optional)</label>
+    <label class="block text-sm text-slate-400 mb-1">{{ _("Subnet (optional)") }}</label>
     <select name="subnet_key" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm">
-      <option value="">Global (not nested in a subnet)</option>
+      <option value="">{{ _("Global (not nested in a subnet)") }}</option>
       {% for subnet in subnets %}
       <option value="{{ subnet.key }}" {% if prefill.subnet_key == subnet.key %}selected{% endif %}>{{ subnet.network }}/{{ subnet.netmask }}</option>
       {% endfor %}
@@ -32,29 +32,29 @@
   {% endif %}
 
   <div class="pt-2 border-t border-slate-800">
-    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Client options</div>
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">{{ _("Client options") }}</div>
     <div class="space-y-4">
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Client hostname <span class="text-slate-600">(option host-name)</span></label>
+        <label class="block text-sm text-slate-400 mb-1">{{ _("Client hostname") }} <span class="text-slate-600">(option host-name)</span></label>
         <input name="client_hostname" value="{{ prefill.client_hostname }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="printer">
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm text-slate-400 mb-1">PXE boot server <span class="text-slate-600">(next-server)</span></label>
+          <label class="block text-sm text-slate-400 mb-1">{{ _("PXE boot server") }} <span class="text-slate-600">(next-server)</span></label>
           <input name="next_server" value="{{ prefill.next_server }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.5">
         </div>
         <div>
-          <label class="block text-sm text-slate-400 mb-1">Boot filename <span class="text-slate-600">(filename)</span></label>
+          <label class="block text-sm text-slate-400 mb-1">{{ _("Boot filename") }} <span class="text-slate-600">(filename)</span></label>
           <input name="boot_filename" value="{{ prefill.boot_filename }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="pxelinux.0">
         </div>
       </div>
       <div>
-        <label class="block text-sm text-slate-400 mb-1">Extra options <span class="text-slate-600">(one dhcpd statement per line, e.g. Webmin-style "client options")</span></label>
+        <label class="block text-sm text-slate-400 mb-1">{{ _("Extra options") }} <span class="text-slate-600">{{ _('(one dhcpd statement per line, e.g. Webmin-style "client options")') }}</span></label>
         <textarea name="extra_options" rows="4" class="w-full font-mono text-sm rounded-md bg-slate-800 border border-slate-700 px-3 py-2" placeholder='option domain-name-servers 1.1.1.1;&#10;ddns-hostname &quot;printer&quot;;'>{{ prefill.extra_options }}</textarea>
       </div>
     </div>
   </div>
 
-  <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} Save</button>
+  <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} {{ _("Save") }}</button>
 </form>
 {% endblock %}

@@ -12,6 +12,7 @@ from ..dhcpd.apply import apply_new_config
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
 from ..diagnostics import diagnose_subnet
+from ..i18n import _
 from ..interfaces_conf import read_configured_interfaces
 from ..ip_map import build_subnet_map, find_cell
 from ..leases import load_leases
@@ -146,7 +147,7 @@ async def create_subnet(
 ):
     config = load_live_config(settings)
     if config.find_subnet(f"{network}_{netmask}") is not None:
-        set_flash(request, "A subnet with that network/netmask already exists.", kind="error")
+        set_flash(request, _("A subnet with that network/netmask already exists."), kind="error")
         return RedirectResponse("/subnets/new", status_code=303)
 
     subnet = Subnet(network=network, netmask=netmask, body=[])
@@ -170,12 +171,12 @@ async def create_subnet(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_create_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/subnets/new", status_code=303)
 
     detail = f"{network}/{netmask}" + (f" on {interface}" if interface else "")
     log_action(session, request, user, "subnet_create", detail)
-    set_flash(request, "Subnet created. isc-dhcp-server restarted.")
+    set_flash(request, _("Subnet created. isc-dhcp-server restarted."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -189,7 +190,7 @@ async def edit_subnet_form(
     config = load_live_config(settings)
     subnet = config.find_subnet(key)
     if subnet is None:
-        set_flash(request, "Subnet not found.", kind="error")
+        set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
     return render(request, "subnets/form.html", user=user, subnet=subnet, is_new=False, prefill=_subnet_form_fields(config, subnet))
 
@@ -217,7 +218,7 @@ async def update_subnet(
     config = load_live_config(settings)
     subnet = config.find_subnet(key)
     if subnet is None:
-        set_flash(request, "Subnet not found.", kind="error")
+        set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     _apply_subnet_fields(
@@ -239,11 +240,11 @@ async def update_subnet(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_update_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse(f"/subnets/{key}/edit", status_code=303)
 
     log_action(session, request, user, "subnet_update", key)
-    set_flash(request, "Subnet updated. isc-dhcp-server restarted.")
+    set_flash(request, _("Subnet updated. isc-dhcp-server restarted."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -257,17 +258,17 @@ async def delete_subnet(
 ):
     config = load_live_config(settings)
     if not config.remove_subnet(key):
-        set_flash(request, "Subnet not found.", kind="error")
+        set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_delete_failed", result.output, success=False)
-        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     log_action(session, request, user, "subnet_delete", key)
-    set_flash(request, "Subnet deleted. isc-dhcp-server restarted.")
+    set_flash(request, _("Subnet deleted. isc-dhcp-server restarted."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -281,7 +282,7 @@ async def subnet_map_page(
     config = load_live_config(settings)
     subnet = config.find_subnet(key)
     if subnet is None:
-        set_flash(request, "Subnet not found.", kind="error")
+        set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     leases = load_leases(settings.leases_path)
@@ -299,7 +300,7 @@ async def subnet_diagnostics(
     config = load_live_config(settings)
     subnet = config.find_subnet(key)
     if subnet is None:
-        set_flash(request, "Subnet not found.", kind="error")
+        set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     leases = load_leases(settings.leases_path)
@@ -311,7 +312,7 @@ async def subnet_diagnostics(
         user=user,
         result=result,
         back_url=f"/subnets/{key}/map",
-        back_label="Subnet map",
+        back_label=_("Subnet map"),
     )
 
 

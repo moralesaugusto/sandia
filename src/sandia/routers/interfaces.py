@@ -10,6 +10,7 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..dhcpd.subnet_interface import get_subnet_interface
+from ..i18n import _
 from ..interfaces_conf import read_configured_interfaces, set_interfaces
 from ..models import User
 from ..rendering import render, set_flash
@@ -69,9 +70,9 @@ async def update_interfaces(
         settings.interfaces_conf_path.write_text(new_text)
     except OSError as exc:
         log_action(session, request, user, "interfaces_update_failed", str(exc), success=False)
-        set_flash(request, f"Failed to update interfaces: {exc}", kind="error")
+        set_flash(request, _("Failed to update interfaces: {exc}", exc=exc), kind="error")
         return RedirectResponse("/interfaces", status_code=303)
 
     log_action(session, request, user, "interfaces_update", ", ".join(names) or "(none)")
-    set_flash(request, "Interfaces updated. Restart isc-dhcp-server to take effect.")
+    set_flash(request, _("Interfaces updated. Restart isc-dhcp-server to take effect."))
     return RedirectResponse("/interfaces", status_code=303)

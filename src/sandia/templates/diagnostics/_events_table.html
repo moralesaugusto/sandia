@@ -2,18 +2,18 @@
 {% if log_unavailable %}
 <div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} {{ log_unavailable }}</div>
 {% else %}
-<p class="text-xs text-slate-500 mb-2">{% if total > max_rows %}Showing the newest {{ max_rows }} of {{ total }} matching events.{% else %}{{ total }} matching event{{ '' if total == 1 else 's' }}.{% endif %}</p>
+<p class="text-xs text-slate-500 mb-2">{% if total > max_rows %}{{ _("Showing the newest {shown} of {total} matching events.", shown=max_rows, total=total) }}{% elif total == 1 %}{{ _("1 matching event.") }}{% else %}{{ _("{n} matching events.", n=total) }}{% endif %}</p>
 <div class="overflow-x-auto rounded-xl border border-slate-800">
 <table class="w-full text-sm bg-slate-900">
   <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
     <tr>
-      <th class="text-left px-4 py-2 whitespace-nowrap">Time</th>
-      <th class="text-left px-4 py-2">Event</th>
-      <th class="text-left px-4 py-2">IP address</th>
-      <th class="text-left px-4 py-2">MAC address</th>
-      <th class="text-left px-4 py-2">Hostname</th>
-      <th class="text-left px-4 py-2">Interface</th>
-      <th class="text-left px-4 py-2">Detail</th>
+      <th class="text-left px-4 py-2 whitespace-nowrap">{{ _("Time") }}</th>
+      <th class="text-left px-4 py-2">{{ _("Event") }}</th>
+      <th class="text-left px-4 py-2">{{ _("IP address") }}</th>
+      <th class="text-left px-4 py-2">{{ _("MAC address") }}</th>
+      <th class="text-left px-4 py-2">{{ _("Hostname") }}</th>
+      <th class="text-left px-4 py-2">{{ _("Interface") }}</th>
+      <th class="text-left px-4 py-2">{{ _("Detail") }}</th>
     </tr>
   </thead>
   <tbody class="divide-y divide-slate-800">
@@ -30,7 +30,7 @@
       <td class="px-4 py-2 text-slate-500 text-xs">{% if event.kind == 'OTHER' %}<span class="font-mono">{{ event.raw }}</span>{% else %}{{ event.reason or '' }}{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No matching events.</span></td></tr>
+    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} {{ _("No matching events.") }}</span></td></tr>
     {% endfor %}
   </tbody>
 </table>

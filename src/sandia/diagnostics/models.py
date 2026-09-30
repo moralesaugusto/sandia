@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from ..i18n import N_, _
+
 
 class Status(str, Enum):
     HEALTHY = "healthy"
@@ -18,12 +20,29 @@ class Status(str, Enum):
     CRITICAL = "critical"
     UNKNOWN = "unknown"
 
+    @property
+    def label(self) -> str:
+        return _(_STATUS_LABELS[self])
+
 
 class Confidence(str, Enum):
     CONFIRMED = "confirmed"  # directly computed/observed from the data - not an inference
     STRONG = "strong"  # multiple consistent signals, but not directly proven
     POSSIBLE = "possible"  # one weak or indirect signal
     UNKNOWN = "unknown"  # not enough evidence to say anything
+
+    @property
+    def label(self) -> str:
+        return _(_CONFIDENCE_LABELS[self])
+
+
+_STATUS_LABELS = {Status.HEALTHY: N_("healthy"), Status.WARNING: N_("warning"), Status.CRITICAL: N_("critical"), Status.UNKNOWN: N_("unknown")}
+_CONFIDENCE_LABELS = {
+    Confidence.CONFIRMED: N_("confirmed"),
+    Confidence.STRONG: N_("strong"),
+    Confidence.POSSIBLE: N_("possible"),
+    Confidence.UNKNOWN: N_("unknown"),
+}
 
 
 _STATUS_RANK = {Status.HEALTHY: 0, Status.UNKNOWN: 1, Status.WARNING: 2, Status.CRITICAL: 3}
