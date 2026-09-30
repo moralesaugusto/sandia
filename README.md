@@ -6,7 +6,7 @@
 
 **S**omehow, **A**nother **N**etwork **D**HCP **I**s **A**live.
 
-A modern web console for **ISC isc-dhcp-server**: see every device, every lease and every address at a glance, find out *why* a client didn't get an IP, and change the config without ever taking the server down.
+A modern web console for **ISC isc-dhcp-server**: see every device, every lease and every address at a glance, find out *why* a client didn't get an IP, ask a built-in AI assistant about your network, and change the config without ever taking the server down.
 
 [![Release](https://img.shields.io/github/v/release/moralesaugusto/sandia?color=e11d48&label=release)](https://github.com/moralesaugusto/sandia/releases)
 [![Python](https://img.shields.io/badge/python-3.13%2B-3776ab)](pyproject.toml)
@@ -21,6 +21,20 @@ A modern web console for **ISC isc-dhcp-server**: see every device, every lease 
 ---
 
 *Sandia* is Spanish for watermelon, and the logo and colors run with it. Under the rind it is a single, self-hosted Python app that reads the same files dhcpd does (`dhcpd.conf`, `dhcpd.leases`, the DHCP log), so it shows the real state of your network with no agents, no extra database server and no frontend build.
+
+## Ask your DHCP server questions
+
+Sandia includes an **AI assistant** that you connect to your own [Ollama](https://ollama.com) server. It opens as a floating, draggable chat window on every page (the screenshot above), and answers in plain language using your live data: the service status, `dhcpd.conf`, active leases and the recent DHCP log.
+
+> *How full is the DHCP pool, and is anything wrong with the server?*
+> *Which devices have static reservations?*
+> *Why might this laptop keep getting a DHCPNAK?*
+> *What lease time is configured for the guest subnet?*
+
+- **Private by design.** It talks only to the Ollama instance you choose, on your own network. Nothing is sent to a cloud service.
+- **Read-only.** The assistant explains and points you to the right page; it never changes your configuration.
+- **Two-minute setup.** Go to *Advanced Settings > AI Settings*, enter your Ollama server's IP, click *Load models* and pick one. The chat button appears for every user. Leave it unset and Sandia works exactly the same without it.
+- **Speaks your language.** Replies follow the English/Spanish setting, and the conversation stays open as you move between pages.
 
 ## Highlights
 
@@ -90,7 +104,7 @@ Switch language and theme from any page; the choice is saved on your account. Ac
 - **Safe config changes.** Every change is staged, validated with `dhcpd -t`, diffed, backed up, installed atomically, then isc-dhcp-server is restarted and checked. If it doesn't come back up, the previous config is restored automatically.
 - **Right-click everywhere.** Leases, subnet map cells, reservations and devices all have context menus that offer only the actions that apply to that object.
 - **Reservations and subnets** without hand-editing: pool ranges, routers, DNS, NTP, PXE boot options, interface tags, bulk delete, and a raw editor for everything else.
-- **AI assistant (optional).** A floating chat window backed by your own local [Ollama](https://ollama.com) server. It answers questions about your config, leases and logs, and it is read-only.
+- **AI assistant (optional).** Plug in your own Ollama server and ask questions about your config, leases and logs from any page. See [Ask your DHCP server questions](#ask-your-dhcp-server-questions).
 - **DHCP Event Log and Wall of Shame.** Browse parsed dhcpd log events, and see the devices causing the most DHCPNAKs, IP changes and abandoned leases.
 - **Built for admins.** Role-based access (admin / operator / viewer), an audit log of every change, login rate limiting, and HTTPS by default with an auto-generated certificate.
 
