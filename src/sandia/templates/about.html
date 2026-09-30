@@ -4,7 +4,7 @@
 <h1 class="text-xl font-semibold mb-1 flex items-center gap-2">{{ icon('info', 'w-5 h-5 text-slate-500') }} About Sandia</h1>
 <p class="text-sm text-slate-500 mb-6">Somehow, Another Network DHCP Is Alive.</p>
 
-<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for label, value in [
     ('Version', info.version),
     ('Uptime', info.uptime),
@@ -26,14 +26,14 @@
   {% endfor %}
 </div>
 
-<p class="text-sm text-slate-500 mt-6 max-w-lg">
+<p class="text-sm text-slate-500 mt-6">
   Sandia is a standalone web UI for managing an ISC isc-dhcp-server instance.
   See <code class="text-slate-400">INSTRUCTIONS.md</code> in the project directory for setup and usage.
 </p>
 
 <h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} Where the data comes from</h2>
 {% set window = '{:g}'.format(data_sources.log_window_mb) %}
-<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for label, value, note in [
     ('DHCP configuration', info.dhcpd_conf_path, 'read live on every page'),
     ('Leases', info.leases_path, 'read live on every page'),
@@ -50,7 +50,7 @@
   </div>
   {% endfor %}
 </div>
-<p class="text-sm text-slate-500 mt-3 max-w-lg">
+<p class="text-sm text-slate-500 mt-3">
   DHCP events (DISCOVER, OFFER, REQUEST, ACK, NAK, ...) are not stored in a
   database. Each time a page needs them, Sandia reads the last {{ window }} MB
   of the DHCP log and parses it. History therefore only reaches back as far
@@ -63,7 +63,7 @@
 </p>
 
 <h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} OUI vendor database</h2>
-<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800 max-w-lg">
+<div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   <div class="px-4 py-3 flex items-center justify-between text-sm gap-4">
     <span class="text-slate-500">Source</span>
     <span class="text-slate-200 text-right">
@@ -88,7 +88,7 @@
   </div>
   {% endif %}
 </div>
-<p class="text-sm text-slate-500 mt-3 max-w-lg">
+<p class="text-sm text-slate-500 mt-3">
   Downloads the full public IEEE OUI registry (tens of thousands of vendor
   prefixes) to improve vendor identification on the Leases and
   Reservations pages, beyond Sandia's small built-in list. Runs in the

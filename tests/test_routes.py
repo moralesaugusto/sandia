@@ -662,3 +662,8 @@ def test_change_password_rejects_mismatched_confirmation(operator_client):
     assert response.status_code == 303
     listing = operator_client.get("/account/password")
     assert b"do not match" in listing.content
+
+
+def test_dashboard_and_sidebar_show_tagline(viewer_client):
+    body = viewer_client.get("/").text
+    assert body.count("Somehow, Another Network DHCP Is Alive.") == 2  # sidebar + dashboard heading
