@@ -1,14 +1,16 @@
 # Current State
 
-Snapshot as of this modernization pass. See `INSTRUCTIONS.md` for full user-facing
-docs and `CHANGELOG.md` for release history.
+Snapshot as of 1.4.0 plus the unreleased security fixes (2026-09-30). See
+`INSTRUCTIONS.md` for full user-facing docs, `CHANGELOG.md` for release history
+and `SECURITY_STATUS.md` for open security findings.
 
 ## Stack
 
 FastAPI + Jinja2 (server-rendered) + htmx for partial updates + Tailwind (play CDN,
 no build step) + hand-authored inline SVG icons. SQLModel/SQLite for users, audit
 log. No frontend build pipeline, no SPA framework - this is intentional and works
-well for the app's size (~3,500 lines Python, ~1,200 lines templates).
+well for the app's size (about 7,300 lines of Python including the Spanish
+catalog, and 2,500 lines of templates, measured 2026-09-30).
 
 ## Implemented
 
@@ -21,12 +23,13 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
   right-click context menu (reserve / deny / edit reservation / copy MAC).
 - Reservations: CRUD, search, subnet filter, bulk delete, CSV export, a
   "Details" modal (vendor, device-type icon, OS guess, active-lease status).
-- Subnets: CRUD, per-subnet utilization bar (text/bar based, not visual grid),
-  interface tagging (`# interface: eth2` comment convention).
+- Subnets: CRUD, a utilization bar per subnet on the list, a per-address SVG
+  map (below), interface tagging (`# interface: eth2` comment convention).
 - Interfaces page: manages the real `INTERFACESv4` setting, cross-references
   subnet interface tags against it.
 - Auth/RBAC (admin/operator/viewer), audit log, login rate-limiting, self-signed
-  HTTPS, OUI vendor DB (built-in + optional downloaded cache).
+  HTTPS, CSRF tokens on every state-changing request, a random first-run
+  admin password, OUI vendor DB (built-in + optional downloaded cache).
 - Subnet map (`/subnets/<key>/map`): SVG per-address grid with a shared,
   reusable right-click context-menu mechanism (`openContextMenu()` in
   `base.html`), used by leases, the map, and reservations.
@@ -55,21 +58,30 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
 - Ruff lint configured (`uv run ruff check .`).
 - English/Spanish UI (`i18n.py`, catalog in `i18n_es.py`): selector in the
   top-right corner, saved per session and per account (`User.language`).
-- 398 tests, all passing as of the end of this pass.
+- pytest suite: 409 tests, all passing on 2026-09-30.
 
-## Gaps identified and closed across recent passes
+## What existed at the first commit versus what was built since
 
-Project instructions describe an "SVG-based subnet/IP visualization",
-broad multi-object right-click context menus, and DHCP diagnostics as
-existing core features to preserve. At the start none of them existed:
-subnet utilization was a single bar, the only context menu was on Leases,
-and there was no correlation of config/leases/logs into a diagnosis. Each
-was verified against the actual codebase (grep, reading every template and
-router) before being built, rather than assumed from the instructions. Both
-gaps are now closed - see `ROADMAP.md` Phases 1-3.
+From git history: the initial commit (`78dde6b`, 2026-09-05) already
+contained a working app (pyproject version 0.1.0, with unreleased changes that
+shipped as 1.0.3 in the next commits). It had config editing with
+validate/diff/backup/apply, leases with a right-click menu (the only context
+menu at the time), reservations, subnets with utilization bars, auth/RBAC,
+the audit log and HTTPS. The current `CLAUDE.md`, which describes an
+SVG-based subnet map, broad context menus and troubleshooting as existing
+features, was added in `ce90d50` (2026-09-08), the same commit that built
+the SVG map. The features it describes were built after that:
+
+- SVG subnet map and shared context menus: 1.0.8.
+- Diagnostics and context menus on reservations: 1.0.9.
+- Devices workspace: 1.1.0.
+- Wall of Shame: 1.2.0.
+- Light/dark mode: 1.3.0.
+- Apply with rollback, DHCP Event Log, AI assistant: 1.3.1.
+- English/Spanish UI: 1.4.0.
 
 ## Not yet implemented (from the product-direction wishlist)
 
 Operational alerts/paging,
 a server health page beyond `/diagnostics/server`, live/real-time updates.
-See `ROADMAP.md`.
+See `ROADMAP.md`. Open security findings are tracked in `SECURITY_STATUS.md`.

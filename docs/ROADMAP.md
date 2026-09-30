@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 1 - SVG subnet/IP visualization (done, this pass)
+## Phase 1 - SVG subnet/IP visualization (done, 1.0.8)
 
 - Per-subnet SVG grid: one cell per address in the subnet's pool range,
   color-coded by status (free / dynamically leased / reserved / reserved
@@ -15,7 +15,7 @@
 - Large pools (over ~1024 addresses) fall back to the existing summary bar
   instead of rendering one SVG cell per address - see `DECISIONS.md`.
 
-## Phase 2 - broader context menus (done, this pass)
+## Phase 2 - broader context menus (done, 1.0.9)
 
 - Right-click on a Reservations-page row (new `reservations/_menu.html`),
   offering Diagnose/Edit/Delete/copy - the same shared `openContextMenu()`
@@ -25,7 +25,7 @@
   not a context menu - kept consistent rather than introducing a second
   interaction style on one page).
 
-## Phase 3 - DHCP diagnostics (done, this pass)
+## Phase 3 - DHCP diagnostics (done, 1.0.9)
 
 - `src/sandia/diagnostics/`: deterministic, evidence-based checks for the
   server, a subnet/pool, and a client - never an LLM, never a guess
@@ -39,7 +39,7 @@
   map, reservations) plus buttons on Subnets/Service pages - see
   `CHANGELOG.md` 1.0.9.
 
-## Phase 4 - Devices workspace (done, this pass)
+## Phase 4 - Devices workspace (done, 1.1.0)
 
 - `devices.py`: correlates reservations, current leases, full lease
   history, and DHCP log activity into one row per MAC - not a new data
@@ -55,7 +55,32 @@
   gained device-count/device-problem tiles reusing the existing tile
   pattern and the same problem signals diagnostics already computes.
 
+## Phase 5 - Wall of Shame (done, 1.2.0)
+
+- `wall_of_shame.py`: top-10 lists (DHCPNAKs, real IP changes, abandoned
+  addresses) computed directly from `leases.py`/`diagnostics/dhcp_log.py`
+  data already parsed elsewhere - three small functions, no new event
+  store, no scoring. See `DECISIONS.md` for the syslog-year-assumption and
+  "IP change vs. renewal" definitions.
+- `/diagnostics/wall-of-shame`, reachable from the Diagnostics submenu
+  and the Diagnostics overview page. Reuses the Devices context menu
+  (`/devices/<mac>/menu`) - no new menu code.
+- "Diagnostics" became a collapsible sidebar submenu (Overview, Wall of
+  Shame) using the same `nav_group()` macro Advanced Settings already
+  used, factored out once a second real use existed.
+
+## Phase 6 - safe apply, DHCP Event Log, AI assistant (done, 1.3.1)
+
+- Apply now restarts the service, verifies it is active, and rolls back
+  to the pre-change backup if it isn't; the install itself is atomic.
+- DHCP Event Log page (`/diagnostics/events`) over the existing parser.
+- Read-only AI assistant (floating window) backed by a local Ollama
+  server, configured under Advanced Settings > AI Settings.
+- Ruff lint.
+
 ## Later / not scheduled
+
+- Open security findings: see `SECURITY_STATUS.md`.
 
 - Server health page beyond what `/diagnostics/server` already reports,
   live/real-time updates (would need a push channel - today the app is
@@ -77,26 +102,3 @@ deferred: at the current cell-count cap the grid already fits on screen
 without it, and adding it would be complexity without a concrete need yet
 (see `CLAUDE.md`'s "avoid premature generalization"). Revisit if usage shows
 people working with pools consistently near the cap.
-
-## Phase 5 - Wall of Shame (done, this pass)
-
-- `wall_of_shame.py`: top-10 lists (DHCPNAKs, real IP changes, abandoned
-  addresses) computed directly from `leases.py`/`diagnostics/dhcp_log.py`
-  data already parsed elsewhere - three small functions, no new event
-  store, no scoring. See `DECISIONS.md` for the syslog-year-assumption and
-  "IP change vs. renewal" definitions.
-- `/diagnostics/wall-of-shame`, reachable from the Diagnostics submenu
-  and the Diagnostics overview page. Reuses the Devices context menu
-  (`/devices/<mac>/menu`) - no new menu code.
-- "Diagnostics" became a collapsible sidebar submenu (Overview, Wall of
-  Shame) using the same `nav_group()` macro Advanced Settings already
-  used, factored out once a second real use existed.
-
-## Phase 6 - 1.3.1 (done, this pass)
-
-- Apply now restarts the service, verifies it is active, and rolls back
-  to the pre-change backup if it isn't; the install itself is atomic.
-- DHCP Event Log page (`/diagnostics/events`) over the existing parser.
-- Read-only AI assistant (floating window) backed by a local Ollama
-  server, configured under Advanced Settings > AI Settings.
-- Ruff lint.

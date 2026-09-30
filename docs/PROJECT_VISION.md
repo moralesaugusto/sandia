@@ -2,8 +2,8 @@
 
 Sandia is moving from "a config editor with a leases table" toward a
 professional DHCP/IP management and network operations console, while
-staying a standalone, dependency-light script (no build step, no external
-services beyond SQLite).
+staying a single self-hosted Python application (no frontend build step, no
+database server beyond SQLite, the Ollama assistant optional).
 
 Priorities, in order:
 
