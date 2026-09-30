@@ -560,6 +560,22 @@ def test_about_page_shows_builtin_only_status_by_default(admin_client):
     assert b"Download OUI database" in response.content
 
 
+def test_about_page_explains_data_sources_and_log_window(viewer_client, settings):
+    from sandia.diagnostics.dhcp_log import MAX_LOG_BYTES
+
+    body = viewer_client.get("/about").text
+    assert "Where the data comes from" in body
+    assert str(settings.dhcp_log_path) in body
+    assert "not found" in body
+    assert str(settings.db_path) in body
+    assert "are not stored in a\n  database" in body
+    assert f"last {MAX_LOG_BYTES / 1_000_000:g} MB of the log" in body
+
+    settings.dhcp_log_path.write_text("x" * 300_000)
+    body = viewer_client.get("/about").text
+    assert "found (0.3 MB)" in body
+
+
 def test_operator_can_trigger_oui_refresh(operator_client, monkeypatch):
     from test_oui_cache import _FakeResponse
 

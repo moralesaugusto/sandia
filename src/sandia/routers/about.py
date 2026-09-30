@@ -11,6 +11,7 @@ from .. import __version__, oui_cache
 from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
+from ..diagnostics.dhcp_log import MAX_LOG_BYTES
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -56,7 +57,21 @@ def about(
         "leases_path": str(settings.leases_path),
         "data_dir": str(settings.data_dir),
     }
-    return render(request, "about.html", user=user, info=info, oui_status=oui_cache.status(settings.data_dir))
+    log_path = settings.dhcp_log_path
+    data_sources = {
+        "dhcp_log_path": str(log_path),
+        "dhcp_log_size_mb": log_path.stat().st_size / 1_000_000 if log_path.exists() else None,
+        "log_window_mb": MAX_LOG_BYTES / 1_000_000,
+        "db_path": str(settings.db_path),
+    }
+    return render(
+        request,
+        "about.html",
+        user=user,
+        info=info,
+        data_sources=data_sources,
+        oui_status=oui_cache.status(settings.data_dir),
+    )
 
 
 @router.post("/about/oui-refresh")

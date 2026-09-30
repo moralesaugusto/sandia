@@ -60,7 +60,9 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   (DHCPDISCOVER/OFFER/REQUEST/ACK/NAK/DECLINE/RELEASE/INFORM or other
   dhcpd messages) and searchable by IP, MAC, hostname or message text.
   Shows the newest 500 matches; right-click a row with a MAC for the
-  Devices context menu.
+  Devices context menu. Events are not stored in a database - they're
+  parsed from the last 2 MB of the log on each request, so history ends
+  where that window or log rotation does (explained on the About page).
 - Wall of Shame (`/diagnostics/wall-of-shame`): the top 10 devices by
   DHCPNAK count, the top 10 by real IP-address changes (lease renewals of
   the same address don't count), and the top 10 abandoned-lease addresses

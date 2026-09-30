@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+### Added
+- About page: a "Where the data comes from" section listing each data source, and explaining that DHCP events are parsed from the tail of the log on every request rather than stored, so their history is limited by that window and log rotation.
+
 ## 1.3.1
 
 ### Added
