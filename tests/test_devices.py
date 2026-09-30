@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
 from sandia.devices import (
-    DeviceStatus,
     RECENT_WINDOW,
+    DeviceStatus,
     build_devices,
     filter_devices,
     find_device,

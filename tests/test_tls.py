@@ -35,7 +35,7 @@ def test_does_not_regenerate_existing_cert(tmp_path):
 
 def test_regenerates_if_only_one_file_present(tmp_path):
     tls_dir = tmp_path / "tls"
-    cert_path, key_path = ensure_self_signed_cert(tls_dir)
+    _cert_path, key_path = ensure_self_signed_cert(tls_dir)
     original_key = key_path.read_bytes()
     key_path.unlink()
 

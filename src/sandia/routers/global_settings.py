@@ -69,9 +69,9 @@ async def settings_submit(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "global_settings_update_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/settings", status_code=303)
 
     log_action(session, request, user, "global_settings_update", "updated global DHCP settings")
-    set_flash(request, "Global settings applied. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Global settings applied. isc-dhcp-server restarted.")
     return RedirectResponse("/settings", status_code=303)

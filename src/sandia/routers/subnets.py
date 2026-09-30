@@ -170,12 +170,12 @@ async def create_subnet(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_create_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/subnets/new", status_code=303)
 
     detail = f"{network}/{netmask}" + (f" on {interface}" if interface else "")
     log_action(session, request, user, "subnet_create", detail)
-    set_flash(request, "Subnet created. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Subnet created. isc-dhcp-server restarted.")
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -239,11 +239,11 @@ async def update_subnet(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_update_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse(f"/subnets/{key}/edit", status_code=303)
 
     log_action(session, request, user, "subnet_update", key)
-    set_flash(request, "Subnet updated. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Subnet updated. isc-dhcp-server restarted.")
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -263,11 +263,11 @@ async def delete_subnet(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "subnet_delete_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     log_action(session, request, user, "subnet_delete", key)
-    set_flash(request, "Subnet deleted. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Subnet deleted. isc-dhcp-server restarted.")
     return RedirectResponse("/subnets", status_code=303)
 
 

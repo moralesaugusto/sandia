@@ -1,7 +1,12 @@
 from pathlib import Path
 
 from sandia.config import Settings
-from sandia.diagnostics.dhcp_log import error_like_lines, events_for, load_dhcp_events, parse_dhcp_log
+from sandia.diagnostics.dhcp_log import (
+    error_like_lines,
+    events_for,
+    load_dhcp_events,
+    parse_dhcp_log,
+)
 
 SAMPLE = """\
 Sep  2 09:15:00 host dhcpd[1234]: DHCPDISCOVER from aa:bb:cc:dd:ee:ff via eth0

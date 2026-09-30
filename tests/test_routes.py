@@ -561,8 +561,9 @@ def test_about_page_shows_builtin_only_status_by_default(admin_client):
 
 
 def test_operator_can_trigger_oui_refresh(operator_client, monkeypatch):
-    from sandia import oui_cache
     from test_oui_cache import _FakeResponse
+
+    from sandia import oui_cache
 
     csv_text = "Registry,Assignment,Organization Name,Organization Address\nMA-L,AABBCC,Test Vendor,Somewhere\n"
     monkeypatch.setattr(oui_cache.urllib.request, "urlopen", lambda req, timeout=None: _FakeResponse(csv_text.encode()))

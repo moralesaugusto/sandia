@@ -153,7 +153,7 @@ def test_abandoned_counts_are_correct():
 
 def test_abandoned_lease_with_no_mac_shows_ip_not_a_fabricated_device():
     now = datetime.now()
-    text = "lease 10.0.0.30 {\n  starts 3 %s;\n  binding state abandoned;\n}\n" % now.strftime("%Y/%m/%d %H:%M:%S")
+    text = f"lease 10.0.0.30 {{\n  starts 3 {now:%Y/%m/%d %H:%M:%S};\n  binding state abandoned;\n}}\n"
     history = parse_lease_history(text)
     config = parse(CONF)
     entries = top_abandoned(history, [], config, now, "all")

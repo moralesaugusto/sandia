@@ -10,7 +10,13 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..csv_export import csv_response
 from ..db import get_session
-from ..devices import DeviceStatus, build_devices, filter_devices, find_device, sort_devices
+from ..devices import (
+    DeviceStatus,
+    build_devices,
+    filter_devices,
+    find_device,
+    sort_devices,
+)
 from ..diagnostics import diagnose_client, load_dhcp_events
 from ..ip_map import build_subnet_map, denied_macs, next_available_ip
 from ..leases import load_lease_history, load_leases

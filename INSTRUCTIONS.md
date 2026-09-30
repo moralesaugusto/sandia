@@ -54,7 +54,13 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   than guessing. Reachable from the sidebar, or via a "Diagnose" action in
   the leases/subnet-map/reservations context menus and the Service page,
   which carries the object's MAC/IP/hostname along automatically. The
-  Diagnostics sidebar entry is a submenu (Overview, Wall of Shame).
+  Diagnostics sidebar entry is a submenu (Overview, Event Log, Wall of Shame).
+- Event Log (`/diagnostics/events`): every dhcpd line parsed from the tail
+  of the DHCP log, newest first, filterable by event type
+  (DHCPDISCOVER/OFFER/REQUEST/ACK/NAK/DECLINE/RELEASE/INFORM or other
+  dhcpd messages) and searchable by IP, MAC, hostname or message text.
+  Shows the newest 500 matches; right-click a row with a MAC for the
+  Devices context menu.
 - Wall of Shame (`/diagnostics/wall-of-shame`): the top 10 devices by
   DHCPNAK count, the top 10 by real IP-address changes (lease renewals of
   the same address don't count), and the top 10 abandoned-lease addresses
@@ -76,13 +82,25 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 - Manage users with role-based access (admin / operator / viewer),
   audit logging, and login rate-limiting.
 - Toast notifications for every config change, success or failure.
+- AI assistant: a floating chat window (bottom-right button, draggable)
+  that answers questions about the DHCP config, leases and log using a
+  local [Ollama](https://ollama.com) server. It is read-only - it never
+  changes anything. An admin sets the Ollama server address (an IP or
+  hostname defaults to `http://<host>:11434`) and model under Advanced
+  Settings > AI Settings ("Load models" lists what the server has
+  installed); the button appears only once both are set. Every question
+  sends a snapshot of the service status, `dhcpd.conf`, active leases and
+  the last 150 DHCP log lines to that server, so point it only at an
+  Ollama instance you trust with that data.
 - Light/dark mode toggle (sidebar, and on the login page). Saved
   immediately in the browser session, and on the account once logged in,
   so it follows you to a new browser or device.
 
 All config changes go through the same path: stage the new config,
-validate it (`dhcpd -t`), back up the live file, then install it - so a
-bad edit never reaches the running server.
+validate it (`dhcpd -t`), back up the live file, install it atomically,
+restart `isc-dhcp-server` and check it is running. If the service does not
+come back up, the previous config is restored and the service restarted on
+it - so a bad edit never leaves the server down.
 
 It's a plain standalone script, not a system service: there's no dedicated
 service account, no sudoers setup, no systemd unit. Run it as yourself for
@@ -207,10 +225,15 @@ enough privilege at the time:
 
 - **Applying a config change**: writes the new config to a staging file,
   runs `dhcpd -t -cf <staging file>` to validate it, backs up the current
-  `/etc/dhcp/dhcpd.conf` with a timestamp, then copies the staged file over
-  it. Validation only needs to read the staging file (usually fine without
-  root); the backup+install step needs write access to `/etc/dhcp/` and
-  `SANDIA_BACKUP_DIR`, so it needs `sudo` in a normal install.
+  `/etc/dhcp/dhcpd.conf` with a timestamp, then installs the staged file
+  (copied alongside and renamed over it, so a crash can't leave a
+  half-written config). It then runs `systemctl restart` and
+  `systemctl is-active`; if either fails, the backup just taken is put
+  back and the service restarted again, and the error (plus whether the
+  rollback worked) is shown. Validation only needs to read the staging
+  file (usually fine without root); install and restart need write
+  access to `/etc/dhcp/` and `SANDIA_BACKUP_DIR` and systemctl rights, so
+  they need `sudo` in a normal install.
 - **Restart/enable/disable/status**: calls `systemctl <action> isc-dhcp-server`
   directly. Restart/enable/disable need `sudo`; status usually doesn't.
 - If a command isn't available or isn't permitted, the app reports the
@@ -373,9 +396,10 @@ manual `openssl` step needed. The cert and key live at
 
 ```
 uv run pytest
+uv run ruff check .
 ```
 
-339+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+380+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -393,7 +417,10 @@ device inventory (discovery from active/historical leases, reservation
 correlation, multi-IP history, status/problem detection, filtering, bulk
 lease-record deletion, and every device/IP/subnet cross-navigation path),
 the Wall of Shame (DHCPNAK/IP-change/abandoned-lease counts, time-range
-filtering, and that devices with zero events never appear), and the full
+filtering, and that devices with zero events never appear), the Event
+Log page, the restart/verify/rollback apply stage, the AI assistant
+(Ollama URL handling, context building, streaming, and that the browser
+can never supply the system prompt), and the full
 HTTP route layer
 (login, RBAC boundaries, subnet/reservation CRUD, self-service
 password change, the "reserve from lease" flow, the Interfaces page, the

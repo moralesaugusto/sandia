@@ -21,7 +21,7 @@ import json
 import threading
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 OUI_CSV_URL = "https://standards-oui.ieee.org/oui/oui.csv"
@@ -114,7 +114,7 @@ def _do_refresh(data_dir: Path) -> None:
         if not entries:
             raise ValueError("no entries parsed from IEEE OUI download")
 
-        fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        fetched_at = datetime.now(UTC).isoformat(timespec="seconds")
         data_dir.mkdir(parents=True, exist_ok=True)
         final_path = _cache_path(data_dir)
         tmp_path = final_path.with_suffix(".json.tmp")
@@ -125,7 +125,7 @@ def _do_refresh(data_dir: Path) -> None:
         _memo[key] = entries
         _memo_meta[key] = {"fetched_at": fetched_at, "entry_count": len(entries)}
         _last_error = None
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         # Broad catch is intentional: this runs unsupervised in a background
         # thread talking to a third-party server outside our control (DNS
         # failure, TLS error, timeout, malformed response, ...). Any failure

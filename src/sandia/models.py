@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlmodel import Field, SQLModel
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class User(SQLModel, table=True):
@@ -26,3 +26,14 @@ class AuditLog(SQLModel, table=True):
     detail: str
     success: bool
     ip_address: str
+
+
+class AiSettings(SQLModel, table=True):
+    # Single row (id=1): the Ollama server backing the AI assistant.
+    id: int | None = Field(default=None, primary_key=True)
+    ollama_url: str = ""
+    model: str = ""
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.ollama_url and self.model)

@@ -1,0 +1,38 @@
+{% from "base.html" import icon %}
+{% if log_unavailable %}
+<div class="flex items-center gap-3 px-4 py-4 text-sm text-slate-500 bg-slate-900 border border-slate-800 rounded-xl">{{ icon('warning', 'w-5 h-5 text-slate-600 shrink-0') }} {{ log_unavailable }}</div>
+{% else %}
+<p class="text-xs text-slate-500 mb-2">{% if total > max_rows %}Showing the newest {{ max_rows }} of {{ total }} matching events.{% else %}{{ total }} matching event{{ '' if total == 1 else 's' }}.{% endif %}</p>
+<div class="overflow-x-auto rounded-xl border border-slate-800">
+<table class="w-full text-sm bg-slate-900">
+  <thead class="bg-slate-800/70 text-slate-400 text-xs uppercase">
+    <tr>
+      <th class="text-left px-4 py-2 whitespace-nowrap">Time</th>
+      <th class="text-left px-4 py-2">Event</th>
+      <th class="text-left px-4 py-2">IP address</th>
+      <th class="text-left px-4 py-2">MAC address</th>
+      <th class="text-left px-4 py-2">Hostname</th>
+      <th class="text-left px-4 py-2">Interface</th>
+      <th class="text-left px-4 py-2">Detail</th>
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-slate-800">
+    {% for event in events %}
+    <tr {% if event.mac %}oncontextmenu="openContextMenu(event, '/devices/{{ event.mac | urlencode }}/menu')" class="hover:bg-slate-800/60 cursor-context-menu"{% else %}class="hover:bg-slate-800/60"{% endif %}>
+      <td class="px-4 py-2 text-slate-500 whitespace-nowrap font-mono text-xs">{{ event.timestamp }}</td>
+      <td class="px-4 py-2 whitespace-nowrap">
+        <span class="px-2 py-0.5 rounded-full text-xs {% if event.kind in ('DHCPNAK', 'DHCPDECLINE') or event.reason %}bg-red-950 text-red-400{% elif event.kind == 'DHCPACK' %}bg-emerald-950 text-emerald-400{% else %}bg-slate-800 text-slate-400{% endif %}">{{ event.kind }}</span>
+      </td>
+      <td class="px-4 py-2 font-mono">{{ event.ip or '-' }}</td>
+      <td class="px-4 py-2 font-mono text-slate-400">{% if event.mac %}<a href="/devices/{{ event.mac | urlencode }}" class="hover:text-emerald-400">{{ event.mac }}</a>{% else %}-{% endif %}</td>
+      <td class="px-4 py-2">{{ event.hostname or '-' }}</td>
+      <td class="px-4 py-2 text-slate-500">{{ event.iface or '-' }}</td>
+      <td class="px-4 py-2 text-slate-500 text-xs">{% if event.kind == 'OTHER' %}<span class="font-mono">{{ event.raw }}</span>{% else %}{{ event.reason or '' }}{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500"><span class="inline-flex items-center gap-2">{{ icon('inbox', 'w-5 h-5 text-slate-600') }} No matching events.</span></td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}

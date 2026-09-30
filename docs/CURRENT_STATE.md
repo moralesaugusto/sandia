@@ -15,8 +15,8 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
 - `dhcpd.conf` parsing/serialization (order-preserving), subnets, host
   reservations (nested or top-level), groups, extra/free-form options.
 - Full config safety pipeline: edit -> validate (`dhcpd -t`) -> diff -> apply
-  (backup then install) -> restore from any backup. Already matches the
-  "Configuration Safety" product-direction goal in full.
+  (backup, atomic install, restart, verify active, automatic rollback if
+  the service doesn't come up) -> restore from any backup.
 - Leases: parse, search, state filter, CSV export, "Clean leases" dedup,
   right-click context menu (reserve / deny / edit reservation / copy MAC).
 - Reservations: CRUD, search, subnet filter, bulk delete, CSV export, a
@@ -46,7 +46,14 @@ well for the app's size (~3,500 lines Python, ~1,200 lines templates).
 - Light/dark mode: a toggle in the sidebar (and on the login page). Saved
   in the session immediately and, for a logged-in user, on their account
   (`User.theme`) so it follows them across browsers/devices.
-- 346 tests, all passing as of the end of this pass.
+- DHCP Event Log (`/diagnostics/events`): the parsed DHCP log as a
+  filterable/searchable table, newest first, capped at 500 rows.
+- AI assistant (`ai.py`, `routers/ai.py`): a floating chat window in
+  `base.html` backed by a local Ollama server configured in Advanced
+  Settings > AI Settings (`AiSettings` table). Read-only, answers from a
+  server-built snapshot of config/leases/log/service status.
+- Ruff lint configured (`uv run ruff check .`).
+- 383 tests, all passing as of the end of this pass.
 
 ## Gaps identified and closed across recent passes
 
@@ -61,7 +68,6 @@ gaps are now closed - see `ROADMAP.md` Phases 1-3.
 
 ## Not yet implemented (from the product-direction wishlist)
 
-A browsable DHCP event log (the parser exists; there's no page listing all
-events, only per-client/per-server diagnostics), operational alerts/paging,
+Operational alerts/paging,
 a server health page beyond `/diagnostics/server`, live/real-time updates.
 See `ROADMAP.md`.

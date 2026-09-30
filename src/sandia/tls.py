@@ -21,7 +21,7 @@ def ensure_self_signed_cert(tls_dir: Path) -> tuple[Path, Path]:
     key = ec.generate_private_key(ec.SECP256R1())
 
     subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, hostname)])
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     san_names: list[x509.GeneralName] = [x509.DNSName(hostname), x509.DNSName("localhost")]
     try:
         san_names.append(x509.IPAddress(ipaddress.ip_address(socket.gethostbyname(hostname))))

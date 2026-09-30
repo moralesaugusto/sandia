@@ -6,8 +6,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session, select
+from starlette.middleware.sessions import SessionMiddleware
 
 from . import __version__
 from .config import Settings
@@ -18,6 +18,7 @@ from .ip_map import MAX_CELLS
 from .models import User
 from .routers import (
     about,
+    ai,
     audit_router,
     auth,
     backups,
@@ -104,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(search.router)
     app.include_router(interfaces.router)
     app.include_router(diagnostics.router)
+    app.include_router(ai.router)
 
     return app
 

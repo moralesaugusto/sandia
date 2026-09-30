@@ -67,9 +67,9 @@ async def raw_config_apply(
     result = await apply_new_config(settings, text)
     if not result.ok:
         log_action(session, request, user, "raw_config_apply_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/config/raw", status_code=303)
 
     log_action(session, request, user, "raw_config_apply", "applied raw config edit")
-    set_flash(request, "Configuration applied. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Configuration applied. isc-dhcp-server restarted.")
     return RedirectResponse("/config/raw", status_code=303)

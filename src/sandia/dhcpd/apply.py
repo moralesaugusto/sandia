@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from ..config import Settings
 
@@ -61,38 +63,84 @@ async def check_live_config(settings: Settings) -> CommandResult:
     return await _run("dhcpd", "-t", "-cf", str(settings.dhcpd_conf_path))
 
 
-async def install_config(settings: Settings) -> CommandResult:
-    """Back up the live config, then install the staged one. Runs whether
-    or not dummy mode is on - dummy mode's paths are already sandboxed by
-    Settings, so this is plain file I/O against a real path either way. If
-    the target isn't writable (not running as root/sudo), this fails
-    cleanly instead of raising."""
+def _replace_atomically(source: Path, target: Path) -> None:
+    # Copy next to the target, then rename over it: a crash mid-copy leaves
+    # the live config intact instead of truncated.
+    tmp = target.with_name(target.name + ".sandia-tmp")
+    shutil.copyfile(source, tmp)
+    if target.exists():
+        shutil.copymode(target, tmp)
+    os.replace(tmp, target)
+
+
+async def install_config(settings: Settings) -> tuple[CommandResult, Path | None]:
+    """Back up the live config, then atomically install the staged one.
+    Returns the result and the backup path (None if there was no previous
+    config to back up). Runs whether or not dummy mode is on - dummy mode's
+    paths are already sandboxed by Settings, so this is plain file I/O
+    against a real path either way. If the target isn't writable (not
+    running as root/sudo), this fails cleanly instead of raising."""
+    backup = None
     try:
         settings.backup_dir.mkdir(parents=True, exist_ok=True)
         if settings.dhcpd_conf_path.exists():
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
-            shutil.copyfile(settings.dhcpd_conf_path, settings.backup_dir / f"dhcpd.conf.{stamp}")
+            backup = settings.backup_dir / f"dhcpd.conf.{stamp}"
+            shutil.copyfile(settings.dhcpd_conf_path, backup)
         settings.dhcpd_conf_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(settings.staging_path, settings.dhcpd_conf_path)
+        _replace_atomically(settings.staging_path, settings.dhcpd_conf_path)
     except OSError as exc:
-        return CommandResult(ok=False, stdout="", stderr=str(exc))
-    return CommandResult(ok=True, stdout="installed", stderr="")
+        return CommandResult(ok=False, stdout="", stderr=str(exc)), backup
+    return CommandResult(ok=True, stdout="installed", stderr=""), backup
+
+
+async def _restart_and_verify(settings: Settings) -> str | None:
+    """Restart the service and confirm it's running. Returns None on
+    success, otherwise the reason it failed."""
+    restarted = await restart_service(settings)
+    if not restarted.ok:
+        return (restarted.stderr or restarted.stdout).strip() or "systemctl restart failed"
+    status = await service_status(settings)
+    if status != "active":
+        return f"{settings.service_name} is '{status}' after restart"
+    return None
 
 
 async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
-    """Stage -> validate -> install. The live config is only ever touched
-    after validation succeeds; a failure at either stage leaves it alone."""
+    """Stage -> validate -> install -> restart -> verify. The live config is
+    only ever touched after validation succeeds; if the service doesn't come
+    back up on the new config, the previous one is restored and the service
+    restarted on it."""
     await stage(settings, new_text)
 
     checked = await check_config(settings)
     if not checked.ok:
         return ApplyResult(ok=False, stage="check", output=checked.stderr or checked.stdout)
 
-    installed = await install_config(settings)
+    installed, backup = await install_config(settings)
     if not installed.ok:
         return ApplyResult(ok=False, stage="apply", output=installed.stderr or installed.stdout)
 
-    return ApplyResult(ok=True, stage="", output=installed.stdout)
+    failure = await _restart_and_verify(settings)
+    if failure is None:
+        return ApplyResult(ok=True, stage="", output=f"installed; {settings.service_name} restarted")
+
+    if backup is None:
+        return ApplyResult(
+            ok=False,
+            stage="restart",
+            output=f"{failure}\nThere was no previous config to roll back to; the new config is still installed.",
+        )
+    try:
+        _replace_atomically(backup, settings.dhcpd_conf_path)
+    except OSError as exc:
+        return ApplyResult(ok=False, stage="restart", output=f"{failure}\nRollback failed: {exc}")
+    rollback_failure = await _restart_and_verify(settings)
+    if rollback_failure is None:
+        rollback = f"Rolled back to the previous config ({backup.name}); {settings.service_name} is running again."
+    else:
+        rollback = f"Rolled back to the previous config ({backup.name}), but the service still failed: {rollback_failure}"
+    return ApplyResult(ok=False, stage="restart", output=f"{failure}\n{rollback}")
 
 
 async def restart_service(settings: Settings) -> CommandResult:

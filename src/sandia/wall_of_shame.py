@@ -10,8 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from .dhcpd import DhcpdConfig
 from .devices import Device
+from .dhcpd import DhcpdConfig
 from .diagnostics.dhcp_log import DhcpEvent
 from .leases import Lease, parse_lease_timestamp
 from .utilization import find_containing_subnet

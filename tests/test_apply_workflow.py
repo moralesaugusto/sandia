@@ -18,7 +18,7 @@ async def test_apply_new_config_success(settings, monkeypatch):
 
     async def fake_run(*args):
         calls.append(args)
-        return apply_module.CommandResult(ok=True, stdout="ok", stderr="")
+        return apply_module.CommandResult(ok=True, stdout="active", stderr="")
 
     monkeypatch.setattr(apply_module, "_run", fake_run)
 
@@ -27,7 +27,11 @@ async def test_apply_new_config_success(settings, monkeypatch):
     assert result.ok
     assert settings.staging_path.read_text() == "authoritative;\n"
     assert settings.dhcpd_conf_path.read_text() == "authoritative;\n"
-    assert calls == [("dhcpd", "-t", "-cf", str(settings.staging_path))]
+    assert calls == [
+        ("dhcpd", "-t", "-cf", str(settings.staging_path)),
+        ("systemctl", "restart", settings.service_name),
+        ("systemctl", "is-active", settings.service_name),
+    ]
 
 
 async def test_apply_new_config_stops_when_check_fails(settings, monkeypatch):
@@ -48,7 +52,7 @@ async def test_apply_new_config_backs_up_existing_config(settings, monkeypatch):
     settings.dhcpd_conf_path.write_text("old config\n")
 
     async def fake_run(*args):
-        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+        return apply_module.CommandResult(ok=True, stdout="active", stderr="")
 
     monkeypatch.setattr(apply_module, "_run", fake_run)
 
@@ -61,9 +65,78 @@ async def test_apply_new_config_backs_up_existing_config(settings, monkeypatch):
     assert backups[0].read_text() == "old config\n"
 
 
+async def test_install_is_atomic_and_preserves_file_mode(settings, monkeypatch):
+    settings.dhcpd_conf_path.write_text("old config\n")
+    settings.dhcpd_conf_path.chmod(0o640)
+
+    async def fake_run(*args):
+        return apply_module.CommandResult(ok=True, stdout="active", stderr="")
+
+    monkeypatch.setattr(apply_module, "_run", fake_run)
+
+    result = await apply_module.apply_new_config(settings, "new config\n")
+
+    assert result.ok
+    assert settings.dhcpd_conf_path.stat().st_mode & 0o777 == 0o640
+    assert not list(settings.dhcpd_conf_path.parent.glob("*.sandia-tmp"))
+
+
+def _fake_systemctl(restart_results: list[bool], status: str = "active"):
+    """dhcpd -t always passes; each `systemctl restart` pops the next
+    result from restart_results."""
+
+    async def fake_run(*args):
+        if args[:2] == ("systemctl", "restart"):
+            ok = restart_results.pop(0)
+            return apply_module.CommandResult(ok=ok, stdout="", stderr="" if ok else "Job failed")
+        if args[:2] == ("systemctl", "is-active"):
+            return apply_module.CommandResult(ok=status == "active", stdout=status, stderr="")
+        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+
+    return fake_run
+
+
+async def test_failed_restart_rolls_back_to_previous_config(settings, monkeypatch):
+    settings.dhcpd_conf_path.write_text("old config\n")
+    monkeypatch.setattr(apply_module, "_run", _fake_systemctl([False, True]))
+
+    result = await apply_module.apply_new_config(settings, "new config\n")
+
+    assert not result.ok
+    assert result.stage == "restart"
+    assert "Job failed" in result.output
+    assert "Rolled back" in result.output
+    assert "running again" in result.output
+    assert settings.dhcpd_conf_path.read_text() == "old config\n"
+
+
+async def test_inactive_service_after_restart_rolls_back(settings, monkeypatch):
+    settings.dhcpd_conf_path.write_text("old config\n")
+    monkeypatch.setattr(apply_module, "_run", _fake_systemctl([True, True], status="failed"))
+
+    result = await apply_module.apply_new_config(settings, "new config\n")
+
+    assert not result.ok
+    assert result.stage == "restart"
+    assert "'failed' after restart" in result.output
+    assert "still failed" in result.output  # the rollback restart didn't come up either
+    assert settings.dhcpd_conf_path.read_text() == "old config\n"
+
+
+async def test_failed_restart_on_first_install_reports_no_rollback(settings, monkeypatch):
+    monkeypatch.setattr(apply_module, "_run", _fake_systemctl([False]))
+
+    result = await apply_module.apply_new_config(settings, "new config\n")
+
+    assert not result.ok
+    assert result.stage == "restart"
+    assert "no previous config to roll back to" in result.output
+    assert settings.dhcpd_conf_path.read_text() == "new config\n"
+
+
 async def test_apply_new_config_reports_install_failure_cleanly(settings, monkeypatch):
     async def fake_run(*args):
-        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+        return apply_module.CommandResult(ok=True, stdout="active", stderr="")
 
     monkeypatch.setattr(apply_module, "_run", fake_run)
 

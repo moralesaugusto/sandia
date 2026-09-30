@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Event Log - Sandia{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('diagnose', 'w-5 h-5 text-slate-500') }} DHCP Event Log</h1>
+  <p class="text-sm text-slate-500 mt-1">dhcpd protocol activity parsed from <span class="font-mono">{{ log_path }}</span>, newest first. Right-click an event with a MAC for device actions.</p>
+</div>
+
+<form
+  id="events-filter-form"
+  class="flex items-center gap-3 mb-4"
+  hx-get="/diagnostics/events/table"
+  hx-trigger="keyup changed delay:300ms from:input[name='q'], search from:input[name='q'], change from:select[name='kind']"
+  hx-target="#events-table"
+  hx-swap="innerHTML"
+>
+  <div class="relative w-full max-w-sm">
+    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{{ icon('search', 'w-4 h-4') }}</span>
+    <input
+      type="search"
+      name="q"
+      value="{{ q }}"
+      placeholder="Search IP, MAC, hostname or message..."
+      class="w-full rounded-lg bg-slate-800 border border-slate-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+    >
+  </div>
+  <select name="kind" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    <option value="">All events</option>
+    {% for value in kinds %}
+    <option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ 'Other dhcpd messages' if value == 'OTHER' else value }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div id="events-table">
+  {% include "diagnostics/_events_table.html" %}
+</div>
+{% endblock %}

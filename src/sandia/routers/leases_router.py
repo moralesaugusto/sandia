@@ -224,9 +224,9 @@ async def deny_lease(
     result = await apply_new_config(settings, serialize(config))
     if not result.ok:
         log_action(session, request, user, "lease_deny_failed", result.output, success=False)
-        set_flash(request, f"Validation failed ({result.stage}): {result.output}", kind="error")
+        set_flash(request, f"Apply failed ({result.stage}): {result.output}", kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     log_action(session, request, user, "lease_deny", f"{lease.mac} ({ip})")
-    set_flash(request, "Client denied. Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Client denied. isc-dhcp-server restarted.")
     return RedirectResponse("/leases", status_code=303)

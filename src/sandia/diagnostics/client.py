@@ -17,7 +17,15 @@ from ..utilization import find_containing_subnet, range_bounds, subnet_utilizati
 from ..vendors import lookup_vendor
 from . import dhcp_log
 from .dhcp_log import DhcpEvent
-from .models import Action, Confidence, DiagnosticResult, Evidence, Finding, FlowStep, Status
+from .models import (
+    Action,
+    Confidence,
+    DiagnosticResult,
+    Evidence,
+    Finding,
+    FlowStep,
+    Status,
+)
 from .subnet import pool_finding
 
 

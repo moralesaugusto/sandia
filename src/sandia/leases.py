@@ -42,7 +42,7 @@ def _parse_lease_blocks(text: str) -> list[Lease]:
         body = match.group("body")
 
         def field(pattern: re.Pattern) -> str | None:
-            m = pattern.search(body)
+            m = pattern.search(body)  # noqa: B023 - only called within this iteration
             return m.group("value").strip() if m else None
 
         records.append(

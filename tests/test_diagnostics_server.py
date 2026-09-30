@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 
 from sandia.config import Settings
+from sandia.dhcpd import apply as apply_module
 from sandia.diagnostics.models import Confidence, Status
 from sandia.diagnostics.server import diagnose_server
-from sandia.dhcpd import apply as apply_module
 
 GOOD_CONF = "authoritative;\nsubnet 10.0.0.0 netmask 255.255.255.0 { range 10.0.0.10 10.0.0.20; }\n"
 CLEAN_LOG = "Sep  2 09:15:00 host dhcpd[1]: DHCPACK on 10.0.0.10 to aa:aa:aa:aa:aa:01 via eth0\n"

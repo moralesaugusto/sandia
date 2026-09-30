@@ -57,10 +57,6 @@
 
 ## Later / not scheduled
 
-- A real DHCP event *log page* (browsing/filtering all parsed log events,
-  not just a given client's) - the parser now exists (`diagnostics/dhcp_log.py`)
-  but there's no UI surface for it beyond per-client/per-server/per-device
-  diagnostics and activity views.
 - Server health page beyond what `/diagnostics/server` already reports,
   live/real-time updates (would need a push channel - today the app is
   pure request/response + htmx polling-free partials).
@@ -95,3 +91,12 @@ people working with pools consistently near the cap.
 - "Diagnostics" became a collapsible sidebar submenu (Overview, Wall of
   Shame) using the same `nav_group()` macro Advanced Settings already
   used, factored out once a second real use existed.
+
+## Phase 6 - 1.3.1 (done, this pass)
+
+- Apply now restarts the service, verifies it is active, and rolls back
+  to the pre-change backup if it isn't; the install itself is atomic.
+- DHCP Event Log page (`/diagnostics/events`) over the existing parser.
+- Read-only AI assistant (floating window) backed by a local Ollama
+  server, configured under Advanced Settings > AI Settings.
+- Ruff lint.

@@ -217,3 +217,32 @@ ping conflict before ever offering the address to a client - nobody to
 blame). Rows are grouped by MAC only when the record actually has one;
 otherwise the row is the bare IP with no device link, exactly matching
 the instruction to show the address rather than fabricate a relationship.
+
+## Apply restarts, verifies, and rolls back automatically
+
+Every apply already took a backup before installing, but stopped there and
+told the operator to restart - so a config that passed `dhcpd -t` but still
+failed at startup (e.g. an interface that doesn't exist) left the server
+down until someone noticed. `apply_new_config()` now restarts the service
+and checks `systemctl is-active`; on failure it reinstalls the backup it
+just took and restarts again, reporting both outcomes. The install is a
+copy to a sibling temp file plus `os.replace`, so the live file is never
+partially written. A first-ever install has no backup, and says so rather
+than pretending to roll back.
+
+## AI assistant: read-only, context built by the server
+
+The assistant gets no tools and no write path: each question is sent to
+Ollama with a system prompt the server builds from the same loaders the
+rest of the app uses (service status, serialized `dhcpd.conf`, active
+leases, DHCP log tail), each section capped so it fits a small local
+model's context window. The browser only sends user/assistant turns;
+anything else (including a client-supplied `system` role) is dropped
+server-side. This keeps it consistent with "never invent diagnostic
+information" - it can only reason over real data, and every change still
+goes through the existing validate/diff/apply workflow. Tool calling was
+not used because it depends on model support and adds a loop for little
+gain at this data size. Settings live in a single-row `AiSettings` table
+(created by `create_all`, no migration needed), admin-only because the
+configured server receives the full config with every question.
+

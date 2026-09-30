@@ -47,6 +47,8 @@ _KNOWN_EVENTS: list[tuple[str, re.Pattern]] = [
     ("DHCPINFORM", re.compile(rf"^DHCPINFORM from (?P<ip>\S+) {_IFACE}$")),
 ]
 
+EVENT_KINDS = [kind for kind, _ in _KNOWN_EVENTS]
+
 # Substrings that make an unrecognized dhcpd log line worth surfacing as a
 # server-health signal. Deliberately just a literal-match list, not a
 # "smart" classifier - this only ever says "this line matched a keyword",
@@ -127,9 +129,7 @@ def load_dhcp_events(settings: Settings) -> tuple[list[DhcpEvent], str | None]:
 def matches(event: DhcpEvent, mac: str | None, ip: str | None) -> bool:
     if mac and event.mac == mac:
         return True
-    if ip and event.ip == ip:
-        return True
-    return False
+    return bool(ip and event.ip == ip)
 
 
 def events_for(events: list[DhcpEvent], mac: str | None, ip: str | None) -> list[DhcpEvent]:

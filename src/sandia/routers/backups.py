@@ -45,5 +45,5 @@ async def restore_backup(
         return RedirectResponse("/backups", status_code=303)
 
     log_action(session, request, user, "backup_restore", filename)
-    set_flash(request, "Backup restored (a fresh backup of the prior config was taken first). Restart isc-dhcp-server to take effect.")
+    set_flash(request, "Backup restored (a fresh backup of the prior config was taken first). isc-dhcp-server restarted.")
     return RedirectResponse("/backups", status_code=303)

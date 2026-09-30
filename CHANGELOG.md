@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## 1.3.1
+
+### Added
+- AI assistant: a floating, draggable chat window that answers questions about the DHCP config, leases and logs using a local Ollama server. Read-only - it answers from a server-built snapshot (service status, `dhcpd.conf`, active leases, DHCP log tail) and never changes anything. Configured under Advanced Settings > AI Settings (admin only): Ollama server address and model, with a "Load models" lookup. The conversation survives page navigation.
+- DHCP Event Log (`/diagnostics/events`, a Diagnostics submenu): every parsed dhcpd log line, newest first, filterable by event type and searchable by IP/MAC/hostname/message, with the Devices context menu on right-click.
+- Ruff linting (`uv run ruff check .`).
+- Version bumped to 1.3.1.
+
+### Changed
+- Applying any config change now restarts `isc-dhcp-server` and checks it is running. If it doesn't come back up, the previous config is restored automatically and the service restarted on it; the error says what happened. Previously every change ended with "Restart isc-dhcp-server to take effect."
+- The new config is installed atomically (copied alongside, then renamed over the live file), preserving the file's permissions, so a crash mid-write can no longer leave a truncated `dhcpd.conf`.
+
 ## 1.3.0
 
 ### Added
