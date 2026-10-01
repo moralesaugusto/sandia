@@ -59,6 +59,14 @@ catalog, and 2,500 lines of templates, measured 2026-09-30).
   `base.html` backed by a local Ollama server configured in Advanced
   Settings > AI Settings (`AiSettings` table). Read-only, answers from a
   server-built snapshot of config/leases/log/service status.
+- Change review (1.4.6, `pending_changes.py`, `change_impact.py`,
+  `routers/review.py`): every config edit is staged and shown on a Review
+  page (risk, effective behavior, changes, affected leases, capacity,
+  anomalies, diff) before Apply; a 10-minute Keep/Roll back banner
+  (`rollback_window.py`) follows each apply. `/diagnostics/anomalies` scans
+  the live config with the same rules (`diagnostics.scan_config`). The AI
+  assistant can explain a pending change's findings ("Explain with AI",
+  "Review with AI") but never changes them.
 - Ruff lint configured (`uv run ruff check .`).
 - English/Spanish UI (`i18n.py`, catalog in `i18n_es.py`): selector in the
   top-right corner, saved per session and per account (`User.language`).

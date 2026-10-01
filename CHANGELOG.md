@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## 1.4.6
+
+### Added
+- Review before apply: every configuration change (subnets, reservations, global settings, Deny client, Kea interfaces, Raw Config, backup restore) opens a Review page first. It shows the validation result, a risk level with its reasons, a plain-language summary of the effective DHCP behavior, what changes (subnets, pools and capacity, options, reservations, interfaces), the active leases that would be lost, moved or denied, pool-capacity warnings, anomalies and the diff. Nothing is written until you press Apply; a change made against a config that has since changed is refused.
+- Anomaly scanner: overlapping pools, duplicate reservation IPs or MACs (now including global reservations), invalid reservations and malformed ranges across the whole configuration, each marked as introduced by the change or already present. Observations from lease data (pool exhaustion, abandoned addresses, a reserved address leased to another device) are labeled as runtime observations needing investigation. Also available on its own at Diagnostics > Configuration anomalies.
+- Rollback window: for 10 minutes after an apply, operators see a banner to keep the change or roll it back to the backup taken just before it. Nothing is reverted automatically.
+- AI review: "Review with AI" on the Review page and "Explain with AI" beside each anomaly (and on diagnostics findings) ask the assistant to explain and prioritize the deterministic findings. The assistant cannot add, dismiss or change findings, treats config, hostnames, leases and logs as untrusted data, and has bounded input and output.
+- Version bumped to 1.4.6.
+
+### Changed
+- The Raw Config "Apply" button and backup "Restore" now lead to the Review page.
+- Range checks in diagnostics cover every pool of a subnet, not only the first.
+- A Deny entry no longer counts as a duplicate of the same client's reservation.
+
 ## 1.4.5
 
 **From now on, only Kea DHCPv4 is supported.** Kea is the default backend. isc-dhcp-server still works with `SANDIA_DHCP_BACKEND=isc` so existing installs can migrate on their own schedule, but it is no longer supported and gets no new features or fixes. Where a change can't serve both, Kea's behavior wins. Migration steps are in INSTRUCTIONS.md ("Migrating from isc-dhcp-server").

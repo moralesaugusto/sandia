@@ -4,6 +4,7 @@ from sqlmodel import Session
 
 from .ai import load_ai_settings
 from .i18n import current_language
+from .rollback_window import rollback_offer
 
 
 def render(request: Request, template_name: str, status_code: int = 200, **context) -> HTMLResponse:
@@ -15,6 +16,8 @@ def render(request: Request, template_name: str, status_code: int = 200, **conte
         # Drives the floating assistant in base.html.
         with Session(request.app.state.engine) as session:
             context["ai_enabled"] = load_ai_settings(session).configured
+        if context["user"].role in ("admin", "operator"):
+            context["rollback"] = rollback_offer(request.app.state.settings)
     context["flash"] = request.session.pop("flash", None)
     return templates.TemplateResponse(request, template_name, context, status_code=status_code)
 

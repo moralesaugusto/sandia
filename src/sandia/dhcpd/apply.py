@@ -31,6 +31,8 @@ class ApplyResult:
     ok: bool
     stage: str  # "check" or "apply" when failed, "" on success
     output: str
+    # The pre-change backup, on success - what the rollback banner restores.
+    backup: Path | None = None
 
 
 async def _run(*args: str) -> CommandResult:
@@ -149,7 +151,7 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
     failure = await _restart_and_verify(settings)
     if failure is None:
         action = "reloaded its configuration" if reloaded else "restarted"
-        return ApplyResult(ok=True, stage="", output=f"installed; {settings.service_name} {action}")
+        return ApplyResult(ok=True, stage="", output=f"installed; {settings.service_name} {action}", backup=backup)
 
     if backup is None:
         return ApplyResult(
@@ -169,12 +171,18 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
     return ApplyResult(ok=False, stage="restart", output=f"{failure}\n{rollback}")
 
 
+def render_config_text(settings: Settings, config: DhcpdConfig) -> str:
+    """An edited config model in the backend's own format (dhcpd.conf, or a
+    minimal patch of kea-dhcp4.conf). Raises ParseError/ValueError when the
+    edit can't be written."""
+    return get_backend(settings).render_config(live_config_text(settings) or "", config)
+
+
 async def apply_config(settings: Settings, config: DhcpdConfig) -> ApplyResult:
-    """Apply an edited config model: render it in the backend's own format
-    (dhcpd.conf, or a minimal patch of kea-dhcp4.conf), then run the same
-    validate/install/verify pipeline as a raw edit."""
+    """Render an edited config model, then run the same validate/install/
+    verify pipeline as a raw edit."""
     try:
-        text = get_backend(settings).render_config(live_config_text(settings) or "", config)
+        text = render_config_text(settings, config)
     except (ParseError, ValueError) as exc:
         return ApplyResult(ok=False, stage="check", output=str(exc))
     return await apply_new_config(settings, text)

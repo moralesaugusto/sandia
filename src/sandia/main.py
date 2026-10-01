@@ -33,6 +33,7 @@ from .routers import (
     leases_router,
     raw_config,
     reservations,
+    review,
     search,
     service,
     subnets,
@@ -122,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(reservations.router)
     app.include_router(leases_router.router)
     app.include_router(raw_config.router)
+    app.include_router(review.router)
     app.include_router(service.router)
     app.include_router(backups.router)
     app.include_router(users.router)

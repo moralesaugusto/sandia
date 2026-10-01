@@ -1,4 +1,5 @@
 import ipaddress
+from functools import lru_cache
 
 from .dhcpd import DhcpdConfig, Parameter, Subnet
 from .leases import Lease
@@ -21,12 +22,19 @@ def pool_ranges(subnet: Subnet) -> list[tuple[ipaddress.IPv4Address, ipaddress.I
     return ranges
 
 
-def in_pools(ranges: list[tuple[ipaddress.IPv4Address, ipaddress.IPv4Address]], ip: str) -> bool:
+@lru_cache(maxsize=65536)
+def _address(ip: str) -> ipaddress.IPv4Address | None:
+    # Lease IPs are checked against many pools (map, utilization, change
+    # impact); parsing each one once keeps that linear in practice.
     try:
-        address = ipaddress.IPv4Address(ip)
+        return ipaddress.IPv4Address(ip)
     except ValueError:
-        return False
-    return any(start <= address <= end for start, end in ranges)
+        return None
+
+
+def in_pools(ranges: list[tuple[ipaddress.IPv4Address, ipaddress.IPv4Address]], ip: str) -> bool:
+    address = _address(ip)
+    return address is not None and any(start <= address <= end for start, end in ranges)
 
 
 def pools_label(subnet: Subnet) -> str:
@@ -46,18 +54,22 @@ def find_containing_subnet(config: DhcpdConfig, ip: str) -> Subnet | None:
     not necessarily the one with a matching pool range (an address can be
     a valid reservation on a subnet without falling inside its dynamic
     pool)."""
-    try:
-        address = ipaddress.IPv4Address(ip)
-    except ValueError:
+    address = _address(ip)
+    if address is None:
         return None
     for subnet in config.subnets:
-        try:
-            network = ipaddress.ip_network(f"{subnet.network}/{subnet.netmask}", strict=False)
-        except ValueError:
-            continue
-        if address in network:
+        network = _network(subnet.network, subnet.netmask)
+        if network is not None and address in network:
             return subnet
     return None
+
+
+@lru_cache(maxsize=4096)
+def _network(network: str, netmask: str) -> ipaddress.IPv4Network | None:
+    try:
+        return ipaddress.IPv4Network(f"{network}/{netmask}", strict=False)
+    except ValueError:
+        return None
 
 
 def utilization_color(used: int, total: int) -> str:

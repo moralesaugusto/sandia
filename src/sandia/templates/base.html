@@ -281,6 +281,16 @@
     <main class="flex-1 min-w-0 p-8">
       {# Its own row, so it never overlaps a page header's right-hand buttons. #}
       <div class="flex justify-end -mt-4 mb-2">{{ lang_toggle(lang, request.url.path) }}</div>
+      {% if rollback %}
+      <div class="flex flex-wrap items-center gap-3 rounded-lg border border-amber-900 bg-amber-950/60 px-4 py-2.5 mb-4 text-sm text-amber-200" role="status">
+        {{ icon('warning', 'w-4 h-4 shrink-0') }}
+        <span class="flex-1">{{ _("A configuration change was applied by {user} ({action}). You can roll it back for {minutes} more minute(s).", user=rollback.username, action=rollback.action, minutes=rollback.minutes_left) }}</span>
+        <form method="post" action="/config/rollback/keep">{{ csrf_input() }}<input type="hidden" name="next_url" value="{{ request.url.path }}">
+          <button type="submit" class="rounded-md bg-slate-800 hover:bg-slate-700 text-slate-100 px-3 py-1">{{ _("Keep") }}</button></form>
+        <form method="post" action="/config/rollback" onsubmit="return confirm({{ _('Restore the configuration from before this change and reload the DHCP server?') | tojson | forceescape }})">{{ csrf_input() }}<input type="hidden" name="next_url" value="{{ request.url.path }}">
+          <button type="submit" class="rounded-md bg-red-900 hover:bg-red-800 text-red-100 px-3 py-1">{{ _("Roll back") }}</button></form>
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>
@@ -361,7 +371,16 @@
     if (open) { list.scrollTop = list.scrollHeight; input.focus(); }
   }
   window.aiToggle = open => show(open === undefined ? !state.open : open);
-  window.aiClear = () => { state.messages = []; save(); renderAll(); };
+  window.aiClear = () => { state.messages = []; state.review = null; save(); renderAll(); };
+  // Ask from a button elsewhere on the page. A review token puts that
+  // pending change's computed impact into the assistant's context for the
+  // rest of this conversation.
+  window.aiAsk = (question, reviewToken) => {
+    if (reviewToken) state.review = reviewToken;
+    show(true);
+    input.value = question;
+    form.requestSubmit();
+  };
 
   header.addEventListener('mousedown', evt => {
     if (evt.target.closest('button')) return;
@@ -396,7 +415,7 @@
       const res = await fetch('/ai/chat', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRF-Token': {{ csrf_token() | tojson }}},
-        body: JSON.stringify({messages: state.messages}),
+        body: JSON.stringify({messages: state.messages, review_token: state.review || null}),
       });
       if (res.redirected) {
         role = 'error'; content = {{ _('Your session has expired. Reload the page and log in again.') | tojson }};

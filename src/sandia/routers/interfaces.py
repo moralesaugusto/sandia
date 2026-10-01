@@ -10,13 +10,13 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..dhcpd import kea
-from ..dhcpd.apply import apply_new_config
 from ..dhcpd.backend import get_backend, live_config_text
 from ..dhcpd.parser import ParseError
 from ..dhcpd.subnet_interface import get_subnet_interface
 from ..i18n import _
 from ..interfaces_conf import read_configured_interfaces, set_interfaces
 from ..models import User
+from ..pending_changes import propose_change
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
 
@@ -82,14 +82,9 @@ async def update_interfaces(
         except ParseError as exc:
             set_flash(request, _("Failed to update interfaces: {exc}", exc=exc), kind="error")
             return RedirectResponse("/interfaces", status_code=303)
-        result = await apply_new_config(settings, new_text)
-        if not result.ok:
-            log_action(session, request, user, "interfaces_update_failed", result.output, success=False)
-            set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-            return RedirectResponse("/interfaces", status_code=303)
-        log_action(session, request, user, "interfaces_update", ", ".join(names) or "(none)")
-        set_flash(request, _("Interfaces updated. Configuration applied."))
-        return RedirectResponse("/interfaces", status_code=303)
+        return propose_change(
+            request, settings, user, new_text, "interfaces_update", ", ".join(names) or "(none)", _("Interfaces updated. Configuration applied."), "/interfaces"
+        )
 
     new_text = set_interfaces(_read(settings.interfaces_conf_path), names)
     try:

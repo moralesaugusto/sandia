@@ -42,15 +42,15 @@
   </div>
   <div>
     <label class="block text-sm text-slate-400 mb-1">{{ _("Router (gateway)") }}</label>
-    <input name="routers" value="{{ subnet.get('routers') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.1">
+    <input name="routers" value="{{ (subnet.get('routers') or '') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.1">
   </div>
   <div>
     <label class="block text-sm text-slate-400 mb-1">{{ _("Broadcast address") }}</label>
-    <input name="broadcast_address" value="{{ subnet.get('broadcast-address') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.255">
+    <input name="broadcast_address" value="{{ (subnet.get('broadcast-address') or '') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="192.168.1.255">
   </div>
   <div>
     <label class="block text-sm text-slate-400 mb-1">{{ _("DNS servers (comma separated)") }}</label>
-    <input name="domain_name_servers" value="{{ subnet.get('domain-name-servers') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="8.8.8.8, 8.8.4.4">
+    <input name="domain_name_servers" value="{{ (subnet.get('domain-name-servers') or '') if subnet else '' }}" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm" placeholder="8.8.8.8, 8.8.4.4">
   </div>
 
   <div class="pt-2 border-t border-slate-800">

@@ -141,3 +141,16 @@ def operator_client(client):
 def viewer_client(client):
     login(client, "viewer", VIEWER_PASSWORD)
     return client
+
+
+def submit(client: TestClient, url: str, **kwargs):
+    """POST to an editor and, when it stages a change for review (as every
+    config edit does), apply it from the Review page like a user would.
+    Returns the final response - the apply's redirect, or the editor's own
+    response when nothing was staged (e.g. a validation error)."""
+    response = client.post(url, **kwargs)
+    location = response.headers.get("location", "")
+    if response.status_code == 303 and location.startswith("/config/review/"):
+        assert client.get(location).status_code == 200
+        response = client.post(f"{location}/apply")
+    return response

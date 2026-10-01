@@ -2,13 +2,11 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
-from ..audit import log_action
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..device_icons import device_icon_for
 from ..dhcpd import Subnet
-from ..dhcpd.apply import apply_config
 from ..dhcpd.backend import get_backend, load_current_leases
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
@@ -16,6 +14,7 @@ from ..diagnostics import diagnose_subnet
 from ..i18n import _
 from ..ip_map import build_subnet_map, find_cell
 from ..models import User
+from ..pending_changes import propose_config
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
 from ..utilization import subnet_utilization
@@ -167,16 +166,10 @@ async def create_subnet(
     config.nodes.append(subnet)
     set_subnet_interface(config, subnet, interface.strip())
 
-    result = await apply_config(settings, config)
-    if not result.ok:
-        log_action(session, request, user, "subnet_create_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/subnets/new", status_code=303)
-
     detail = f"{network}/{netmask}" + (f" on {interface}" if interface else "")
-    log_action(session, request, user, "subnet_create", detail)
-    set_flash(request, _("Subnet created. Configuration applied."))
-    return RedirectResponse("/subnets", status_code=303)
+    return propose_config(
+        request, session, settings, user, config, "subnet_create", detail, _("Subnet created. Configuration applied."), "/subnets", "/subnets/new"
+    )
 
 
 @router.get("/subnets/{key}/edit")
@@ -236,15 +229,9 @@ async def update_subnet(
     )
     set_subnet_interface(config, subnet, interface.strip())
 
-    result = await apply_config(settings, config)
-    if not result.ok:
-        log_action(session, request, user, "subnet_update_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse(f"/subnets/{key}/edit", status_code=303)
-
-    log_action(session, request, user, "subnet_update", key)
-    set_flash(request, _("Subnet updated. Configuration applied."))
-    return RedirectResponse("/subnets", status_code=303)
+    return propose_config(
+        request, session, settings, user, config, "subnet_update", key, _("Subnet updated. Configuration applied."), "/subnets", f"/subnets/{key}/edit"
+    )
 
 
 @router.post("/subnets/{key}/delete")
@@ -260,15 +247,9 @@ async def delete_subnet(
         set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
-    result = await apply_config(settings, config)
-    if not result.ok:
-        log_action(session, request, user, "subnet_delete_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/subnets", status_code=303)
-
-    log_action(session, request, user, "subnet_delete", key)
-    set_flash(request, _("Subnet deleted. Configuration applied."))
-    return RedirectResponse("/subnets", status_code=303)
+    return propose_config(
+        request, session, settings, user, config, "subnet_delete", key, _("Subnet deleted. Configuration applied."), "/subnets", "/subnets"
+    )
 
 
 @router.get("/subnets/{key}/map")

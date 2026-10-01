@@ -3,7 +3,7 @@ import re
 import string
 from pathlib import Path
 
-from conftest import ADMIN_PASSWORD, login
+from conftest import ADMIN_PASSWORD, login, submit
 from sqlmodel import Session, select
 
 from sandia import i18n
@@ -99,7 +99,7 @@ def test_invalid_language_and_external_next_fall_back(admin_client):
 
 def test_flash_messages_are_translated(operator_client):
     operator_client.post("/account/language", data={"lang": "es", "next": "/"})
-    operator_client.post("/reservations/does-not-exist/delete")
+    submit(operator_client, "/reservations/does-not-exist/delete")
     body = operator_client.get("/reservations").text
     assert "Reserva no encontrada." in body
 

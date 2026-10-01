@@ -1,3 +1,4 @@
+
 """The operations that differ between the DHCP servers Sandia can manage
 (SANDIA_DHCP_BACKEND: "kea", the default and supported backend, or the
 legacy "isc"). Everything else - service control via systemctl, the
@@ -10,6 +11,7 @@ dhcpd/kea.py).
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -172,6 +174,13 @@ def live_config_text(settings: Settings) -> str | None:
         if path.exists():
             return path.read_text()
     return None
+
+
+def live_config_sha(settings: Settings) -> str:
+    """Hash of the config file on disk ("" when there is none), to notice
+    that it changed between preparing a change and applying it."""
+    path = settings.dhcpd_conf_path
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else ""
 
 
 def load_current_leases(settings: Settings) -> list[leases.Lease]:

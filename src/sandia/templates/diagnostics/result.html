@@ -24,7 +24,13 @@
   <div class="flex items-center gap-2 mb-3">
     <span class="w-2.5 h-2.5 rounded-full bg-{{ fc }}-500 shrink-0"></span>
     <h2 class="font-semibold">{{ finding.problem }}</h2>
-    <span class="ml-auto shrink-0 px-2 py-0.5 rounded-full text-xs bg-{{ cc }}-950 text-{{ cc }}-400">{{ finding.confidence.label }}</span>
+    {% if finding.runtime %}<span class="ml-auto shrink-0 px-2 py-0.5 rounded-full text-xs bg-slate-800 text-amber-400">{{ _("Runtime observation - needs investigation") }}</span>{% endif %}
+    <span class="{% if not finding.runtime %}ml-auto {% endif %}shrink-0 px-2 py-0.5 rounded-full text-xs bg-{{ cc }}-950 text-{{ cc }}-400">{{ finding.confidence.label }}</span>
+    {% if ai_enabled and finding.status.value in ('warning', 'critical') %}
+    <button type="button" class="shrink-0 flex items-center gap-1.5 text-xs bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 rounded-lg px-2.5 py-1"
+      data-question="{{ _('Explain this finding and how to fix it: {problem}. {cause}', problem=finding.problem, cause=finding.root_cause) }} {% for e in finding.evidence %}{{ e.label }}: {{ e.value }}. {% endfor %}"
+      onclick="aiAsk(this.dataset.question)">{{ icon('chat', 'w-3.5 h-3.5') }} {{ _("Explain with AI") }}</button>
+    {% endif %}
   </div>
 
   {% if finding.root_cause %}

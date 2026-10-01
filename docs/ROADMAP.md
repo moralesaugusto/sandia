@@ -78,27 +78,32 @@
   server, configured under Advanced Settings > AI Settings.
 - Ruff lint.
 
-## Later / not scheduled
+## Change impact preview (done, 1.4.6)
 
-- Open security findings: see `SECURITY_STATUS.md`.
-
-- Server health page beyond what `/diagnostics/server` already reports,
-  live/real-time updates (would need a push channel - today the app is
-  pure request/response + htmx polling-free partials).
-- Conflict/anomaly detection beyond what's implemented in
-  `diagnostics/subnet.py` (duplicate reservations, overlapping/invalid
-  ranges, interface mismatches, abandoned/exhausted pools).
-- Bulk reservation creation for multiple selected devices - deferred
-  deliberately (see `DECISIONS.md`): each device needs its own target IP,
-  which is real per-device decision-making, not a mechanical loop like
-  bulk lease-record deletion.
-- Pagination/virtualization for the Devices table - not added; it follows
-  the same precedent as Leases/Reservations (search/filter to narrow down,
-  render the rest server-side). Revisit only if real inventories are large
-  enough that this stops being fast enough in practice.
-
-Pan/zoom for the SVG grid was considered for Phase 1 and deliberately
-deferred: at the current cell-count cap the grid already fits on screen
-without it, and adding it would be complexity without a concrete need yet
-(see `CLAUDE.md`'s "avoid premature generalization"). Revisit if usage shows
-people working with pools consistently near the cap.
+- Preview configuration changes before applying them, including the affected
+  subnets, pools, reservations, and DHCP options.
+- Identify active leases that may become invalid or unreachable after the
+  change.
+- Show pool-capacity changes and warn about possible address exhaustion.
+- Detect conflicting reservations, duplicate addresses, and other relevant
+  configuration anomalies before installation.
+- Define an anomaly as either a deterministic configuration inconsistency with
+  concrete evidence, or a clearly labeled runtime observation requiring
+  investigation; the scanner must not present heuristics as confirmed faults.
+- Present a human-readable summary of the effective DHCP behavior alongside
+  the existing raw configuration diff.
+- Provide a change risk summary so the administrator can quickly distinguish
+  harmless edits from changes requiring careful review.
+- Add a post-apply confirmation period with a one-click rollback option,
+  reusing the existing backup and rollback pipeline.
+- Add an embedded AI-assisted anomaly review that explains findings,
+  correlates leases, reservations, devices, and DHCP events, and prioritizes
+  likely operational impact.
+- Add an "Explain with AI" action beside each anomaly, with evidence links
+  back to the relevant configuration, lease, device, or event.
+- Keep deterministic anomaly rules as the source of truth: the AI may explain,
+  correlate, and suggest remediation, but must not invent findings, suppress
+  rule results, or apply changes automatically.
+- Treat hostnames, DHCP logs, configuration comments, and other imported data
+  as untrusted context, and keep the assistant read-only with bounded input
+  and output sizes.

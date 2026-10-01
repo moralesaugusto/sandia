@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from sqlmodel import Session
 
-from ..audit import log_action
 from ..config import Settings, get_settings
-from ..db import get_session
-from ..dhcpd.apply import apply_new_config
 from ..dhcpd.backend import get_backend
 from ..i18n import _
 from ..models import User
+from ..pending_changes import propose_change
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
 
@@ -32,7 +29,6 @@ async def restore_backup(
     filename: str,
     request: Request,
     user: User = Depends(require_role("operator")),
-    session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ):
     path = settings.backup_dir / filename
@@ -40,15 +36,5 @@ async def restore_backup(
         set_flash(request, _("Backup file not found."), kind="error")
         return RedirectResponse("/backups", status_code=303)
 
-    result = await apply_new_config(settings, path.read_text())
-    if not result.ok:
-        log_action(session, request, user, "backup_restore_failed", result.output, success=False)
-        set_flash(request, _("Restore failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/backups", status_code=303)
-
-    log_action(session, request, user, "backup_restore", filename)
-    set_flash(
-        request,
-        _("Backup restored (a fresh backup of the prior config was taken first). {service} restarted.", service=get_backend(settings).label),
-    )
-    return RedirectResponse("/backups", status_code=303)
+    message = _("Backup restored (a fresh backup of the prior config was taken first). {service} restarted.", service=get_backend(settings).label)
+    return propose_change(request, settings, user, path.read_text(), "backup_restore", filename, message, "/backups")

@@ -12,8 +12,9 @@ identically whether you got there from the subnet map or a client lookup.
 from __future__ import annotations
 
 import ipaddress
+from collections import defaultdict
 
-from ..dhcpd import DhcpdConfig, Subnet
+from ..dhcpd import DhcpdConfig, Host, Parameter, Subnet
 from ..dhcpd.subnet_interface import get_subnet_interface
 from ..i18n import _
 from ..leases import Lease
@@ -71,6 +72,7 @@ def pool_finding(subnet: Subnet, leases: list[Lease]) -> Finding | None:
             ],
             impact=_("New clients cannot obtain leases on this subnet until an existing lease expires or is freed."),
             actions=[_leases_action("active"), _map_action(subnet)],
+            runtime=True,
         )
 
     if ratio >= HIGH_UTILIZATION_THRESHOLD:
@@ -87,6 +89,7 @@ def pool_finding(subnet: Subnet, leases: list[Lease]) -> Finding | None:
             ],
             impact=_("This subnet is close to exhaustion; new clients may soon be unable to obtain a lease."),
             actions=[_leases_action("active"), _map_action(subnet)],
+            runtime=True,
         )
 
     return None
@@ -109,13 +112,21 @@ def abandoned_leases_finding(subnet: Subnet, leases: list[Lease]) -> Finding | N
         evidence=[Evidence(_("Abandoned addresses"), ", ".join(lease.ip for lease in abandoned))],
         impact=_("Abandoned addresses are excluded from the available pool until manually cleared, reducing effective pool size."),
         actions=[_leases_action("abandoned"), _map_action(subnet)],
+        runtime=True,
     )
 
 
 def range_validity_finding(subnet: Subnet) -> Finding | None:
-    range_value = subnet.get("range")
-    if not range_value:
-        return None
+    """The first malformed `range` of the subnet (a subnet can have several)."""
+    for node in subnet.body:
+        if isinstance(node, Parameter) and node.name == "range":
+            finding = _range_finding(subnet, node.value)
+            if finding:
+                return finding
+    return None
+
+
+def _range_finding(subnet: Subnet, range_value: str) -> Finding | None:
     parts = range_value.split()
     if len(parts) != 2:
         return Finding(
@@ -200,50 +211,60 @@ def overlap_findings(config: DhcpdConfig, subnet: Subnet) -> list[Finding]:
 
 
 def duplicate_reservation_findings(config: DhcpdConfig, subnet: Subnet) -> list[Finding]:
-    all_hosts = config.all_hosts
-    findings = []
-    for host in subnet.hosts:
-        if host.fixed_address:
-            duplicates = [h for h in all_hosts if h.fixed_address == host.fixed_address and h.name != host.name]
-            if duplicates:
-                names = sorted({host.name, *(d.name for d in duplicates)})
-                findings.append(
-                    Finding(
-                        status=Status.CRITICAL,
-                        problem=_("Duplicate reservation IP address"),
-                        root_cause=_("{value} reservations declare the same fixed address ({fixed_address}).", value=len(names), fixed_address=host.fixed_address),
-                        confidence=Confidence.CONFIRMED,
-                        evidence=[Evidence(_("Fixed address"), host.fixed_address), Evidence(_("Reservations"), ", ".join(names))],
-                        impact=_("The DHCP server's behavior is undefined when two reservations claim the same address; the wrong client may receive it, or neither will."),
-                        actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
-                    )
-                )
-        if host.mac:
-            duplicates = [h for h in all_hosts if h.mac == host.mac and h.name != host.name]
-            if duplicates:
-                names = sorted({host.name, *(d.name for d in duplicates)})
-                findings.append(
-                    Finding(
-                        status=Status.CRITICAL,
-                        problem=_("Duplicate reservation MAC address"),
-                        root_cause=_("{value} reservations declare the same hardware address ({mac}).", value=len(names), mac=host.mac),
-                        confidence=Confidence.CONFIRMED,
-                        evidence=[Evidence(_("MAC address"), host.mac), Evidence(_("Reservations"), ", ".join(names))],
-                        impact=_("The DHCP server will only honor one of these reservations for this client; which one is unpredictable."),
-                        actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
-                    )
-                )
+    return _duplicate_findings(subnet.hosts, config.all_hosts)
 
-    # de-duplicate: the loop above can produce the same finding twice (once per host in the pair)
-    seen: set[tuple[str, str]] = set()
-    unique: list[Finding] = []
-    for finding in findings:
-        key = (finding.problem, finding.evidence[0].value if finding.evidence else "")
-        if key in seen:
+
+def _is_deny(host: Host) -> bool:
+    return host.get("deny") == "booting"
+
+
+def _duplicate_findings(hosts: list[Host], all_hosts: list[Host]) -> list[Finding]:
+    # A deny entry shares its MAC with that client's reservation on purpose.
+    names_by_ip: dict[str, set[str]] = defaultdict(set)
+    names_by_mac: dict[str, set[str]] = defaultdict(set)
+    for h in all_hosts:
+        if _is_deny(h):
             continue
-        seen.add(key)
-        unique.append(finding)
-    return unique
+        if h.fixed_address:
+            names_by_ip[h.fixed_address].add(h.name)
+        if h.mac:
+            names_by_mac[h.mac].add(h.name)
+
+    findings = []
+    reported: set[tuple[str, str]] = set()
+    for host in hosts:
+        if _is_deny(host):
+            continue
+        fixed_address, mac = host.fixed_address, host.mac
+        if fixed_address and len(names_by_ip[fixed_address]) > 1 and ("ip", fixed_address) not in reported:
+            reported.add(("ip", fixed_address))
+            names = sorted(names_by_ip[fixed_address])
+            findings.append(
+                Finding(
+                    status=Status.CRITICAL,
+                    problem=_("Duplicate reservation IP address"),
+                    root_cause=_("{value} reservations declare the same fixed address ({fixed_address}).", value=len(names), fixed_address=fixed_address),
+                    confidence=Confidence.CONFIRMED,
+                    evidence=[Evidence(_("Fixed address"), fixed_address), Evidence(_("Reservations"), ", ".join(names))],
+                    impact=_("The DHCP server's behavior is undefined when two reservations claim the same address; the wrong client may receive it, or neither will."),
+                    actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
+                )
+            )
+        if mac and len(names_by_mac[mac]) > 1 and ("mac", mac) not in reported:
+            reported.add(("mac", mac))
+            names = sorted(names_by_mac[mac])
+            findings.append(
+                Finding(
+                    status=Status.CRITICAL,
+                    problem=_("Duplicate reservation MAC address"),
+                    root_cause=_("{value} reservations declare the same hardware address ({mac}).", value=len(names), mac=mac),
+                    confidence=Confidence.CONFIRMED,
+                    evidence=[Evidence(_("MAC address"), mac), Evidence(_("Reservations"), ", ".join(names))],
+                    impact=_("The DHCP server will only honor one of these reservations for this client; which one is unpredictable."),
+                    actions=[Action(_("Edit {name}", name=name), f"/reservations/{name}/edit") for name in names] + [_reservations_action()],
+                )
+            )
+    return findings
 
 
 def invalid_reservation_findings(subnet: Subnet) -> list[Finding]:
@@ -367,3 +388,71 @@ def diagnose_subnet(config: DhcpdConfig, subnet: Subnet, leases: list[Lease], co
         )
 
     return DiagnosticResult(title=_("Subnet {value}", value=_subnet_label(subnet)), target_description=_subnet_label(subnet), findings=findings)
+
+
+def reserved_ip_conflict_findings(config: DhcpdConfig, leases: list[Lease]) -> list[Finding]:
+    """A reserved address that an active lease gives to a different MAC.
+    Observed from the lease file, so it is reported as something to
+    investigate (a stale lease from before the reservation is the usual
+    cause), not as a config fault."""
+    active = {lease.ip: lease for lease in leases if lease.is_active and lease.mac}
+    findings = []
+    for host in config.all_hosts:
+        lease = active.get(host.fixed_address or "")
+        if not (lease and host.mac) or lease.mac.lower() == host.mac.lower():
+            continue
+        findings.append(
+            Finding(
+                status=Status.WARNING,
+                problem=_("Reserved address leased to another device"),
+                root_cause=_("{ip} is reserved for {mac} ('{name}'), but an active lease gives it to {lease_mac}.", ip=lease.ip, mac=host.mac, name=host.name, lease_mac=lease.mac),
+                confidence=Confidence.STRONG,
+                evidence=[
+                    Evidence(_("Fixed address"), lease.ip),
+                    Evidence(_("Reserved for"), host.mac),
+                    Evidence(_("Leased to"), lease.mac),
+                ],
+                impact=_("The reserved device may not get its address until the other lease expires or is deleted."),
+                actions=[
+                    Action(_("Open device {mac}", mac=lease.mac), f"/devices/{lease.mac}"),
+                    Action(_("Open device {mac}", mac=host.mac), f"/devices/{host.mac}"),
+                    Action(_("Edit reservation"), f"/reservations/{host.name}/edit"),
+                ],
+                runtime=True,
+            )
+        )
+    return findings
+
+
+def finding_key(finding: Finding) -> tuple:
+    """Identity of a finding across two scans (before/after a change). An
+    overlap is the same whichever of the two subnets reported it."""
+    values = [e.value for e in finding.evidence]
+    if finding.problem == _("Pool range overlaps another subnet"):
+        values = [values[0], values[2]]
+    return finding.problem, frozenset(values)
+
+
+def scan_config(config: DhcpdConfig, leases: list[Lease], configured_interfaces: list[str]) -> list[Finding]:
+    """Every deterministic anomaly in a whole config, plus clearly marked
+    runtime observations from the leases. No healthy placeholder."""
+    findings: list[Finding] = []
+    for subnet in config.subnets:
+        range_finding = range_validity_finding(subnet)
+        findings.append(range_finding or pool_finding(subnet, leases))
+        findings.append(abandoned_leases_finding(subnet, leases))
+        findings.extend(overlap_findings(config, subnet))
+        findings.extend(invalid_reservation_findings(subnet))
+        findings.append(interface_mismatch_finding(config, subnet, configured_interfaces))
+    findings.extend(_duplicate_findings(config.all_hosts, config.all_hosts))
+    findings.extend(reserved_ip_conflict_findings(config, leases))
+
+    unique: dict[tuple, Finding] = {}
+    for finding in findings:
+        if finding is not None:
+            unique.setdefault(finding_key(finding), finding)
+    return sorted(unique.values(), key=lambda f: (f.runtime, -_rank(f.status)))
+
+
+def _rank(status: Status) -> int:
+    return {Status.CRITICAL: 3, Status.WARNING: 2, Status.UNKNOWN: 1, Status.HEALTHY: 0}[status]

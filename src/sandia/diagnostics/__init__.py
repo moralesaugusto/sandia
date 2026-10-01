@@ -10,7 +10,7 @@ from .models import (
     Status,
 )
 from .server import diagnose_server
-from .subnet import diagnose_subnet
+from .subnet import diagnose_subnet, finding_key, scan_config
 
 __all__ = [
     "Action",
@@ -23,7 +23,9 @@ __all__ = [
     "diagnose_client",
     "diagnose_server",
     "diagnose_subnet",
+    "finding_key",
     "load_dhcp_events",
     "log_source_label",
     "normalize_mac",
+    "scan_config",
 ]

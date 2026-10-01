@@ -7,10 +7,15 @@ from ..config_store import load_live_config
 from ..devices import build_devices
 from ..dhcpd.backend import get_backend, load_current_leases, load_lease_records
 from ..diagnostics import (
+    Confidence,
+    DiagnosticResult,
+    Finding,
+    Status,
     diagnose_client,
     diagnose_server,
     load_dhcp_events,
     log_source_label,
+    scan_config,
 )
 from ..diagnostics.dhcp_log import EVENT_KINDS, DhcpEvent
 from ..i18n import _
@@ -45,6 +50,20 @@ async def server_diagnostics(
     settings: Settings = Depends(get_settings),
 ):
     result = await diagnose_server(settings)
+    return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label=_("Diagnostics"))
+
+
+@router.get("/diagnostics/anomalies")
+async def anomaly_scan(
+    request: Request,
+    user: User = Depends(require_login),
+    settings: Settings = Depends(get_settings),
+):
+    config = load_live_config(settings)
+    findings = scan_config(config, load_current_leases(settings), get_backend(settings).listening_interfaces(settings))
+    if not findings:
+        findings = [Finding(Status.HEALTHY, _("No anomalies found"), "", Confidence.CONFIRMED)]
+    result = DiagnosticResult(title=_("Configuration anomalies"), target_description=str(settings.dhcpd_conf_path), findings=findings)
     return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label=_("Diagnostics"))
 
 

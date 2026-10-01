@@ -255,6 +255,20 @@ enough privilege at the time:
   root); install and reload need write access to `/etc/kea/` and
   `SANDIA_BACKUP_DIR`, plus systemctl or control-socket rights, so they
   need `sudo` in a normal install.
+- **Review before apply**: every config edit (subnets, reservations,
+  global settings, Deny, Kea interfaces, Raw Config, backup restore) first
+  opens a Review page instead of applying. It shows the validation result,
+  a risk level with its reasons (low / needs review / high), the effective
+  DHCP behavior after the change, what changes, the active leases it
+  affects, pool-capacity warnings, anomalies (marked as introduced by the
+  change or already present; lease-based ones are labeled runtime
+  observations), and the diff. Nothing is written until Apply. A change
+  expires after an hour, belongs to the user who made it, and is refused if
+  the live config changed in the meantime.
+- **Rollback window**: for 10 minutes after an apply, operators and admins
+  see a banner with Keep and Roll back. Roll back re-applies the backup
+  taken just before the change, through the same pipeline. Nothing reverts
+  on its own; the offer ends early when the config changes again.
 - **Restart/enable/disable/status**: calls `systemctl <action>
   kea-dhcp4-server` (`SANDIA_SERVICE_NAME`) directly. Restart/enable/disable
   need `sudo`; status usually doesn't.

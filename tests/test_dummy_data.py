@@ -1,4 +1,4 @@
-from conftest import login, make_client
+from conftest import login, make_client, submit
 from sqlmodel import Session, select
 
 from sandia.config import Settings
@@ -93,7 +93,8 @@ def test_dummy_mode_full_ui_flow_without_sudo_or_real_dhcpd(tmp_path):
     assert leases.status_code == 200
     assert b"192.168.50.50" in leases.content
 
-    create = client.post(
+    create = submit(
+        client,
         "/subnets/new",
         data={
             "network": "172.20.0.0",

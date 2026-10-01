@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Review change") }} - Sandia{% endblock %}
+{% block content %}
+{% set status_colors = {"healthy": "emerald", "warning": "amber", "critical": "red", "unknown": "slate"} %}
+{% set risk_colors = {"low": "emerald", "review": "amber", "high": "red"} %}
+{% set risk_labels = {"low": _("Low risk"), "review": _("Needs review"), "high": _("High risk")} %}
+{% set kind_labels = {"added": _("added"), "removed": _("removed"), "modified": _("modified")} %}
+
+<div class="flex items-start justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('diff', 'w-5 h-5 text-slate-500') }} {{ _("Review change") }}</h1>
+    <p class="text-sm text-slate-500">{{ _("Nothing has been applied yet. Check what this change does, then apply or cancel it.") }}</p>
+  </div>
+  {% if impact %}
+  {% set rc = risk_colors[impact.risk] %}
+  <span class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-{{ rc }}-950 text-{{ rc }}-400 border border-{{ rc }}-900">{{ risk_labels[impact.risk] }}</span>
+  {% else %}
+  <span class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-slate-900 text-slate-400 border border-slate-800">{{ _("Risk unknown") }}</span>
+  {% endif %}
+</div>
+
+{% if stale %}
+<div class="rounded-md px-3 py-2 mb-4 text-sm bg-red-950 text-red-300 border border-red-900">{{ _("The live configuration changed after this edit was prepared. Applying it would overwrite that change, so Apply is disabled. Cancel and make the edit again.") }}</div>
+{% endif %}
+
+<div class="mb-4">{% set ok = check_ok %}{% set output = check_output %}{% include "raw_config/_validate_result.html" %}</div>
+
+{% if parse_error %}
+<div class="rounded-md px-3 py-2 mb-4 text-sm bg-amber-950 text-amber-300 border border-amber-900">{{ _("The impact can't be computed because the new configuration can't be read: {error}", error=parse_error) }}</div>
+{% endif %}
+
+{% if impact %}
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <div class="flex items-center gap-2 mb-2">
+    <h2 class="font-semibold">{{ _("Risk summary") }}</h2>
+    {% if ai_enabled %}
+    <button type="button" class="ml-auto flex items-center gap-1.5 text-xs bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 rounded-lg px-2.5 py-1"
+      data-question="{{ _('Review this pending change. Using only the deterministic findings listed, explain its likely operational impact and which items to check first.') }}"
+      onclick="aiAsk(this.dataset.question, {{ change.token | tojson | forceescape }})">{{ icon('chat', 'w-3.5 h-3.5') }} {{ _("Review with AI") }}</button>
+    {% endif %}
+  </div>
+  <ul class="text-sm text-slate-300 list-disc pl-5 space-y-0.5">
+    {% for reason in impact.risk_reasons %}<li>{{ reason }}</li>{% endfor %}
+  </ul>
+</div>
+
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <h2 class="font-semibold mb-2">{{ _("Effective DHCP behavior after the change") }}</h2>
+  <ul class="text-sm text-slate-300 space-y-1">
+    {% for line in impact.summary %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+</div>
+
+{% if not impact.unchanged %}
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-4">
+  <h2 class="font-semibold mb-3">{{ _("What changes") }}</h2>
+  <div class="space-y-4 text-sm">
+    {% for c in impact.subnet_changes %}
+    <div>
+      <div class="font-medium">{% if c.kind != 'removed' %}<a href="/subnets/{{ c.key }}/map" class="text-emerald-400 hover:underline">{{ c.label }}</a>{% else %}{{ c.label }}{% endif %} <span class="text-slate-500">({{ kind_labels[c.kind] }})</span></div>
+      <div class="font-mono text-xs text-slate-400 space-y-0.5 mt-1">
+        {% if c.pools_before != c.pools_after %}
+        <div>{{ _("pools") }}: {{ c.pools_before or "-" }} &rarr; {{ c.pools_after or "-" }}</div>
+        <div>{{ _("capacity") }}: {{ c.capacity_before }} &rarr; {{ c.capacity_after }} ({{ _("{value} leased now", value=c.active) }})</div>
+        {% endif %}
+        {% for v in c.settings %}<div>{{ v.name }}: {{ v.before or "-" }} &rarr; {{ v.after or "-" }}</div>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    {% for title, values in [(_("Global settings"), impact.global_changes), (_("Reservations"), impact.reservation_changes)] %}
+    {% if values %}
+    <div>
+      <div class="font-medium">{{ title }}</div>
+      <div class="font-mono text-xs text-slate-400 space-y-0.5 mt-1">
+        {% for v in values %}<div>{{ v.name }}: {{ v.before or "-" }} &rarr; {{ v.after or "-" }}</div>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if impact.interface_change %}
+    <div>
+      <div class="font-medium">{{ _("Listening interfaces") }}</div>
+      <div class="font-mono text-xs text-slate-400 mt-1">{{ impact.interface_change.before or "-" }} &rarr; {{ impact.interface_change.after or "-" }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if impact.capacity_warnings %}
+<div class="bg-slate-900 border border-amber-900 rounded-xl p-5 mb-4">
+  <h2 class="font-semibold mb-2">{{ _("Pool capacity") }}</h2>
+  <ul class="text-sm text-amber-300 list-disc pl-5 space-y-0.5">
+    {% for warning in impact.capacity_warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if impact.affected_leases %}
+<div class="bg-slate-900 border border-red-900 rounded-xl p-5 mb-4">
+  <div class="flex items-center gap-2 mb-2">
+    <h2 class="font-semibold">{{ _("Active leases affected") }} ({{ impact.affected_leases | length }})</h2>
+    {% if ai_enabled %}
+    <button type="button" class="ml-auto flex items-center gap-1.5 text-xs bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 rounded-lg px-2.5 py-1"
+      data-question="{{ _('Explain the active leases this pending change affects and what their clients will experience.') }}"
+      onclick="aiAsk(this.dataset.question, {{ change.token | tojson | forceescape }})">{{ icon('chat', 'w-3.5 h-3.5') }} {{ _("Explain with AI") }}</button>
+    {% endif %}
+  </div>
+  <table class="w-full text-sm">
+    <tbody class="divide-y divide-slate-800">
+      {% for a in impact.affected_leases %}
+      <tr>
+        <td class="py-1.5 pr-3 font-mono">{% if a.subnet_key %}<a href="/subnets/{{ a.subnet_key }}/map" class="hover:underline">{{ a.ip }}</a>{% else %}{{ a.ip }}{% endif %}</td>
+        <td class="py-1.5 pr-3 font-mono">{% if a.mac %}<a href="/devices/{{ a.mac | urlencode }}" class="text-emerald-400 hover:underline">{{ a.mac }}</a>{% else %}-{% endif %}</td>
+        <td class="py-1.5 pr-3 text-slate-400">{{ a.hostname or "" }}</td>
+        <td class="py-1.5 text-slate-300">{{ a.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if impact.findings %}
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 mt-6">{{ _("Anomalies") }}</h2>
+{% for item in impact.findings %}
+{% set finding = item.finding %}
+{% set fc = status_colors[finding.status.value] %}
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-3">
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="w-2.5 h-2.5 rounded-full bg-{{ fc }}-500 shrink-0"></span>
+    <h3 class="font-medium text-sm">{{ finding.problem }}</h3>
+    {% if item.introduced %}
+    <span class="px-2 py-0.5 rounded-full text-xs bg-red-950 text-red-400">{{ _("introduced by this change") }}</span>
+    {% else %}
+    <span class="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-400">{{ _("already present") }}</span>
+    {% endif %}
+    {% if finding.runtime %}<span class="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-amber-400">{{ _("Runtime observation - needs investigation") }}</span>{% endif %}
+    {% if ai_enabled %}
+    <button type="button" class="ml-auto flex items-center gap-1.5 text-xs bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 rounded-lg px-2.5 py-1"
+      data-question="{{ _('Explain this finding and how to fix it: {problem}. {cause}', problem=finding.problem, cause=finding.root_cause) }}"
+      onclick="aiAsk(this.dataset.question, {{ change.token | tojson | forceescape }})">{{ icon('chat', 'w-3.5 h-3.5') }} {{ _("Explain with AI") }}</button>
+    {% endif %}
+  </div>
+  {% if finding.root_cause %}<div class="text-sm text-slate-300 mt-2">{{ finding.root_cause }}</div>{% endif %}
+  {% if finding.evidence %}
+  <div class="text-xs font-mono text-slate-500 mt-2 space-y-0.5">
+    {% for e in finding.evidence %}<div>{{ e.label }}: <span class="text-slate-300 break-all">{{ e.value }}</span></div>{% endfor %}
+  </div>
+  {% endif %}
+  {% if finding.actions %}
+  <div class="flex flex-wrap gap-2 mt-3">
+    {% for action in finding.actions %}<a href="{{ action.url }}" class="text-xs bg-slate-800 border border-slate-700 hover:border-emerald-500 text-slate-300 rounded-lg px-2.5 py-1">{{ action.label }}</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+{% endif %}
+
+<h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3 mt-6">{{ _("Configuration diff") }}</h2>
+<div class="mb-6">{% include "raw_config/_diff_result.html" %}</div>
+
+<div class="flex gap-3">
+  <form method="post" action="/config/review/{{ change.token }}/apply">{{ csrf_input() }}
+    <button type="submit" {% if stale %}disabled{% endif %} class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed">{{ icon('send', 'w-4 h-4') }} {{ _("Apply") }}</button>
+  </form>
+  <form method="post" action="/config/review/{{ change.token }}/cancel">{{ csrf_input() }}
+    <button type="submit" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-sm font-medium rounded-lg px-4 py-2">{{ _("Cancel") }}</button>
+  </form>
+</div>
+{% endblock %}

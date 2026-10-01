@@ -32,7 +32,9 @@ def test_post_with_invalid_token_is_rejected(admin_client, settings):
 
 def test_post_with_valid_form_field_token_is_accepted(admin_client, settings):
     token = admin_client.headers.pop("X-CSRF-Token")
-    response = admin_client.post("/subnets/new", data={**NEW_SUBNET, "csrf_token": token})
+    review = admin_client.post("/subnets/new", data={**NEW_SUBNET, "csrf_token": token})
+    assert review.status_code == 303
+    response = admin_client.post(f"{review.headers['location']}/apply", data={"csrf_token": token})
     assert response.status_code == 303
     assert "10.9.0.0" in settings.dhcpd_conf_path.read_text()
 

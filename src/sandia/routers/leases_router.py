@@ -12,12 +12,12 @@ from ..config_store import load_live_config
 from ..csv_export import csv_response
 from ..db import get_session
 from ..dhcpd import Host, Parameter
-from ..dhcpd.apply import apply_config
 from ..dhcpd.backend import get_backend, load_current_leases
 from ..i18n import N_, _
 from ..leases import Lease, parse_lease_timestamp
 from ..leases_cleanup import clean_leases_text
 from ..models import User
+from ..pending_changes import propose_config
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
 from ..vendors import lookup_vendor
@@ -227,12 +227,6 @@ async def deny_lease(
     host.body.append(Parameter("deny", "booting"))
     config.nodes.append(host)
 
-    result = await apply_config(settings, config)
-    if not result.ok:
-        log_action(session, request, user, "lease_deny_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/leases", status_code=303)
-
-    log_action(session, request, user, "lease_deny", f"{lease.mac} ({ip})")
-    set_flash(request, _("Client denied. Configuration applied."))
-    return RedirectResponse("/leases", status_code=303)
+    return propose_config(
+        request, session, settings, user, config, "lease_deny", f"{lease.mac} ({ip})", _("Client denied. Configuration applied."), "/leases", "/leases"
+    )

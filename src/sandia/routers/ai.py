@@ -14,11 +14,16 @@ from ..ai import (
     system_prompt,
 )
 from ..audit import log_action
+from ..change_impact import impact_as_text
 from ..config import Settings, get_settings
 from ..db import get_session
-from ..dhcpd.backend import get_backend
+from ..dhcpd import ParseError
+from ..dhcpd.backend import get_backend, live_config_text
+from ..diff import unified_diff_lines
 from ..i18n import _
 from ..models import User
+from ..pending_changes import assess
+from ..pending_changes import load as load_pending
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
 
@@ -27,6 +32,21 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     messages: list
+    review_token: str | None = None
+
+
+def _review_text(settings: Settings, token: str | None, user: User) -> str | None:
+    if not token:
+        return None
+    change = load_pending(settings, token, user)
+    if change is None:
+        return "(The pending change is no longer available; it was applied, cancelled or expired.)"
+    try:
+        return impact_as_text(assess(settings, change)) + "\n\nDiff:\n" + "\n".join(
+            unified_diff_lines(get_backend(settings).raw_text(live_config_text(settings) or ""), change.text, get_backend(settings).backup_prefix)
+        )
+    except ParseError as exc:
+        return f"(The impact could not be computed: {exc})"
 
 
 @router.get("/settings/ai")
@@ -100,6 +120,6 @@ async def ai_chat(
     if not history:
         return PlainTextResponse(_("No question to answer."), status_code=400)
 
-    context = await build_context(settings)
+    context = await build_context(settings, _review_text(settings, body.review_token, user))
     messages = [{"role": "system", "content": f"{system_prompt(get_backend(settings).label)}\n\n{context}"}, *history]
     return StreamingResponse(chat_stream(ai.ollama_url, ai.model, messages), media_type="text/plain; charset=utf-8")

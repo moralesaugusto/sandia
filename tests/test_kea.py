@@ -7,7 +7,7 @@ import threading
 from pathlib import Path
 
 import pytest
-from conftest import login, make_client
+from conftest import login, make_client, submit
 
 from sandia.config import JOURNAL, Settings
 from sandia.dhcpd import apply as apply_module
@@ -398,7 +398,8 @@ def test_map_menu_offers_write_actions(admin_client):
 def test_subnet_lifecycle_writes_kea_json_and_keeps_comments(admin_client, settings):
     page = _flash_after(
         admin_client,
-        admin_client.post(
+        submit(
+            admin_client,
             "/subnets/new",
             data={
                 "network": "10.20.0.0", "netmask": "255.255.255.0", "range_start": "10.20.0.100", "range_end": "10.20.0.200",
@@ -417,12 +418,12 @@ def test_subnet_lifecycle_writes_kea_json_and_keeps_comments(admin_client, setti
 
     key = "10.20.0.0_255.255.255.0"
     assert admin_client.get(f"/subnets/{key}/edit").status_code == 200
-    admin_client.post(f"/subnets/{key}/edit", data={"range_start": "10.20.0.50", "range_end": "10.20.0.60", "interface": ""})
+    submit(admin_client, f"/subnets/{key}/edit", data={"range_start": "10.20.0.50", "range_end": "10.20.0.60", "interface": ""})
     entry = _subnet_entry(settings, "10.20.0.0/24")
     assert entry["pools"] == [{"pool": "10.20.0.50 - 10.20.0.60"}]
     assert "interface" not in entry and "valid-lifetime" not in entry and "option-data" in entry
 
-    admin_client.post(f"/subnets/{key}/delete")
+    submit(admin_client, f"/subnets/{key}/delete")
     assert all(entry["subnet"] != "10.20.0.0/24" for entry in _kea_config(settings)["subnet4"])
 
 
@@ -431,7 +432,7 @@ def test_editing_a_subnet_keeps_unmanaged_keys_and_pools(admin_client, settings)
     text = text.replace('[ { "pool": "192.0.2.100 - 192.0.2.199" } ]', '[ { "pool": "192.0.2.100 - 192.0.2.199" }, { "pool": "192.0.2.210 - 192.0.2.219", "client-class": "lab" } ]')
     settings.dhcpd_conf_path.write_text(text)
 
-    admin_client.post(f"/subnets/{SUBNET_KEY}/edit", data={"range_start": "192.0.2.100", "range_end": "192.0.2.199", "routers": "192.0.2.254"})
+    submit(admin_client, f"/subnets/{SUBNET_KEY}/edit", data={"range_start": "192.0.2.100", "range_end": "192.0.2.199", "routers": "192.0.2.254"})
 
     entry = _subnet_entry(settings, "192.0.2.0/24")
     assert entry["relay"] == {"ip-addresses": ["192.0.2.254"]}
@@ -440,7 +441,8 @@ def test_editing_a_subnet_keeps_unmanaged_keys_and_pools(admin_client, settings)
 
 
 def test_extra_options_become_option_data_and_other_statements_are_refused(admin_client, settings):
-    admin_client.post(
+    submit(
+        admin_client,
         f"/subnets/{SUBNET_KEY}/edit",
         data={"range_start": "192.0.2.100", "range_end": "192.0.2.199", "routers": "192.0.2.1", "extra_options": "option domain-search example.com;"},
     )
@@ -449,7 +451,7 @@ def test_extra_options_become_option_data_and_other_statements_are_refused(admin
     before = settings.dhcpd_conf_path.read_text()
     page = _flash_after(
         admin_client,
-        admin_client.post(f"/subnets/{SUBNET_KEY}/edit", data={"range_start": "192.0.2.100", "range_end": "192.0.2.199", "extra_options": "allow unknown-clients;"}),
+        submit(admin_client, f"/subnets/{SUBNET_KEY}/edit", data={"range_start": "192.0.2.100", "range_end": "192.0.2.199", "extra_options": "allow unknown-clients;"}),
     )
     assert "Raw Config" in page
     assert settings.dhcpd_conf_path.read_text() == before
@@ -458,7 +460,8 @@ def test_extra_options_become_option_data_and_other_statements_are_refused(admin
 def test_reservation_lifecycle(admin_client, settings):
     page = _flash_after(
         admin_client,
-        admin_client.post(
+        submit(
+            admin_client,
             "/reservations/new",
             data={"name": "laptop", "mac": "ac:de:48:22:33:44", "fixed_address": "192.0.2.60", "subnet_key": SUBNET_KEY, "client_hostname": "laptop-host"},
         ),
@@ -468,14 +471,14 @@ def test_reservation_lifecycle(admin_client, settings):
     assert (laptop["hw-address"], laptop["ip-address"]) == ("ac:de:48:22:33:44", "192.0.2.60")
     assert laptop["option-data"] == [{"name": "host-name", "data": "laptop-host"}]
 
-    admin_client.post("/reservations/printer/edit", data={"mac": "b8:27:eb:12:34:56", "fixed_address": "192.0.2.52", "next_server": "192.0.2.5", "boot_filename": "pxelinux.0"})
+    submit(admin_client, "/reservations/printer/edit", data={"mac": "b8:27:eb:12:34:56", "fixed_address": "192.0.2.52", "next_server": "192.0.2.5", "boot_filename": "pxelinux.0"})
     printer = next(r for r in _subnet_entry(settings, "192.0.2.0/24")["reservations"] if r.get("hostname") == "printer")
     assert printer["ip-address"] == "192.0.2.52"
     assert (printer["next-server"], printer["boot-file-name"]) == ("192.0.2.5", "pxelinux.0")
     assert printer["user-context"] == {"url": "http://printer/"}  # not modeled, kept
 
-    admin_client.post("/reservations/laptop/delete")
-    admin_client.post("/reservations/bulk-delete", data={"names": ["printer", "global-host"]})
+    submit(admin_client, "/reservations/laptop/delete")
+    submit(admin_client, "/reservations/bulk-delete", data={"names": ["printer", "global-host"]})
     config = _kea_config(settings)
     assert [r.get("client-id") for r in config["subnet4"][0]["reservations"]] == ["01:11:22:33:44:55:66"]
     assert config["reservations"] == []
@@ -485,7 +488,8 @@ def test_global_settings_map_to_kea_globals(admin_client, settings):
     assert admin_client.get("/settings").status_code == 200
     page = _flash_after(
         admin_client,
-        admin_client.post(
+        submit(
+            admin_client,
             "/settings",
             data={"authoritative": "true", "default_lease_time": "900", "max_lease_time": "7200", "domain_name": "example.test", "domain_name_servers": "192.0.2.53, 192.0.2.54"},
         ),
@@ -496,24 +500,24 @@ def test_global_settings_map_to_kea_globals(admin_client, settings):
     assert {"name": "domain-name", "data": "example.test"} in config["option-data"]
     assert {"name": "domain-name-servers", "data": "192.0.2.53, 192.0.2.54"} in config["option-data"]
 
-    admin_client.post("/settings", data={"default_lease_time": "900", "max_lease_time": "7200"})
+    submit(admin_client, "/settings", data={"default_lease_time": "900", "max_lease_time": "7200"})
     assert "authoritative" not in _kea_config(settings)
 
 
 def test_deny_client_uses_the_drop_class(admin_client, settings):
-    page = _flash_after(admin_client, admin_client.post("/leases/192.0.2.100/deny"))
+    page = _flash_after(admin_client, submit(admin_client, "/leases/192.0.2.100/deny"))
     assert "Client denied. Configuration applied." in page
     assert _kea_config(settings)["client-classes"] == [{"name": "DROP", "test": "pkt4.mac == 0xacde48223344"}]
     assert "Client denied" in admin_client.get(f"/subnets/{SUBNET_KEY}/map/192.0.2.100/menu").text
 
-    admin_client.post("/reservations/deny-acde48223344/delete")
+    submit(admin_client, "/reservations/deny-acde48223344/delete")
     assert _kea_config(settings)["client-classes"] == []
 
 
 def test_deny_rejects_a_mac_that_is_not_a_mac(admin_client, settings):
-    admin_client.post("/leases/192.0.2.100/deny")
+    submit(admin_client, "/leases/192.0.2.100/deny")
     before = settings.dhcpd_conf_path.read_text()
-    page = _flash_after(admin_client, admin_client.post("/reservations/deny-acde48223344/edit", data={"mac": "aa or true", "fixed_address": "192.0.2.99"}))
+    page = _flash_after(admin_client, submit(admin_client, "/reservations/deny-acde48223344/edit", data={"mac": "aa or true", "fixed_address": "192.0.2.99"}))
     assert "is not a MAC address" in page
     assert settings.dhcpd_conf_path.read_text() == before
 
@@ -522,7 +526,7 @@ def test_hand_written_drop_class_is_left_alone(admin_client, settings):
     text = settings.dhcpd_conf_path.read_text().replace('"valid-lifetime": 3600,', '"valid-lifetime": 3600, "client-classes": [ { "name": "DROP", "test": "substring(option[60].hex,0,4) == \'evil\'" } ],')
     settings.dhcpd_conf_path.write_text(text)
 
-    page = _flash_after(admin_client, admin_client.post("/leases/192.0.2.100/deny"))
+    page = _flash_after(admin_client, submit(admin_client, "/leases/192.0.2.100/deny"))
 
     assert "hand-written DROP class" in page
     assert settings.dhcpd_conf_path.read_text() == text
@@ -530,7 +534,7 @@ def test_hand_written_drop_class_is_left_alone(admin_client, settings):
 
 def test_interfaces_editor_applies_kea_interfaces(admin_client, settings):
     assert "Dhcp4.interfaces-config.interfaces" in admin_client.get("/interfaces").text
-    page = _flash_after(admin_client, admin_client.post("/interfaces", data={"interfaces": "eth0, eth1"}))
+    page = _flash_after(admin_client, submit(admin_client, "/interfaces", data={"interfaces": "eth0, eth1"}))
     assert "Interfaces updated. Configuration applied." in page
     assert _kea_config(settings)["interfaces-config"]["interfaces"] == ["eth0", "eth1"]
     assert "// Sample kea-dhcp4.conf for tests" in settings.dhcpd_conf_path.read_text()
@@ -641,7 +645,7 @@ def test_raw_config_shows_file_verbatim_and_applies(admin_client, settings):
     assert "kea-dhcp4.conf" in diff and "eth1" in diff
     assert "test double" not in admin_client.post("/config/raw/validate", data={"text": new_text}).text
 
-    response = admin_client.post("/config/raw/apply", data={"text": new_text})
+    response = submit(admin_client, "/config/raw/apply", data={"text": new_text})
 
     assert response.status_code == 303
     assert settings.dhcpd_conf_path.read_text() == new_text
@@ -649,7 +653,7 @@ def test_raw_config_shows_file_verbatim_and_applies(admin_client, settings):
 
 
 def test_raw_config_rejects_invalid_kea_json(admin_client, settings):
-    response = admin_client.post("/config/raw/apply", data={"text": '{"Dhcp4": {'})
+    response = submit(admin_client, "/config/raw/apply", data={"text": '{"Dhcp4": {'})
     assert response.status_code == 303
     assert settings.dhcpd_conf_path.read_text() == KEA_CONF.read_text()
 

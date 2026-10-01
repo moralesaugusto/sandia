@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
-from sqlmodel import Session
 
-from ..audit import log_action
 from ..config import Settings, get_settings
-from ..db import get_session
-from ..dhcpd.apply import apply_new_config, check_config, stage
+from ..dhcpd.apply import check_config, stage
 from ..dhcpd.backend import get_backend, live_config_text
 from ..diff import unified_diff_lines
 from ..i18n import _
 from ..models import User
-from ..rendering import render, set_flash
+from ..pending_changes import propose_change
+from ..rendering import render
 from ..security import require_login, require_role
 
 router = APIRouter()
@@ -63,16 +60,8 @@ async def raw_config_diff(
 async def raw_config_apply(
     request: Request,
     user: User = Depends(require_role("operator")),
-    session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
     text: str = Form(...),
 ):
-    result = await apply_new_config(settings, text)
-    if not result.ok:
-        log_action(session, request, user, "raw_config_apply_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/config/raw", status_code=303)
-
-    log_action(session, request, user, "raw_config_apply", "applied raw config edit")
-    set_flash(request, _("Configuration applied. {service} restarted.", service=get_backend(settings).label))
-    return RedirectResponse("/config/raw", status_code=303)
+    message = _("Configuration applied. {service} restarted.", service=get_backend(settings).label)
+    return propose_change(request, settings, user, text, "raw_config_apply", "applied raw config edit", message, "/config/raw")

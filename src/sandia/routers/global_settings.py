@@ -1,16 +1,14 @@
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
-from ..audit import log_action
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..dhcpd import Parameter
-from ..dhcpd.apply import apply_config
 from ..i18n import _
 from ..models import User
-from ..rendering import render, set_flash
+from ..pending_changes import propose_config
+from ..rendering import render
 from ..security import require_role
 
 router = APIRouter()
@@ -67,12 +65,6 @@ async def settings_submit(
     if ntp_servers:
         config.set("ntp-servers", ntp_servers, as_option=True)
 
-    result = await apply_config(settings, config)
-    if not result.ok:
-        log_action(session, request, user, "global_settings_update_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse("/settings", status_code=303)
-
-    log_action(session, request, user, "global_settings_update", "updated global DHCP settings")
-    set_flash(request, _("Global settings applied."))
-    return RedirectResponse("/settings", status_code=303)
+    return propose_config(
+        request, session, settings, user, config, "global_settings_update", "updated global DHCP settings", _("Global settings applied."), "/settings", "/settings"
+    )

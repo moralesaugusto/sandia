@@ -324,3 +324,50 @@ service's journal (`journalctl -u`). Log lines are normalized into the same
 `DhcpEvent` shape, with syslog-style timestamps, so the Event Log and Wall of
 Shame don't know the source. Fields Kea doesn't log (hostname, interface)
 stay `None`.
+
+## Every config edit goes through a Review page (1.4.6)
+
+Editors no longer apply on submit: they render the new config text, store it
+as a pending change (`data_dir/pending/<token>.json`, one hour, owner only)
+and redirect to `/config/review/<token>`. One page serves every editor, Raw
+Config and backup restore, so impact preview isn't reimplemented per form.
+The pending change records the sha256 of the live file it was based on;
+Apply is refused if the file changed since, rather than overwriting someone
+else's edit. Files instead of the session, because a full config can exceed
+a cookie and a pending change should survive a restart.
+
+The impact is computed from the live and proposed configs, both parsed into
+the shared model, and the current leases (`change_impact.py`). The risk
+level is a fixed rule over those results (high: an introduced critical
+anomaly, affected active leases, or pools smaller than their active leases;
+review: changes to existing subnets, options, interfaces or reservations,
+or an introduced warning; low: additions only, or no effective change), so
+the same change always gets the same rating.
+
+Anomalies are the existing deterministic subnet checks run over the whole
+config (`diagnostics.scan_config`) on both sides of the change, matched by
+problem and evidence so each is labeled introduced or already present.
+Findings derived from leases (pool exhaustion, abandoned addresses, a
+reserved address leased to another MAC) carry `runtime=True` and are shown
+as observations needing investigation, never as confirmed config faults.
+
+## Rollback is an offer, not a timer (1.4.6)
+
+After an apply, `data_dir/last-apply.json` records the backup taken just
+before it. For 10 minutes, while the live file still matches what was
+installed, operators see Keep / Roll back. Roll back re-applies that backup
+through the normal pipeline. There is no automatic revert: it would need a
+background task that survives restarts, and a DHCP change rarely cuts the
+admin off from the web UI the way a firewall change can.
+
+## The AI explains findings, the rules decide them (1.4.6)
+
+"Explain with AI" and "Review with AI" send the pending change's impact
+report (the same deterministic data the Review page shows, plus the diff)
+to the read-only assistant. The system prompt makes the listed findings
+authoritative (no adding, dismissing or downgrading) and marks config text,
+comments, hostnames, leases and logs as untrusted data between `<<<DATA`
+and `DATA>>>` delimiters. Input is bounded (question length, config, impact
+and log caps) and so is output (`num_predict`). The assistant still has no
+tools and cannot apply anything.
+

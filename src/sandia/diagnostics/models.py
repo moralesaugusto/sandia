@@ -69,6 +69,10 @@ class Finding:
     evidence: list[Evidence] = field(default_factory=list)
     impact: str = ""
     actions: list[Action] = field(default_factory=list)
+    # True for an observation from runtime data (leases, log) rather than a
+    # config inconsistency - shown as needing investigation, never as a
+    # confirmed configuration fault.
+    runtime: bool = False
 
 
 @dataclass
