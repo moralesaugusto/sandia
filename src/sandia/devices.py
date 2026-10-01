@@ -130,7 +130,7 @@ def _lease_status_detail(lease: Lease, now: datetime) -> str:
         return _("Active - lease state active")
     if ends > now:
         return _("Active - lease expires in {delta}", delta=_format_delta(ends - now))
-    return _("Active - lease expired {delta} ago (dhcpd has not updated its state yet)", delta=_format_delta(now - ends))
+    return _("Active - lease expired {delta} ago (the DHCP server has not updated its state yet)", delta=_format_delta(now - ends))
 
 
 def _build_status(

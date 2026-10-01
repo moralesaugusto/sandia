@@ -3,7 +3,7 @@
 {% block content %}
 <div class="mb-6">
   <h1 class="text-xl font-semibold flex items-center gap-2">{{ icon('diagnose', 'w-5 h-5 text-slate-500') }} {{ _("DHCP Event Log") }}</h1>
-  <p class="text-sm text-slate-500 mt-1">{{ _("dhcpd protocol activity parsed from {path}, newest first. Right-click an event with a MAC for device actions.", path=log_path) }}</p>
+  <p class="text-sm text-slate-500 mt-1">{{ _("DHCP protocol activity parsed from {path}, newest first. Right-click an event with a MAC for device actions.", path=log_path) }}</p>
 </div>
 
 <form
@@ -27,7 +27,7 @@
   <select name="kind" class="rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
     <option value="">{{ _("All events") }}</option>
     {% for value in kinds %}
-    <option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ _('Other dhcpd messages') if value == 'OTHER' else value }}</option>
+    <option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ _('Other server messages') if value == 'OTHER' else value }}</option>
     {% endfor %}
   </select>
 </form>

@@ -66,7 +66,7 @@ def test_dhcpnak_is_detected_as_critical_root_cause():
 
     assert result.status == Status.CRITICAL
     finding = result.findings[0]
-    assert finding.problem == "dhcpd sent DHCPNAK"
+    assert finding.problem == "The DHCP server sent DHCPNAK"
     assert finding.root_cause == "wrong network segment"
     assert finding.confidence == Confidence.CONFIRMED
 

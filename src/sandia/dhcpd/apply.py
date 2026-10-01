@@ -8,6 +8,10 @@ from datetime import datetime
 from pathlib import Path
 
 from ..config import Settings
+from .ast import DhcpdConfig
+from .backend import get_backend, live_config_text
+from .kea_ctrl import KeaControlError, send_command
+from .parser import ParseError
 
 
 @dataclass
@@ -46,9 +50,10 @@ async def stage(settings: Settings, new_text: str) -> None:
 
 
 async def check_config(settings: Settings) -> CommandResult:
+    backend = get_backend(settings)
     if settings.dummy_data:
-        return CommandResult(ok=True, stdout="dummy mode: skipping dhcpd -t", stderr="")
-    return await _run("dhcpd", "-t", "-cf", str(settings.staging_path))
+        return CommandResult(ok=True, stdout=f"dummy mode: skipping {backend.validator} -t", stderr="")
+    return await _run(*backend.check_args(settings.staging_path))
 
 
 async def check_live_config(settings: Settings) -> CommandResult:
@@ -56,11 +61,12 @@ async def check_live_config(settings: Settings) -> CommandResult:
     check_config(), this never touches the staging file, so it's safe to
     call from diagnostics without disturbing an in-progress raw-config
     edit the user may have staged but not applied yet."""
+    backend = get_backend(settings)
     if settings.dummy_data:
-        return CommandResult(ok=True, stdout="dummy mode: skipping dhcpd -t", stderr="")
+        return CommandResult(ok=True, stdout=f"dummy mode: skipping {backend.validator} -t", stderr="")
     if not settings.dhcpd_conf_path.exists():
         return CommandResult(ok=False, stdout="", stderr=f"{settings.dhcpd_conf_path} does not exist")
-    return await _run("dhcpd", "-t", "-cf", str(settings.dhcpd_conf_path))
+    return await _run(*backend.check_args(settings.dhcpd_conf_path))
 
 
 def _replace_atomically(source: Path, target: Path) -> None:
@@ -85,7 +91,7 @@ async def install_config(settings: Settings) -> tuple[CommandResult, Path | None
         settings.backup_dir.mkdir(parents=True, exist_ok=True)
         if settings.dhcpd_conf_path.exists():
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
-            backup = settings.backup_dir / f"dhcpd.conf.{stamp}"
+            backup = settings.backup_dir / f"{get_backend(settings).backup_prefix}.{stamp}"
             shutil.copyfile(settings.dhcpd_conf_path, backup)
         settings.dhcpd_conf_path.parent.mkdir(parents=True, exist_ok=True)
         _replace_atomically(settings.staging_path, settings.dhcpd_conf_path)
@@ -94,10 +100,28 @@ async def install_config(settings: Settings) -> tuple[CommandResult, Path | None
     return CommandResult(ok=True, stdout="installed", stderr=""), backup
 
 
+def _can_reload(settings: Settings) -> bool:
+    return get_backend(settings).name == "kea" and not settings.dummy_data and settings.kea_control_socket.exists()
+
+
+async def _reload_kea(settings: Settings) -> CommandResult:
+    """config-reload: Kea re-reads its config file without a restart. If the
+    new config is rejected Kea keeps serving with the old one."""
+    try:
+        response = await send_command(settings.kea_control_socket, "config-reload")
+    except KeaControlError as exc:
+        return CommandResult(ok=False, stdout="", stderr=str(exc))
+    text = str(response.get("text", ""))
+    if response.get("result") == 0:
+        return CommandResult(ok=True, stdout=text, stderr="")
+    return CommandResult(ok=False, stdout="", stderr=text or f"config-reload failed (result {response.get('result')})")
+
+
 async def _restart_and_verify(settings: Settings) -> str | None:
-    """Restart the service and confirm it's running. Returns None on
-    success, otherwise the reason it failed."""
-    restarted = await restart_service(settings)
+    """Make the service load the installed config - config-reload over the
+    Kea control socket when one is configured, else a restart - and confirm
+    it's running. Returns None on success, otherwise the reason it failed."""
+    restarted = await (_reload_kea(settings) if _can_reload(settings) else restart_service(settings))
     if not restarted.ok:
         return (restarted.stderr or restarted.stdout).strip() or "systemctl restart failed"
     status = await service_status(settings)
@@ -121,9 +145,11 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
     if not installed.ok:
         return ApplyResult(ok=False, stage="apply", output=installed.stderr or installed.stdout)
 
+    reloaded = _can_reload(settings)
     failure = await _restart_and_verify(settings)
     if failure is None:
-        return ApplyResult(ok=True, stage="", output=f"installed; {settings.service_name} restarted")
+        action = "reloaded its configuration" if reloaded else "restarted"
+        return ApplyResult(ok=True, stage="", output=f"installed; {settings.service_name} {action}")
 
     if backup is None:
         return ApplyResult(
@@ -141,6 +167,17 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
     else:
         rollback = f"Rolled back to the previous config ({backup.name}), but the service still failed: {rollback_failure}"
     return ApplyResult(ok=False, stage="restart", output=f"{failure}\n{rollback}")
+
+
+async def apply_config(settings: Settings, config: DhcpdConfig) -> ApplyResult:
+    """Apply an edited config model: render it in the backend's own format
+    (dhcpd.conf, or a minimal patch of kea-dhcp4.conf), then run the same
+    validate/install/verify pipeline as a raw edit."""
+    try:
+        text = get_backend(settings).render_config(live_config_text(settings) or "", config)
+    except (ParseError, ValueError) as exc:
+        return ApplyResult(ok=False, stage="check", output=str(exc))
+    return await apply_new_config(settings, text)
 
 
 async def restart_service(settings: Settings) -> CommandResult:

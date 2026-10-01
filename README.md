@@ -6,7 +6,7 @@
 
 **S**omehow, **A**nother **N**etwork **D**HCP **I**s **A**live.
 
-A modern web console for **ISC isc-dhcp-server**: see every device, every lease and every address at a glance, find out *why* a client didn't get an IP, ask a built-in AI assistant about your network, and change the config without ever taking the server down.
+A modern web console for **Kea DHCPv4**: see every device, every lease and every address at a glance, find out *why* a client didn't get an IP, ask a built-in AI assistant about your network, and change the config without ever taking the server down.
 
 [![Release](https://img.shields.io/github/v/release/moralesaugusto/sandia?color=e11d48&label=release)](https://github.com/moralesaugusto/sandia/releases)
 [![Python](https://img.shields.io/badge/python-3.13%2B-3776ab)](pyproject.toml)
@@ -20,11 +20,11 @@ A modern web console for **ISC isc-dhcp-server**: see every device, every lease 
 
 ---
 
-*Sandia* is Spanish for watermelon, and the logo and colors run with it. Under the rind it is a single, self-hosted Python app that reads the same files dhcpd does (`dhcpd.conf`, `dhcpd.leases`, the DHCP log), so it shows the real state of your network with no agents, no extra database server and no frontend build.
+*Sandia* is Spanish for watermelon, and the logo and colors run with it. Under the rind it is a single, self-hosted Python app that reads the same data Kea does (`kea-dhcp4.conf`, the lease file, the DHCP log), so it shows the real state of your network with no agents, no extra database server and no frontend build.
 
 ## Ask your DHCP server questions
 
-Sandia includes an **AI assistant** that you connect to your own [Ollama](https://ollama.com) server. It opens as a floating, draggable chat window on every page (the screenshot above), and answers in plain language using your live data: the service status, `dhcpd.conf`, active leases and the recent DHCP log.
+Sandia includes an **AI assistant** that you connect to your own [Ollama](https://ollama.com) server. It opens as a floating, draggable chat window on every page (the screenshot above), and answers in plain language using your live data: the service status, `kea-dhcp4.conf`, active leases and the recent DHCP log.
 
 > *How full is the DHCP pool, and is anything wrong with the server?*
 > *Which devices have static reservations?*
@@ -101,11 +101,12 @@ Switch language and theme from any page; the choice is saved on your account. Ac
 
 ## What you get
 
-- **Safe config changes.** Every change is staged, validated with `dhcpd -t`, diffed, backed up, installed atomically, then isc-dhcp-server is restarted and checked. If it doesn't come back up, the previous config is restored automatically.
+- **Safe config changes.** Every change is staged, validated with `kea-dhcp4 -t`, diffed, backed up, installed atomically, then Kea reloads it and is checked. If it doesn't come back up, the previous config is restored automatically. Edits change only what you changed in `kea-dhcp4.conf` - comments and settings Sandia doesn't manage are kept.
 - **Right-click everywhere.** Leases, subnet map cells, reservations and devices all have context menus that offer only the actions that apply to that object.
 - **Reservations and subnets** without hand-editing: pool ranges, routers, DNS, NTP, PXE boot options, interface tags, bulk delete, and a raw editor for everything else.
 - **AI assistant (optional).** Plug in your own Ollama server and ask questions about your config, leases and logs from any page. See [Ask your DHCP server questions](#ask-your-dhcp-server-questions).
-- **DHCP Event Log and Wall of Shame.** Browse parsed dhcpd log events, and see the devices causing the most DHCPNAKs, IP changes and abandoned leases.
+- **DHCP Event Log and Wall of Shame.** Browse parsed DHCP log events, and see the devices causing the most DHCPNAKs, IP changes and abandoned leases.
+- **Kea first.** Kea DHCPv4 is the supported server. isc-dhcp-server still works with `SANDIA_DHCP_BACKEND=isc` but is no longer supported - see [migrating](INSTRUCTIONS.md#migrating-from-isc-dhcp-server).
 - **Built for admins.** Role-based access (admin / operator / viewer), an audit log of every change, login rate limiting, and HTTPS by default with an auto-generated certificate.
 
 ## Quick start
@@ -119,7 +120,7 @@ uv sync
 uv run sandia --dummy        # try it with realistic demo data, no root needed
 ```
 
-Open `https://localhost:7001` and sign in with `admin` / `admin` (dummy mode only; a real install generates a random admin password on first start, prints it, and saves it to `<data dir>/initial-admin-password`). To manage a real server, run it with enough privilege to edit `/etc/dhcp/dhcpd.conf` and control the service:
+Open `https://localhost:7001` and sign in with `admin` / `admin` (dummy mode only; a real install generates a random admin password on first start, prints it, and saves it to `<data dir>/initial-admin-password`). To manage a real server, run it with enough privilege to edit `/etc/kea/kea-dhcp4.conf` and control the service:
 
 ```bash
 sudo .venv/bin/sandia

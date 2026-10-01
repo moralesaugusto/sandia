@@ -5,10 +5,15 @@ from fastapi import APIRouter, Depends, Request
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..devices import build_devices
-from ..diagnostics import diagnose_client, diagnose_server, load_dhcp_events
+from ..dhcpd.backend import get_backend, load_current_leases, load_lease_records
+from ..diagnostics import (
+    diagnose_client,
+    diagnose_server,
+    load_dhcp_events,
+    log_source_label,
+)
 from ..diagnostics.dhcp_log import EVENT_KINDS, DhcpEvent
 from ..i18n import _
-from ..leases import load_lease_history, load_leases
 from ..models import User
 from ..rendering import render
 from ..security import require_login
@@ -54,8 +59,8 @@ async def wall_of_shame_page(
         window = DEFAULT_WINDOW
 
     config = load_live_config(settings)
-    current_leases = load_leases(settings.leases_path)
-    lease_history = load_lease_history(settings.leases_path)
+    current_leases = load_current_leases(settings)
+    lease_history = load_lease_records(settings)
     events, log_unavailable = load_dhcp_events(settings)
     devices = build_devices(config, current_leases, lease_history, events)
     now = datetime.now()
@@ -106,7 +111,7 @@ def _events_context(settings: Settings, kind: str, q: str) -> dict:
         "total": len(matched),
         "max_rows": MAX_EVENT_ROWS,
         "log_unavailable": log_unavailable,
-        "log_path": settings.dhcp_log_path,
+        "log_path": log_source_label(settings),
     }
 
 
@@ -150,7 +155,7 @@ async def client_diagnostics(
     hostname: str = "",
 ):
     config = load_live_config(settings)
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     events, log_unavailable = load_dhcp_events(settings)
 
     result = diagnose_client(
@@ -161,5 +166,6 @@ async def client_diagnostics(
         mac=mac or None,
         ip=ip or None,
         hostname=hostname or None,
+        logs_requests=get_backend(settings).logs_requests,
     )
     return render(request, "diagnostics/result.html", user=user, result=result, back_url="/diagnostics", back_label=_("Diagnostics"))

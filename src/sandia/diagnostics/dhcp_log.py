@@ -18,10 +18,12 @@ instead of a crash or a silently empty result, so diagnostics can say
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..config import Settings
+from ..config import JOURNAL, Settings
+from ..dhcpd.backend import get_backend
 
 # Only the tail matters for diagnostics, and a system syslog can be huge
 # (and full of unrelated services' lines) - cap how much we ever read.
@@ -110,6 +112,34 @@ def _tail(path: Path, max_bytes: int) -> str:
     return data.decode("utf-8", errors="replace")
 
 
+# Roughly MAX_LOG_BYTES worth of typical log lines.
+JOURNAL_LINES = 20_000
+
+
+def _read_journal(settings: Settings) -> tuple[str, str | None]:
+    """The service's recent journal entries in syslog-style "short" format,
+    which both log parsers accept."""
+    try:
+        result = subprocess.run(
+            ["journalctl", "--unit", settings.service_name, "--output", "short", "--no-pager", "--lines", str(JOURNAL_LINES)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return "", f"Could not read the systemd journal: {exc}"
+    if result.returncode != 0:
+        return "", f"journalctl failed: {result.stderr.strip() or result.returncode}"
+    return result.stdout[-MAX_LOG_BYTES:], None
+
+
+def log_source_label(settings: Settings) -> str:
+    if settings.dhcp_log_path == JOURNAL and not settings.dummy_data:
+        return f"systemd journal ({settings.service_name})"
+    return str(settings.dhcp_log_path)
+
+
 def load_dhcp_events(settings: Settings) -> tuple[list[DhcpEvent], str | None]:
     """Returns (events, unavailable_reason). unavailable_reason is None on
     success (even if there happen to be zero matching events); otherwise
@@ -117,13 +147,16 @@ def load_dhcp_events(settings: Settings) -> tuple[list[DhcpEvent], str | None]:
     rather than silently treating "couldn't read the log" the same as "log
     says nothing happened"."""
     path = settings.dhcp_log_path
+    if path == JOURNAL and not settings.dummy_data:
+        text, unavailable = _read_journal(settings)
+        return ([], unavailable) if unavailable else (get_backend(settings).parse_log(text), None)
     if not path.exists():
         return [], f"DHCP log not found at {path}"
     try:
         text = _tail(path, MAX_LOG_BYTES)
     except OSError as exc:
         return [], f"DHCP log not readable: {exc}"
-    return parse_dhcp_log(text), None
+    return get_backend(settings).parse_log(text), None
 
 
 def matches(event: DhcpEvent, mac: str | None, ip: str | None) -> bool:

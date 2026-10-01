@@ -18,7 +18,7 @@
   {% endif %}
 
   {% if device.current_lease %}
-  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm({{ _("Delete the lease record for {ip}? This removes only Sandia's copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.", ip=device.current_lease.ip) | tojson | forceescape }});">{{ csrf_input() }}
+  <form method="post" action="/devices/{{ device.mac | urlencode }}/delete-lease" onsubmit="return confirm({{ (_("Delete the lease for {ip} in Kea? The client keeps using the address until it next renews, then gets a new lease.", ip=device.current_lease.ip) if dhcp_backend.name == 'kea' else _("Delete the lease record for {ip}? This removes only Sandia's copy from the leases file - if the device is still active, dhcpd will write a new record on its next renewal.", ip=device.current_lease.ip)) | tojson | forceescape }});">{{ csrf_input() }}
     <button type="submit" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-700 text-red-400">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease record") }}</button>
   </form>
   {% endif %}

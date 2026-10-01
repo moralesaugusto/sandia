@@ -6,6 +6,7 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
 from ..dhcpd.apply import apply_new_config
+from ..dhcpd.backend import get_backend
 from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
@@ -22,7 +23,7 @@ async def list_backups(
 ):
     names = []
     if settings.backup_dir.exists():
-        names = sorted((p.name for p in settings.backup_dir.glob("dhcpd.conf.*")), reverse=True)
+        names = sorted((p.name for p in settings.backup_dir.glob(f"{get_backend(settings).backup_prefix}.*")), reverse=True)
     return render(request, "backups/list.html", user=user, backups=names)
 
 
@@ -46,5 +47,8 @@ async def restore_backup(
         return RedirectResponse("/backups", status_code=303)
 
     log_action(session, request, user, "backup_restore", filename)
-    set_flash(request, _("Backup restored (a fresh backup of the prior config was taken first). isc-dhcp-server restarted."))
+    set_flash(
+        request,
+        _("Backup restored (a fresh backup of the prior config was taken first). {service} restarted.", service=get_backend(settings).label),
+    )
     return RedirectResponse("/backups", status_code=303)

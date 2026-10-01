@@ -197,7 +197,7 @@ def test_chat_streams_reply_with_server_side_context(viewer_client, app, monkeyp
     assert captured["model"] == "llama3.2"
     system, *history = captured["messages"]
     assert system["role"] == "system"
-    assert system["content"].startswith(ai.SYSTEM_PROMPT)
+    assert system["content"].startswith(ai.SYSTEM_PROMPT.format(server="isc-dhcp-server"))
     assert "## dhcpd.conf" in system["content"]
     assert history == [{"role": "user", "content": "How is the pool?"}]
 

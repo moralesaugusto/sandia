@@ -4,10 +4,9 @@ from sqlmodel import Session
 
 from ..audit import log_action
 from ..config import Settings, get_settings
-from ..config_store import load_live_config
 from ..db import get_session
-from ..dhcpd import serialize
 from ..dhcpd.apply import apply_new_config, check_config, stage
+from ..dhcpd.backend import get_backend, live_config_text
 from ..diff import unified_diff_lines
 from ..i18n import _
 from ..models import User
@@ -17,14 +16,17 @@ from ..security import require_login, require_role
 router = APIRouter()
 
 
+def _current_text(settings: Settings) -> str:
+    return get_backend(settings).raw_text(live_config_text(settings) or "")
+
+
 @router.get("/config/raw")
 async def raw_config_page(
     request: Request,
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
 ):
-    config = load_live_config(settings)
-    return render(request, "raw_config.html", user=user, text=serialize(config))
+    return render(request, "raw_config.html", user=user, text=_current_text(settings))
 
 
 @router.post("/config/raw/validate")
@@ -52,8 +54,8 @@ async def raw_config_diff(
     settings: Settings = Depends(get_settings),
     text: str = Form(...),
 ):
-    current = serialize(load_live_config(settings))
-    lines = unified_diff_lines(current, text)
+    current = _current_text(settings)
+    lines = unified_diff_lines(current, text, get_backend(settings).backup_prefix)
     return render(request, "raw_config/_diff_result.html", user=user, lines=lines)
 
 
@@ -72,5 +74,5 @@ async def raw_config_apply(
         return RedirectResponse("/config/raw", status_code=303)
 
     log_action(session, request, user, "raw_config_apply", "applied raw config edit")
-    set_flash(request, _("Configuration applied. isc-dhcp-server restarted."))
+    set_flash(request, _("Configuration applied. {service} restarted.", service=get_backend(settings).label))
     return RedirectResponse("/config/raw", status_code=303)

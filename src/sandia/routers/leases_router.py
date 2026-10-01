@@ -11,10 +11,11 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..csv_export import csv_response
 from ..db import get_session
-from ..dhcpd import Host, Parameter, serialize
-from ..dhcpd.apply import apply_new_config
+from ..dhcpd import Host, Parameter
+from ..dhcpd.apply import apply_config
+from ..dhcpd.backend import get_backend, load_current_leases
 from ..i18n import N_, _
-from ..leases import Lease, load_leases, parse_lease_timestamp
+from ..leases import Lease, parse_lease_timestamp
 from ..leases_cleanup import clean_leases_text
 from ..models import User
 from ..rendering import render, set_flash
@@ -97,7 +98,7 @@ async def leases_page(
     state: str = "active",
     sort: str = "",
 ):
-    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_current_leases(settings), q), state), sort)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
     return render(
         request,
@@ -121,7 +122,7 @@ async def leases_table(
     state: str = "active",
     sort: str = "",
 ):
-    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_current_leases(settings), q), state), sort)
     reserved_macs = {host.mac for host in load_live_config(settings).all_hosts if host.mac}
     return render(request, "leases/_table.html", user=user, leases=leases, reserved_macs=reserved_macs, sort=sort)
 
@@ -134,7 +135,7 @@ async def export_leases_csv(
     state: str = "active",
     sort: str = "",
 ):
-    leases = _sort_leases(_filter_by_state(_filter_leases(load_leases(settings.leases_path), q), state), sort)
+    leases = _sort_leases(_filter_by_state(_filter_leases(load_current_leases(settings), q), state), sort)
     rows = [
         [lease.ip, lease.mac or "", lookup_vendor(lease.mac) or "", lease.hostname or "", lease.binding_state or "", lease.starts or "", lease.ends or ""]
         for lease in leases
@@ -155,7 +156,11 @@ async def clean_leases(
 ):
     """Compact the leases file: keep only the current (last) block per IP,
     dropping superseded renewal history. Never touches any other content
-    in the file, and backs up the original first."""
+    in the file, and backs up the original first. dhcpd only - Kea's lease
+    file cleanup (LFC) compacts kea-leases4.csv itself."""
+    if not get_backend(settings).lease_file_cleanup:
+        set_flash(request, _("Kea compacts its lease file itself (lfc-interval in kea-dhcp4.conf) - there is nothing for Sandia to clean."))
+        return RedirectResponse("/leases", status_code=303)
     if not settings.leases_path.exists():
         set_flash(request, _("No leases file found."), kind="error")
         return RedirectResponse("/leases", status_code=303)
@@ -188,7 +193,7 @@ async def lease_menu(
     user: User = Depends(require_login),
     settings: Settings = Depends(get_settings),
 ):
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     lease = next((lease for lease in leases if lease.ip == ip), None)
     config = load_live_config(settings)
     reserved_host = None
@@ -205,7 +210,7 @@ async def deny_lease(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ):
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     lease = next((lease for lease in leases if lease.ip == ip), None)
     if lease is None or not lease.mac:
         set_flash(request, _("Lease not found or has no MAC address."), kind="error")
@@ -222,12 +227,12 @@ async def deny_lease(
     host.body.append(Parameter("deny", "booting"))
     config.nodes.append(host)
 
-    result = await apply_new_config(settings, serialize(config))
+    result = await apply_config(settings, config)
     if not result.ok:
         log_action(session, request, user, "lease_deny_failed", result.output, success=False)
         set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/leases", status_code=303)
 
     log_action(session, request, user, "lease_deny", f"{lease.mac} ({ip})")
-    set_flash(request, _("Client denied. isc-dhcp-server restarted."))
+    set_flash(request, _("Client denied. Configuration applied."))
     return RedirectResponse("/leases", status_code=303)

@@ -6,8 +6,8 @@ from ..config_store import load_live_config
 from ..db import get_session
 from ..devices import DeviceStatus, build_devices
 from ..dhcpd import apply as apply_module
+from ..dhcpd.backend import load_current_leases, load_lease_records
 from ..diagnostics import load_dhcp_events
-from ..leases import load_lease_history, load_leases
 from ..models import AuditLog, User
 from ..rendering import render
 from ..security import require_login
@@ -24,7 +24,7 @@ async def dashboard(
     settings: Settings = Depends(get_settings),
 ):
     config = load_live_config(settings)
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     subnet_rows = []
     for subnet in config.subnets:
         used, total = subnet_utilization(subnet, leases)
@@ -33,7 +33,7 @@ async def dashboard(
     status = await apply_module.service_status(settings)
     recent_audit = session.exec(select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10)).all()
 
-    lease_history = load_lease_history(settings.leases_path)
+    lease_history = load_lease_records(settings)
     events, _ = load_dhcp_events(settings)
     devices = build_devices(config, leases, lease_history, events)
     problem_device_count = sum(1 for device in devices if device.status == DeviceStatus.PROBLEM)

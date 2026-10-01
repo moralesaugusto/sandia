@@ -2,7 +2,7 @@
 {% block title %}{{ _("Backups") }} - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-2">{{ _("Backups") }}</h1>
-<p class="text-sm text-slate-500 mb-6">{{ _("A timestamped copy of dhcpd.conf is taken automatically before every applied change.") }}</p>
+<p class="text-sm text-slate-500 mb-6">{{ _("A timestamped copy of the DHCP configuration file is taken automatically before every applied change.") }}</p>
 
 <div class="bg-slate-900 border border-slate-800 rounded-xl divide-y divide-slate-800">
   {% for name in backups %}

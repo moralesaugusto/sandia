@@ -1,39 +1,43 @@
 import ipaddress
 
-from .dhcpd import DhcpdConfig, Subnet
+from .dhcpd import DhcpdConfig, Parameter, Subnet
 from .leases import Lease
 
 
-def range_bounds(subnet: Subnet) -> tuple[ipaddress.IPv4Address, ipaddress.IPv4Address] | None:
-    range_value = subnet.get("range")
-    if not range_value:
-        return None
-    parts = range_value.split()
-    if len(parts) != 2:
-        return None
+def pool_ranges(subnet: Subnet) -> list[tuple[ipaddress.IPv4Address, ipaddress.IPv4Address]]:
+    """Every `range` in the subnet (a Kea subnet can have several pools; so
+    can a dhcpd subnet), in config order. Malformed ranges are skipped."""
+    ranges = []
+    for node in subnet.body:
+        if not (isinstance(node, Parameter) and node.name == "range"):
+            continue
+        parts = node.value.split()
+        if len(parts) != 2:
+            continue
+        try:
+            ranges.append((ipaddress.IPv4Address(parts[0]), ipaddress.IPv4Address(parts[1])))
+        except ValueError:
+            continue
+    return ranges
+
+
+def in_pools(ranges: list[tuple[ipaddress.IPv4Address, ipaddress.IPv4Address]], ip: str) -> bool:
     try:
-        return ipaddress.IPv4Address(parts[0]), ipaddress.IPv4Address(parts[1])
+        address = ipaddress.IPv4Address(ip)
     except ValueError:
-        return None
+        return False
+    return any(start <= address <= end for start, end in ranges)
+
+
+def pools_label(subnet: Subnet) -> str:
+    return ", ".join(f"{start}-{end}" for start, end in pool_ranges(subnet))
 
 
 def subnet_utilization(subnet: Subnet, leases: list[Lease]) -> tuple[int, int]:
-    """Returns (active leases within the pool range, total addresses in the range)."""
-    bounds = range_bounds(subnet)
-    if bounds is None:
-        return 0, 0
-    start, end = bounds
-    total = int(end) - int(start) + 1
-    used = 0
-    for lease in leases:
-        if not lease.is_active:
-            continue
-        try:
-            ip = ipaddress.IPv4Address(lease.ip)
-        except ValueError:
-            continue
-        if start <= ip <= end:
-            used += 1
+    """Returns (active leases within the pool ranges, total addresses in them)."""
+    ranges = pool_ranges(subnet)
+    total = sum(int(end) - int(start) + 1 for start, end in ranges)
+    used = sum(1 for lease in leases if lease.is_active and in_pools(ranges, lease.ip))
     return used, total
 
 

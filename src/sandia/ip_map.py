@@ -1,5 +1,5 @@
 """Per-IP subnet visualization: builds the data for the SVG grid on the
-subnet map page (one cell per address in the subnet's pool range)."""
+subnet map page (one cell per address in the subnet's pool ranges)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from .dhcpd import DhcpdConfig, Host, Subnet
 from .leases import Lease
-from .utilization import range_bounds
+from .utilization import in_pools, pool_ranges
 
 # A /22 (1024 addresses). Above this, rendering one SVG rect per address
 # server-side stops being worth it - see docs/DECISIONS.md.
@@ -55,19 +55,13 @@ def denied_macs(config: DhcpdConfig) -> set[str]:
 
 
 def build_subnet_map(config: DhcpdConfig, subnet: Subnet, leases: list[Lease]) -> SubnetMap:
-    bounds = range_bounds(subnet)
-    if bounds is None:
+    ranges = pool_ranges(subnet)
+    if not ranges:
         return SubnetMap(subnet=subnet, total=0, cells=[], too_large=False, outside_range=list(subnet.hosts))
 
-    start, end = bounds
-    total = int(end) - int(start) + 1
-
+    total = sum(int(end) - int(start) + 1 for start, end in ranges)
     host_by_ip = {host.fixed_address: host for host in subnet.hosts if host.fixed_address}
-    outside_range = [
-        host
-        for host in subnet.hosts
-        if not host.fixed_address or not (start <= ipaddress.IPv4Address(host.fixed_address) <= end)
-    ]
+    outside_range = [host for host in subnet.hosts if not host.fixed_address or not in_pools(ranges, host.fixed_address)]
 
     if total > MAX_CELLS:
         return SubnetMap(subnet=subnet, total=total, cells=[], too_large=True, outside_range=outside_range)
@@ -76,7 +70,8 @@ def build_subnet_map(config: DhcpdConfig, subnet: Subnet, leases: list[Lease]) -
     denied = denied_macs(config)
 
     cells: list[Cell] = []
-    for index, ip_int in enumerate(range(int(start), int(end) + 1)):
+    addresses = (ip_int for start, end in ranges for ip_int in range(int(start), int(end) + 1))
+    for index, ip_int in enumerate(addresses):
         ip = str(ipaddress.IPv4Address(ip_int))
         host = host_by_ip.get(ip)
         lease = lease_by_ip.get(ip)

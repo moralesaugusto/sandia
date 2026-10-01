@@ -7,15 +7,14 @@ from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
 from ..device_icons import device_icon_for
-from ..dhcpd import Subnet, serialize
-from ..dhcpd.apply import apply_new_config
+from ..dhcpd import Subnet
+from ..dhcpd.apply import apply_config
+from ..dhcpd.backend import get_backend, load_current_leases
 from ..dhcpd.extra_options import apply_extra_options, get_extra_options
 from ..dhcpd.subnet_interface import get_subnet_interface, set_subnet_interface
 from ..diagnostics import diagnose_subnet
 from ..i18n import _
-from ..interfaces_conf import read_configured_interfaces
 from ..ip_map import build_subnet_map, find_cell
-from ..leases import load_leases
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -106,7 +105,7 @@ async def list_subnets(
     settings: Settings = Depends(get_settings),
 ):
     config = load_live_config(settings)
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     rows = []
     for subnet in config.subnets:
         used, total = subnet_utilization(subnet, leases)
@@ -168,7 +167,7 @@ async def create_subnet(
     config.nodes.append(subnet)
     set_subnet_interface(config, subnet, interface.strip())
 
-    result = await apply_new_config(settings, serialize(config))
+    result = await apply_config(settings, config)
     if not result.ok:
         log_action(session, request, user, "subnet_create_failed", result.output, success=False)
         set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
@@ -176,7 +175,7 @@ async def create_subnet(
 
     detail = f"{network}/{netmask}" + (f" on {interface}" if interface else "")
     log_action(session, request, user, "subnet_create", detail)
-    set_flash(request, _("Subnet created. isc-dhcp-server restarted."))
+    set_flash(request, _("Subnet created. Configuration applied."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -237,14 +236,14 @@ async def update_subnet(
     )
     set_subnet_interface(config, subnet, interface.strip())
 
-    result = await apply_new_config(settings, serialize(config))
+    result = await apply_config(settings, config)
     if not result.ok:
         log_action(session, request, user, "subnet_update_failed", result.output, success=False)
         set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse(f"/subnets/{key}/edit", status_code=303)
 
     log_action(session, request, user, "subnet_update", key)
-    set_flash(request, _("Subnet updated. isc-dhcp-server restarted."))
+    set_flash(request, _("Subnet updated. Configuration applied."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -261,14 +260,14 @@ async def delete_subnet(
         set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
-    result = await apply_new_config(settings, serialize(config))
+    result = await apply_config(settings, config)
     if not result.ok:
         log_action(session, request, user, "subnet_delete_failed", result.output, success=False)
         set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
     log_action(session, request, user, "subnet_delete", key)
-    set_flash(request, _("Subnet deleted. isc-dhcp-server restarted."))
+    set_flash(request, _("Subnet deleted. Configuration applied."))
     return RedirectResponse("/subnets", status_code=303)
 
 
@@ -285,7 +284,7 @@ async def subnet_map_page(
         set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     subnet_map = build_subnet_map(config, subnet, leases)
     return render(request, "subnets/map.html", user=user, subnet=subnet, map=subnet_map)
 
@@ -303,8 +302,8 @@ async def subnet_diagnostics(
         set_flash(request, _("Subnet not found."), kind="error")
         return RedirectResponse("/subnets", status_code=303)
 
-    leases = load_leases(settings.leases_path)
-    configured_interfaces = read_configured_interfaces(settings.interfaces_conf_path)
+    leases = load_current_leases(settings)
+    configured_interfaces = get_backend(settings).listening_interfaces(settings)
     result = diagnose_subnet(config, subnet, leases, configured_interfaces)
     return render(
         request,
@@ -329,7 +328,7 @@ async def subnet_map_cell_menu(
     if subnet is None:
         return render(request, "subnets/_map_menu.html", user=user, subnet=None, cell=None)
 
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     cell = find_cell(config, subnet, leases, ip)
     icon_name = device_icon_for(cell.host.name, cell.host.mac) if cell and cell.host else None
 

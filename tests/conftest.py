@@ -1,3 +1,4 @@
+import json
 import re
 import shutil
 from pathlib import Path
@@ -7,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from sandia.config import Settings
+from sandia.dhcpd.kea import to_plain_json
 from sandia.main import create_app
 from sandia.models import User
 from sandia.security import hash_password
@@ -17,6 +19,13 @@ FIXTURE_LEASES = Path(__file__).parent / "fixtures" / "sample_dhcpd.leases"
 ADMIN_PASSWORD = "admin-pass-123"
 OPERATOR_PASSWORD = "operator-pass-123"
 VIEWER_PASSWORD = "viewer-pass-123"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_isc_backend_by_default(monkeypatch):
+    # Kea is the default backend; the pre-Kea test suite exercises the ISC
+    # backend, so it keeps running against ISC unless a test opts into Kea.
+    monkeypatch.setenv("SANDIA_DHCP_BACKEND", "isc")
 
 
 @pytest.fixture
@@ -45,8 +54,8 @@ def settings(tmp_path) -> Settings:
 def app(settings, monkeypatch):
     # Real installs are now plain file I/O against `settings`' own tmp_path
     # locations, so no faking is needed there. Only the external binaries
-    # (`dhcpd -t`, `systemctl`) need a double, since they may not exist (or
-    # may not reflect test state) in the test environment.
+    # (`dhcpd -t`, `kea-dhcp4 -t`, `systemctl`) need a double, since they may
+    # not exist (or may not reflect test state) in the test environment.
     from sandia.dhcpd import apply as apply_module
 
     async def fake_run(*args):
@@ -54,6 +63,12 @@ def app(settings, monkeypatch):
             text = Path(args[-1]).read_text()
             if text.count("{") != text.count("}") or "FORCE_INVALID" in text:
                 return apply_module.CommandResult(ok=False, stdout="", stderr="invalid config (test double)")
+            return apply_module.CommandResult(ok=True, stdout="", stderr="")
+        if args[:1] == ("kea-dhcp4",):
+            try:
+                json.loads(to_plain_json(Path(args[-1]).read_text()))
+            except ValueError:
+                return apply_module.CommandResult(ok=False, stdout="", stderr="invalid Kea config (test double)")
             return apply_module.CommandResult(ok=True, stdout="", stderr="")
         if args[:1] == ("systemctl",):
             return apply_module.CommandResult(ok=True, stdout="active", stderr="")

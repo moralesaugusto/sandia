@@ -6,8 +6,8 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..db import get_session
-from ..dhcpd import Parameter, serialize
-from ..dhcpd.apply import apply_new_config
+from ..dhcpd import Parameter
+from ..dhcpd.apply import apply_config
 from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
@@ -67,12 +67,12 @@ async def settings_submit(
     if ntp_servers:
         config.set("ntp-servers", ntp_servers, as_option=True)
 
-    result = await apply_new_config(settings, serialize(config))
+    result = await apply_config(settings, config)
     if not result.ok:
         log_action(session, request, user, "global_settings_update_failed", result.output, success=False)
         set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
         return RedirectResponse("/settings", status_code=303)
 
     log_action(session, request, user, "global_settings_update", "updated global DHCP settings")
-    set_flash(request, _("Global settings applied. isc-dhcp-server restarted."))
+    set_flash(request, _("Global settings applied."))
     return RedirectResponse("/settings", status_code=303)

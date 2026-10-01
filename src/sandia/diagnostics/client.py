@@ -14,7 +14,12 @@ from ..dhcpd import DhcpdConfig, Host, Subnet
 from ..dhcpd.subnet_interface import get_subnet_interface
 from ..i18n import _
 from ..leases import Lease
-from ..utilization import find_containing_subnet, range_bounds, subnet_utilization
+from ..utilization import (
+    find_containing_subnet,
+    pool_ranges,
+    pools_label,
+    subnet_utilization,
+)
 from ..vendors import lookup_vendor
 from . import dhcp_log
 from .dhcp_log import DhcpEvent
@@ -89,11 +94,14 @@ def _identity_step(mac: str | None, ip: str | None, hostname: str | None, reserv
     return FlowStep(_("Client"), Status.HEALTHY if evidence else Status.UNKNOWN, _("Identified from the provided MAC/IP."), evidence)
 
 
-def _activity_step(events: list[DhcpEvent], log_unavailable: str | None) -> FlowStep:
+def _activity_step(events: list[DhcpEvent], log_unavailable: str | None, logs_requests: bool) -> FlowStep:
     if log_unavailable:
         return FlowStep(_("DHCP activity"), Status.UNKNOWN, log_unavailable, [])
     if not events:
-        return FlowStep(_("DHCP activity"), Status.UNKNOWN, _("No DHCP protocol activity for this client was found in the log."), [])
+        detail = _("No DHCP protocol activity for this client was found in the log.")
+        if not logs_requests:
+            detail += " " + _("At its default INFO severity Kea logs only offers, allocations, releases and declines; DISCOVER, REQUEST and NAK appear only with debug logging.")
+        return FlowStep(_("DHCP activity"), Status.UNKNOWN, detail, [])
     evidence = [Evidence(event.timestamp, event.raw) for event in events[-10:]]
     has_nak = any(event.kind == "DHCPNAK" for event in events)
     has_ack = any(event.kind == "DHCPACK" for event in events)
@@ -126,10 +134,9 @@ def _reservation_step(reservation: Host | None, subnet: Subnet | None) -> FlowSt
 def _pool_step(subnet: Subnet | None) -> FlowStep:
     if subnet is None:
         return FlowStep(_("Pool selection"), Status.UNKNOWN, _("No subnet identified, so the pool cannot be determined."), [])
-    bounds = range_bounds(subnet)
-    if bounds is None:
+    if not pool_ranges(subnet):
         return FlowStep(_("Pool selection"), Status.CRITICAL, _("{value} has no pool range configured.", value=_subnet_label(subnet)), [])
-    return FlowStep(_("Pool selection"), Status.HEALTHY, _("Pool range: {value}", value=subnet.get('range')), [Evidence(_("range"), subnet.get("range") or "")])
+    return FlowStep(_("Pool selection"), Status.HEALTHY, _("Pool range: {value}", value=pools_label(subnet)), [Evidence(_("range"), pools_label(subnet))])
 
 
 def _reservation_conflict(reservation: Host | None, leases: list[Lease]) -> Lease | None:
@@ -168,15 +175,15 @@ def _response_step(events: list[DhcpEvent]) -> FlowStep:
     discover = _most_recent(events, "DHCPDISCOVER")
 
     if nak and (ack is None or events.index(nak) > events.index(ack)):
-        detail = _("dhcpd sent DHCPNAK. Reason: {reason}.", reason=nak.reason) if nak.reason else _("dhcpd sent DHCPNAK. No reason was recorded in the log.")
+        detail = _("The DHCP server sent DHCPNAK. Reason: {reason}.", reason=nak.reason) if nak.reason else _("The DHCP server sent DHCPNAK. No reason was recorded in the log.")
         return FlowStep(_("DHCP response"), Status.CRITICAL, detail, [Evidence(nak.timestamp, nak.raw)])
     if ack:
-        return FlowStep(_("DHCP response"), Status.HEALTHY, _("dhcpd sent DHCPACK."), [Evidence(ack.timestamp, ack.raw)])
+        return FlowStep(_("DHCP response"), Status.HEALTHY, _("The DHCP server sent DHCPACK."), [Evidence(ack.timestamp, ack.raw)])
     if discover and offer is None:
         detail = discover.reason or _("DHCPDISCOVER was logged but no matching DHCPOFFER followed.")
         return FlowStep(_("DHCP response"), Status.WARNING, detail, [Evidence(discover.timestamp, discover.raw)])
     if offer:
-        return FlowStep(_("DHCP response"), Status.WARNING, _("dhcpd offered an address, but no DHCPACK confirming it was found."), [Evidence(offer.timestamp, offer.raw)])
+        return FlowStep(_("DHCP response"), Status.WARNING, _("The DHCP server offered an address, but no DHCPACK confirming it was found."), [Evidence(offer.timestamp, offer.raw)])
     return FlowStep(_("DHCP response"), Status.UNKNOWN, _("No DHCP response activity found in the log for this client."), [])
 
 
@@ -231,8 +238,8 @@ def _root_cause_findings(
         return [
             Finding(
                 status=Status.CRITICAL,
-                problem=_("dhcpd sent DHCPNAK"),
-                root_cause=nak.reason or _("dhcpd rejected this client's request; no reason text was recorded in the log."),
+                problem=_("The DHCP server sent DHCPNAK"),
+                root_cause=nak.reason or _("The DHCP server rejected this client's request; no reason text was recorded in the log."),
                 confidence=Confidence.CONFIRMED if nak.reason else Confidence.STRONG,
                 evidence=[Evidence(nak.timestamp, nak.raw)],
                 impact=_("The client was denied the address it requested and must restart DHCP negotiation."),
@@ -252,10 +259,10 @@ def _root_cause_findings(
             Finding(
                 status=Status.WARNING,
                 problem=_("Address not covered by any configured subnet"),
-                root_cause=_("No subnet in dhcpd.conf's network/netmask contains {ip}.", ip=ip),
+                root_cause=_("No configured subnet contains {ip}.", ip=ip),
                 confidence=Confidence.CONFIRMED,
                 evidence=[Evidence(_("IP address"), ip)],
-                impact=_("dhcpd cannot serve this address at all under the current configuration."),
+                impact=_("The DHCP server cannot serve this address at all under the current configuration."),
                 actions=[Action(_("View subnets"), "/subnets")],
             )
         ]
@@ -269,7 +276,7 @@ def _root_cause_findings(
             Finding(
                 status=Status.WARNING,
                 problem=_("No DHCPOFFER followed this client's DHCPDISCOVER"),
-                root_cause=(_("dhcpd logged: {reason}", reason=reason) if reason else _("dhcpd logged a DHCPDISCOVER from this client but never logged an offer - the underlying reason isn't recorded.")),
+                root_cause=(_("The DHCP server logged: {reason}", reason=reason) if reason else _("The DHCP server logged a DHCPDISCOVER from this client but never logged an offer - the underlying reason isn't recorded.")),
                 confidence=Confidence.STRONG if reason else Confidence.POSSIBLE,
                 evidence=[Evidence(discover.timestamp, discover.raw)],
                 impact=_("This client did not receive an address on this attempt."),
@@ -288,6 +295,7 @@ def diagnose_client(
     mac: str | None = None,
     ip: str | None = None,
     hostname: str | None = None,
+    logs_requests: bool = True,
 ) -> DiagnosticResult:
     mac = normalize_mac(mac)
 
@@ -319,7 +327,7 @@ def diagnose_client(
 
     steps = [
         _identity_step(mac, ip, hostname, reservation, lease),
-        _activity_step(client_events, log_unavailable),
+        _activity_step(client_events, log_unavailable, logs_requests),
         _subnet_step(subnet, ip, candidate_subnets),
         _reservation_step(reservation, subnet),
         _pool_step(subnet),

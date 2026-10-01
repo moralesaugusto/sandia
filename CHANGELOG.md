@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here.
 
+## 1.4.5
+
+**From now on, only Kea DHCPv4 is supported.** Kea is the default backend. isc-dhcp-server still works with `SANDIA_DHCP_BACKEND=isc` so existing installs can migrate on their own schedule, but it is no longer supported and gets no new features or fixes. Where a change can't serve both, Kea's behavior wins. Migration steps are in INSTRUCTIONS.md ("Migrating from isc-dhcp-server").
+
+### Added
+- Kea DHCPv4 backend with full feature parity: subnet map, dashboard, leases, devices, reservations, search, Event Log, Wall of Shame, diagnostics, AI assistant, service control, backups and Raw Config all work against `kea-dhcp4.conf`, `kea-leases4.csv` and the Kea log.
+- Every editor writes `kea-dhcp4.conf`: subnets (pools, routers/DNS/NTP and other options, lease times, PXE, interface), reservations, global settings (authoritative, lease times, domain, DNS, NTP), Deny client and Interfaces. Only the values you changed are rewritten - comments, formatting and every setting Sandia doesn't manage are kept - and each change is validated with `kea-dhcp4 -t`, backed up, applied and verified, with automatic rollback.
+- Deny client uses a Kea `DROP` client class (`pkt4.mac == 0x...`); a hand-written DROP class is never touched.
+- Kea control socket (`SANDIA_KEA_CONTROL_SOCKET`, default `/run/kea/kea4-ctrl-socket`): config changes are applied with `config-reload` instead of a restart, and "Delete lease record" removes the lease from Kea with `lease4-del` (needs the lease_cmds hook).
+- `SANDIA_DHCP_LOG_PATH=journal` reads the service's systemd journal; it is the default for Kea, whose Debian package logs to stdout.
+- `<?include?>` in `kea-dhcp4.conf` is followed by every read view.
+- Subnets with several pools: every pool is drawn on the subnet map and counted in utilization and diagnostics (ISC subnets with several `range` statements too).
+- Backend badge in the sidebar and on the About page.
+- Version bumped to 1.4.5.
+
+### Changed
+- Default paths are now Debian's Kea ones: `/etc/kea/kea-dhcp4.conf`, `/var/lib/kea/kea-leases4.csv`, the `kea-dhcp4-server` unit and its journal. **Upgrading an ISC install: set `SANDIA_DHCP_BACKEND=isc`** (or migrate to Kea) before restarting Sandia.
+- `sandia --dummy` seeds Kea demo data (`SANDIA_DHCP_BACKEND=isc sandia --dummy` for the old ISC demo).
+- Diagnostics, flash messages and the AI prompt name the DHCP server generically or by backend instead of always saying "dhcpd" / "isc-dhcp-server". Client diagnostics explain that Kea logs DISCOVER, REQUEST and NAK only with debug logging.
+- "Clean leases" is offered only for ISC; Kea compacts its own lease file.
+
 ## 1.4.1
 
 ### Security

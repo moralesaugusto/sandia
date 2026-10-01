@@ -13,6 +13,7 @@ from . import __version__
 from .config import Settings
 from .csrf import csrf_input, template_csrf_token, verify_csrf
 from .db import create_db_engine
+from .dhcpd.backend import get_backend
 from .dummy_data import seed_dummy_data
 from .errors import register_exception_handlers
 from .i18n import LanguageMiddleware, template_gettext
@@ -98,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.templates.env.globals["_"] = template_gettext
     app.state.templates.env.globals["csrf_input"] = csrf_input
     app.state.templates.env.globals["csrf_token"] = template_csrf_token
+    app.state.templates.env.globals["dhcp_backend"] = get_backend(settings)
 
     _bootstrap_admin(app.state.engine, settings)
 
@@ -136,24 +138,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 def _explain_permission_error(exc: PermissionError) -> str:
     return (
         f"\nPermission denied: {exc.filename}\n\n"
-        "The default paths this app uses (/var/lib/sandia, /etc/dhcp/dhcpd.conf,\n"
+        "The default paths this app uses (/var/lib/sandia, /etc/kea/kea-dhcp4.conf,\n"
         "/var/backups/sandia, ...) need root to write. Pick one:\n\n"
         "  1. Try it with no special access at all, using synthetic data:\n"
         "       sandia --dummy\n\n"
         "  2. Point it at somewhere you can write, e.g.:\n"
         "       SANDIA_DATA_DIR=$HOME/.local/share/sandia sandia\n\n"
-        "  3. Run it with sudo to manage the real dhcpd.conf and service:\n"
+        "  3. Run it with sudo to manage the real Kea config and service:\n"
         "       sudo .venv/bin/sandia\n\n"
         "See INSTRUCTIONS.md for details."
     )
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="sandia", description="Web UI for managing an ISC isc-dhcp-server instance.")
+    parser = argparse.ArgumentParser(prog="sandia", description="Web UI for managing a Kea DHCPv4 server.")
     parser.add_argument(
         "--dummy",
         action="store_true",
-        help="Run with synthetic demo data instead of a real dhcpd.conf/leases file - no root or sudo required. Testing only.",
+        help="Run with synthetic demo data instead of a real DHCP config and lease file - no root or sudo required. Testing only.",
     )
     parser.add_argument(
         "--set-password",

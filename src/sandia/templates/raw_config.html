@@ -2,7 +2,11 @@
 {% block title %}{{ _("Raw Config") }} - Sandia{% endblock %}
 {% block content %}
 <h1 class="text-xl font-semibold mb-2">{{ _("Raw Configuration") }}</h1>
+{% if dhcp_backend.name == 'isc' %}
 <p class="text-sm text-slate-500 mb-6">{{ _("Full text of dhcpd.conf, including any constructs (shared-networks, classes, keys, ...) the structured pages don't manage.") }}</p>
+{% else %}
+<p class="text-sm text-slate-500 mb-6">{{ _("Full text of kea-dhcp4.conf, shown exactly as it is on disk. Use it for anything the structured pages don't manage; it is validated with kea-dhcp4 -t before it is installed.") }}</p>
+{% endif %}
 
 <form method="post" action="/config/raw/apply" class="space-y-4">{{ csrf_input() }}
   <textarea name="text" rows="28" class="w-full font-mono text-sm bg-slate-900 border border-slate-800 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" {% if user.role == 'viewer' %}readonly{% endif %}>{{ text }}</textarea>

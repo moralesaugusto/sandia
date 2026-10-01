@@ -9,9 +9,9 @@ from sqlmodel import Session
 
 from .. import __version__, oui_cache
 from ..audit import log_action
-from ..config import Settings, get_settings
+from ..config import JOURNAL, Settings, get_settings
 from ..db import get_session
-from ..diagnostics.dhcp_log import MAX_LOG_BYTES
+from ..diagnostics.dhcp_log import MAX_LOG_BYTES, log_source_label
 from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
@@ -59,9 +59,11 @@ def about(
         "data_dir": str(settings.data_dir),
     }
     log_path = settings.dhcp_log_path
+    journal = log_path == JOURNAL and not settings.dummy_data
     data_sources = {
-        "dhcp_log_path": str(log_path),
-        "dhcp_log_size_mb": log_path.stat().st_size / 1_000_000 if log_path.exists() else None,
+        "dhcp_log_path": log_source_label(settings),
+        "dhcp_log_journal": journal,
+        "dhcp_log_size_mb": log_path.stat().st_size / 1_000_000 if not journal and log_path.exists() else None,
         "log_window_mb": MAX_LOG_BYTES / 1_000_000,
         "db_path": str(settings.db_path),
     }

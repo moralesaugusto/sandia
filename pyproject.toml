@@ -1,7 +1,7 @@
 [project]
 name = "sandia"
-version = "1.4.1"
-description = "Web UI for managing an ISC isc-dhcp-server instance"
+version = "1.4.5"
+description = "Web UI for managing a Kea DHCPv4 server"
 readme = "README.md"
 authors = [
     { name = "AM", email = "am@momentoring.net" }

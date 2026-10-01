@@ -1,6 +1,6 @@
 # Current State
 
-Snapshot as of 1.4.1 (2026-09-30). See
+Snapshot as of 1.4.5 (2026-09-30). See
 `INSTRUCTIONS.md` for full user-facing docs, `CHANGELOG.md` for release history
 and `SECURITY_STATUS.md` for open security findings.
 
@@ -14,18 +14,22 @@ catalog, and 2,500 lines of templates, measured 2026-09-30).
 
 ## Implemented
 
-- `dhcpd.conf` parsing/serialization (order-preserving), subnets, host
-  reservations (nested or top-level), groups, extra/free-form options.
-- Full config safety pipeline: edit -> validate (`dhcpd -t`) -> diff -> apply
-  (backup, atomic install, restart, verify active, automatic rollback if
-  the service doesn't come up) -> restore from any backup.
-- Leases: parse, search, state filter, CSV export, "Clean leases" dedup,
+- Kea DHCPv4 (default, supported): `kea-dhcp4.conf` projected into the
+  config model and patched back with only the changed values (comments and
+  unmodeled keys kept), memfile lease CSV, Kea log (journal or file),
+  control socket (`config-reload`, `lease4-del`), Deny via the DROP class.
+- Legacy ISC: `dhcpd.conf` parsing/serialization (order-preserving),
+  `dhcpd.leases`, syslog, `INTERFACESv4`.
+- Full config safety pipeline: edit -> validate (`kea-dhcp4 -t`) -> diff ->
+  apply (backup, atomic install, reload/restart, verify active, automatic
+  rollback if the service doesn't come up) -> restore from any backup.
+- Leases: parse, search, state filter, CSV export, "Clean leases" dedup (ISC only),
   right-click context menu (reserve / deny / edit reservation / copy MAC).
 - Reservations: CRUD, search, subnet filter, bulk delete, CSV export, a
   "Details" modal (vendor, device-type icon, OS guess, active-lease status).
 - Subnets: CRUD, a utilization bar per subnet on the list, a per-address SVG
-  map (below), interface tagging (`# interface: eth2` comment convention).
-- Interfaces page: manages the real `INTERFACESv4` setting, cross-references
+  map over every pool (below), interface tagging (Kea's subnet `interface`).
+- Interfaces page: manages Kea's `interfaces-config` (ISC: `INTERFACESv4`), cross-references
   subnet interface tags against it.
 - Auth/RBAC (admin/operator/viewer), audit log, login rate-limiting, self-signed
   HTTPS, CSRF tokens on every state-changing request, a random first-run
@@ -79,6 +83,7 @@ the SVG map. The features it describes were built after that:
 - Light/dark mode: 1.3.0.
 - Apply with rollback, DHCP Event Log, AI assistant: 1.3.1.
 - English/Spanish UI: 1.4.0.
+- Kea DHCPv4 is the default and only supported backend, with full feature parity: 1.4.5. isc-dhcp-server remains selectable (`SANDIA_DHCP_BACKEND=isc`) but unsupported.
 
 ## Not yet implemented (from the product-direction wishlist)
 

@@ -2,9 +2,11 @@
 
 ## What this is
 
-Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
+Sandia is a web UI for managing a Kea DHCPv4 server (`kea-dhcp4`). The
+legacy isc-dhcp-server backend is still available but no longer supported -
+see "Kea DHCPv4" below.
 
-- Edit `dhcpd.conf` - global settings, subnets/scopes (optionally tagged
+- Edit `kea-dhcp4.conf` - global settings, subnets/scopes (optionally tagged
   with an interface name for your own organization - see "Subnet
   interface tags" below), static reservations (including Webmin-style
   client options: hostname, PXE boot server/file, lease-time overrides,
@@ -15,7 +17,7 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   (or jump straight to editing the reservation if it's already reserved),
   and a "Clean leases" action to compact out stale renewal history. A
   state filter (Active/Free/Expired/.../All) defaults to **Active**, since
-  the leases file accumulates stale history dhcpd never removes.
+  the lease file keeps every state change, not just the current one.
 - A "Details" panel on every reservation showing everything Sandia knows
   about that host: vendor, device type, a best-effort OS guess, client
   options, and whether it currently has an active lease. A subnet filter
@@ -40,25 +42,26 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   summary, and related links (subnet map, leases, reservations). "Lease
   IP" shows the device's context and a deterministically-suggested next
   free address before handing off to the reservation form - it never
-  overwrites an existing reservation. "Delete lease record" removes
-  Sandia's copy of a device's current lease from the leases file (backed
-  up first) - it does not live-revoke a lease dhcpd is still serving.
+  overwrites an existing reservation. "Delete lease record" asks Kea to
+  delete the device's current lease (`lease4-del` over the control
+  socket); the client keeps the address until it renews. (Legacy ISC:
+  it only removes Sandia's copy from dhcpd.leases.)
 - Diagnostics (`/diagnostics`): deterministic, evidence-based health checks
   for the server, a subnet/pool, or a client - "why didn't this client get
   an IP?" reconstructs the DHCP flow (client, DHCP log activity, subnet,
   reservation, pool, address availability, DHCP response, lease) from
   parsed config/leases and, where readable, the DHCP log
-  (`SANDIA_DHCP_LOG_PATH`, default `/var/log/syslog`). Every result reports
+  (`SANDIA_DHCP_LOG_PATH`, default the service's systemd journal). Every result reports
   status, root cause, confidence, evidence, impact, and next actions - if
   the evidence doesn't support a conclusion, it says so explicitly rather
   than guessing. Reachable from the sidebar, or via a "Diagnose" action in
   the leases/subnet-map/reservations context menus and the Service page,
   which carries the object's MAC/IP/hostname along automatically. The
   Diagnostics sidebar entry is a submenu (Overview, Event Log, Wall of Shame).
-- Event Log (`/diagnostics/events`): every dhcpd line parsed from the tail
+- Event Log (`/diagnostics/events`): every DHCP server line parsed from the tail
   of the DHCP log, newest first, filterable by event type
   (DHCPDISCOVER/OFFER/REQUEST/ACK/NAK/DECLINE/RELEASE/INFORM or other
-  dhcpd messages) and searchable by IP, MAC, hostname or message text.
+  server messages) and searchable by IP, MAC, hostname or message text.
   Shows the newest 500 matches; right-click a row with a MAC for the
   Devices context menu. Events are not stored in a database - they're
   parsed from the last 2 MB of the log on each request, so history ends
@@ -66,20 +69,19 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
 - Wall of Shame (`/diagnostics/wall-of-shame`): the top 10 devices by
   DHCPNAK count, the top 10 by real IP-address changes (lease renewals of
   the same address don't count), and the top 10 abandoned-lease addresses
-  (shown as a bare IP, never a guessed device, when dhcpd didn't record a
+  (shown as a bare IP, never a guessed device, when the server didn't record a
   MAC for that abandonment) - three time ranges (last 24 hours, last 7
   days, all available; defaults to 24 hours). A plain count of existing
   leases/DHCP-log data, no scoring or inference. Right-click reuses the
   Devices context menu.
-- An Interfaces page to manage the real `INTERFACESv4` setting (which
-  physical interfaces `isc-dhcp-server` actually listens on) - see
-  "Interfaces page" below.
+- An Interfaces page to manage the interfaces the server actually listens
+  on (Kea's `interfaces-config`).
 - An optional local cache of the full IEEE OUI (MAC vendor) registry,
   refreshed on demand from the About page, to improve vendor
   identification beyond the small built-in list - see "OUI vendor
   database" below.
 - Bulk-select and delete reservations, in addition to one at a time.
-- Restart/enable/disable/check the `isc-dhcp-server` service.
+- Restart/enable/disable/check the DHCP service (`kea-dhcp4-server`).
 - Back up and restore config, with a diff shown before any apply.
 - Manage users with role-based access (admin / operator / viewer),
   audit logging, and login rate-limiting.
@@ -91,7 +93,7 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   hostname defaults to `http://<host>:11434`) and model under Advanced
   Settings > AI Settings ("Load models" lists what the server has
   installed); the button appears only once both are set. Every question
-  sends a snapshot of the service status, `dhcpd.conf`, active leases and
+  sends a snapshot of the service status, the DHCP config, active leases and
   the last 150 DHCP log lines to that server, so point it only at an
   Ollama instance you trust with that data.
 - English/Spanish UI: the EN | ES switch in the top-right corner (also on
@@ -103,22 +105,22 @@ Sandia is a web UI for managing an ISC `isc-dhcp-server` instance:
   so it follows you to a new browser or device.
 
 All config changes go through the same path: stage the new config,
-validate it (`dhcpd -t`), back up the live file, install it atomically,
-restart `isc-dhcp-server` and check it is running. If the service does not
-come back up, the previous config is restored and the service restarted on
-it - so a bad edit never leaves the server down.
+validate it (`kea-dhcp4 -t`), back up the live file, install it atomically,
+have Kea load it (`config-reload` over the control socket, or a restart)
+and check the service is running. If it isn't, the previous config is
+restored and loaded again - so a bad edit never leaves the server down.
 
 It's a plain standalone script, not a system service: there's no dedicated
 service account, no sudoers setup, no systemd unit. Run it as yourself for
 everyday use or dummy mode; run it with `sudo` when it needs to touch real
-system files (`/etc/dhcp/dhcpd.conf`) or control the `isc-dhcp-server`
+system files (`/etc/kea/kea-dhcp4.conf`) or control the `kea-dhcp4-server`
 service.
 
 ## Prerequisites
 
 - Python 3.13+ and [`uv`](https://docs.astral.sh/uv/) installed.
-- For real (not just dummy-data) use: `isc-dhcp-server` installed
-  (`sudo apt-get install isc-dhcp-server`). The app itself does not require
+- For real (not just dummy-data) use: Kea installed
+  (`sudo apt-get install kea-dhcp4-server`). The app itself does not require
   this to start - it will simply show an empty config until one exists.
 
 ## Running it
@@ -130,7 +132,7 @@ uv sync
 uv run sandia
 ```
 
-**Note:** the default paths (`/var/lib/sandia`, `/etc/dhcp/dhcpd.conf`,
+**Note:** the default paths (`/var/lib/sandia`, `/etc/kea/kea-dhcp4.conf`,
 `/var/backups/sandia`) need root to write. Running the bare command above
 as your own user will fail with a permission error unless you're root. If
 you just want to try it out locally, either:
@@ -145,7 +147,7 @@ or point it at somewhere you can write:
 SANDIA_DATA_DIR=$HOME/.local/share/sandia uv run sandia
 ```
 
-or, to manage a real `dhcpd.conf` and control the real service, run it
+or, to manage a real `kea-dhcp4.conf` and control the real service, run it
 with sudo (after `uv sync`, so `.venv` already exists - `sudo` resets your
 shell environment, so invoke the venv's binary directly rather than
 `sudo uv run sandia`):
@@ -159,6 +161,11 @@ which of the above to do about it, instead of a raw traceback.
 
 **If a config change fails validation with a permission error even though
 Sandia is running as root**: that's AppArmor, not a Unix permissions bug.
+Kea's profile (`/etc/apparmor.d/usr.sbin.kea-dhcp4`) lets `kea-dhcp4` read
+only `/etc/kea/**`, so Sandia stages the config it validates next to the
+real file, inside `/etc/kea/`. If you relocate `DHCPD_CONF_PATH`, keep it
+under `/etc/kea/` or extend `/etc/apparmor.d/local/usr.sbin.kea-dhcp4`.
+The rest of this note is about the legacy ISC backend:
 Debian/Ubuntu's `isc-dhcp-server` package ships an enforced-by-default
 AppArmor profile (`/etc/apparmor.d/usr.sbin.dhcpd`) that only grants
 `dhcpd` read access to `/etc/dhcp/**` and a handful of other fixed paths.
@@ -208,19 +215,25 @@ uv run sandia --help
 
 ## Configuration (environment variables)
 
-All optional; defaults match a standard Debian `isc-dhcp-server` install.
+All optional; defaults match Debian's `kea-dhcp4-server` package. With
+the legacy `SANDIA_DHCP_BACKEND=isc`, the variables marked * default to the
+Debian `isc-dhcp-server` paths instead (shown in brackets). Setting any of
+them explicitly always wins.
 
 | Variable | Default | Meaning |
 |---|---|---|
+| `SANDIA_DHCP_BACKEND` | `kea` | Which DHCP server Sandia manages: `kea` (Kea DHCPv4, supported) or `isc` (isc-dhcp-server, legacy and unsupported) - see "Kea DHCPv4" below. Any other value stops startup with an error. |
 | `SANDIA_HOST` | `0.0.0.0` (`127.0.0.1` when `SANDIA_HTTPS=0`) | Interface to bind. `0.0.0.0` means "all interfaces" - reachable from other machines, not just `localhost`. |
 | `SANDIA_PORT` | `7001` | Port to listen on. |
 | `SANDIA_HTTPS` | `1` (enabled) | Set to `0` to serve plain HTTP instead of HTTPS - see below. |
-| `DHCPD_CONF_PATH` | `/etc/dhcp/dhcpd.conf` | The live dhcpd config file this app edits. |
-| `DHCPD_LEASES_PATH` | `/var/lib/dhcp/dhcpd.leases` | Lease database read for the Leases page. |
-| `SANDIA_INTERFACES_CONF` | `/etc/default/isc-dhcp-server` | The `INTERFACESv4` defaults file, managed from the Interfaces page. |
+| `DHCPD_CONF_PATH` * | `/etc/kea/kea-dhcp4.conf` [`/etc/dhcp/dhcpd.conf`] | The live DHCP config file this app edits. |
+| `DHCPD_LEASES_PATH` * | `/var/lib/kea/kea-leases4.csv` [`/var/lib/dhcp/dhcpd.leases`] | Lease database read for the Leases page. |
+| `SANDIA_DHCP_LOG_PATH` * | `journal` [`/var/log/syslog`] | DHCP log read for diagnostics, the Event Log and the Wall of Shame. `journal` reads the service's systemd journal with `journalctl`; anything else is a log file path. |
+| `SANDIA_SERVICE_NAME` * | `kea-dhcp4-server` [`isc-dhcp-server`] | systemd unit name used for restart/enable/disable/status (and the journal). ISC's upstream Kea packages name it `isc-kea-dhcp4-server`. |
+| `SANDIA_KEA_CONTROL_SOCKET` | `/run/kea/kea4-ctrl-socket` | Kea's UNIX control socket, used for `config-reload` and lease deletion - see below. |
+| `SANDIA_INTERFACES_CONF` | `/etc/default/isc-dhcp-server` | Legacy ISC only: the `INTERFACESv4` defaults file. |
 | `SANDIA_DATA_DIR` | `/var/lib/sandia` | Where the app keeps its own state: SQLite DB, staged config drafts, session secret, and the TLS cert/key (under `tls/`). |
-| `SANDIA_BACKUP_DIR` | `/var/backups/sandia` | Timestamped `dhcpd.conf` backups, one taken automatically before every applied change. |
-| `SANDIA_SERVICE_NAME` | `isc-dhcp-server` | systemd unit name used for restart/enable/disable/status. |
+| `SANDIA_BACKUP_DIR` | `/var/backups/sandia` | Timestamped config backups, one taken automatically before every applied change. |
 | `SANDIA_DUMMY_DATA` | `0` (disabled) | Same as `--dummy` - set to `1` to explore the UI with synthetic data. **Testing only.** |
 
 ## How real config changes and service control work
@@ -230,18 +243,21 @@ just does the work directly, so it needs to actually be running with
 enough privilege at the time:
 
 - **Applying a config change**: writes the new config to a staging file,
-  runs `dhcpd -t -cf <staging file>` to validate it, backs up the current
-  `/etc/dhcp/dhcpd.conf` with a timestamp, then installs the staged file
-  (copied alongside and renamed over it, so a crash can't leave a
-  half-written config). It then runs `systemctl restart` and
-  `systemctl is-active`; if either fails, the backup just taken is put
-  back and the service restarted again, and the error (plus whether the
-  rollback worked) is shown. Validation only needs to read the staging
-  file (usually fine without root); install and restart need write
-  access to `/etc/dhcp/` and `SANDIA_BACKUP_DIR` and systemctl rights, so
-  they need `sudo` in a normal install.
-- **Restart/enable/disable/status**: calls `systemctl <action> isc-dhcp-server`
-  directly. Restart/enable/disable need `sudo`; status usually doesn't.
+  runs `kea-dhcp4 -t <staging file>` (legacy ISC: `dhcpd -t -cf`) to
+  validate it, backs up the current config file with a timestamp, then
+  installs the staged file (copied alongside and renamed over it, so a
+  crash can't leave a half-written config). Kea then loads it with
+  `config-reload` over the control socket when one is configured, or
+  `systemctl restart` otherwise, and `systemctl is-active` confirms the
+  service is up. If anything fails, the backup just taken is put back and
+  loaded again, and the error (plus whether the rollback worked) is shown.
+  Validation only needs to read the staging file (usually fine without
+  root); install and reload need write access to `/etc/kea/` and
+  `SANDIA_BACKUP_DIR`, plus systemctl or control-socket rights, so they
+  need `sudo` in a normal install.
+- **Restart/enable/disable/status**: calls `systemctl <action>
+  kea-dhcp4-server` (`SANDIA_SERVICE_NAME`) directly. Restart/enable/disable
+  need `sudo`; status usually doesn't.
 - If a command isn't available or isn't permitted, the app reports the
   failure in the UI (a flash message and an audit log entry) instead of
   crashing - the live config is left untouched.
@@ -253,38 +269,30 @@ actually want to apply that config or restart the service.
 ## Subnet interface tags
 
 Subnets can be tagged with an interface name (e.g. `eth2`) from the
-subnet form. **This is organizational metadata, not a live directive**:
-ISC dhcpd has no `interface` statement inside a `subnet` block - which
-physical interface actually serves a subnet is determined by IP
-addressing and how the `isc-dhcp-server` service itself is started
-(`INTERFACESv4` in `/etc/default/isc-dhcp-server`), not by anything in
-`dhcpd.conf`. Trying to make it a real directive (`interface eth2;` inside
-the subnet) would simply fail `dhcpd -t` and get rejected before it ever
-reached the live file.
+subnet form. With Kea this is the subnet's real `interface` setting: it
+tells Kea the subnet is directly reachable on that interface. Leave it
+empty for subnets reached through a relay.
 
-So the tag is stored as a `# interface: eth2` comment immediately above
-the subnet's declaration - valid syntax dhcpd ignores, that round-trips
-safely and is editable/clearable from the form. It's there to help you
-keep track of which subnet belongs to which physical interface on a
-multi-homed server; it doesn't change dhcpd's actual behavior.
+With the legacy ISC backend, dhcpd has no such statement, so the tag is
+only a `# interface: eth2` comment above the subnet - organizational
+metadata dhcpd ignores.
 
-## Interfaces page (the real `INTERFACESv4` mechanism)
+## Interfaces page
 
-The Interfaces page (`/interfaces`) edits the actual setting that
-controls which physical interfaces `isc-dhcp-server` listens on:
-`INTERFACESv4` in `SANDIA_INTERFACES_CONF` (default
-`/etc/default/isc-dhcp-server`, a shell-sourced file read by the service's
-init script/systemd unit at startup). Only that one line is touched -
-every other line (`DHCPDv4_CONF`, `OPTIONS`, `INTERFACESv6`, comments) is
-preserved exactly. A timestamped backup is taken before every write, same
-as `dhcpd.conf`.
+The Interfaces page (`/interfaces`) edits the interfaces the server
+actually listens on: `Dhcp4.interfaces-config.interfaces` in
+`kea-dhcp4.conf` (`*` means all interfaces, `eth0/192.0.2.1` one address).
+Saving goes through the normal validate/backup/apply pipeline.
 
-The page also cross-references each subnet's interface tag (see above)
-against the interfaces actually listed here, flagging any subnet tagged
-with an interface dhcpd isn't configured to listen on - a common source
-of "why isn't this subnet handing out leases" confusion. Changing
-`INTERFACESv4` requires restarting `isc-dhcp-server` to take effect (the
-service does not pick it up live).
+The page also cross-references each subnet's interface tag against the
+listening interfaces, flagging any subnet tagged with an interface the
+server isn't listening on - a common source of "why isn't this subnet
+handing out leases" confusion.
+
+With the legacy ISC backend the page edits `INTERFACESv4` in
+`SANDIA_INTERFACES_CONF` (default `/etc/default/isc-dhcp-server`) instead.
+Only that one line is touched, a backup is taken first, and the change
+takes effect when isc-dhcp-server is next restarted.
 
 ## OUI vendor database
 
@@ -312,7 +320,9 @@ entries) and caches it locally as `oui_cache.json` under
 
 ## Cleaning the leases file
 
-dhcpd appends a new `lease <ip> { ... }` block to `dhcpd.leases` on every
+Kea compacts its own lease file (the lease file cleanup process, every
+`lfc-interval` seconds), so there is nothing for Sandia to clean and the
+Leases page doesn't offer it. With the legacy ISC backend, dhcpd appends a new `lease <ip> { ... }` block to `dhcpd.leases` on every
 renewal instead of rewriting the old one in place, so a long-running
 server accumulates history. "Clean leases" on the Leases page (admin/
 operator) keeps only the current block per IP and removes the rest -
@@ -321,10 +331,110 @@ else it doesn't need to touch, and the current state of every lease) is
 left completely alone, and a timestamped backup is taken first. It's a
 no-op if there's nothing stale to remove.
 
-## Trying it with dummy data (no real dhcpd, no root/sudo needed)
+## Kea DHCPv4
 
-To just look at and click through the UI - without installing
-`isc-dhcp-server`, without root, without `sudo`:
+Kea DHCPv4 is the supported backend and the default. isc-dhcp-server is
+still selectable with `SANDIA_DHCP_BACKEND=isc` but is no longer supported:
+it gets no new features or fixes. ISC itself ended maintenance of ISC DHCP
+in 2022.
+
+Reference deployment: Debian 13's `kea-dhcp4-server` (Kea 2.6) with one
+`kea-dhcp4` daemon under systemd, memfile (CSV) leases, DHCPv4.
+
+**Every page works with Kea**, including all the editors. Subnets,
+reservations, global settings, Deny client, Lease IP and the Interfaces page
+read `kea-dhcp4.conf` and write their changes back into it. Only the values
+that changed are rewritten. Comments, formatting and every key Sandia
+doesn't manage stay exactly as they were (a comment *inside* a value that is
+replaced is the one exception). Each change goes through the same pipeline
+as Raw Config:
+
+1. `kea-dhcp4 -t` validation.
+2. A backup (`kea-dhcp4.conf.<timestamp>`) and an atomic install.
+3. Kea loads the new config.
+4. Sandia verifies the service is still running.
+5. If that fails, the previous config is restored automatically.
+
+How the form fields map to Kea:
+
+| Sandia field | kea-dhcp4.conf |
+|---|---|
+| Subnet network/netmask, pool range | `subnet4[].subnet`, `pools[].pool` (extra pools are kept and all shown on the map) |
+| Routers, DNS, NTP, broadcast, extra `option name value;` lines | `option-data` entries (`name`/`data`; other option keys are kept) |
+| Lease time / max lease time | `valid-lifetime` / `max-valid-lifetime` |
+| Next server / boot filename | `next-server` / `boot-file-name` |
+| Subnet interface | the subnet's `interface` - a live setting in Kea (directly connected subnet), not just a label |
+| Reservation name / MAC / IP | `hostname` / `hw-address` / `ip-address` |
+| Authoritative | `authoritative` |
+| Deny client | a `DROP` client class whose test is `pkt4.mac == 0x...` (one term per denied MAC) |
+| Interfaces page | `interfaces-config.interfaces` |
+
+Anything else (shared networks, client classes, hooks, relays, other
+reservation identifiers) is edited on Raw Config, which shows the file
+verbatim. An extra-options line with no Kea equivalent is refused with a
+clear message instead of being dropped. A hand-written `DROP` class is never
+touched; Deny then asks you to use Raw Config.
+
+**Control socket.** With `control-socket` configured, Sandia applies
+config changes with `config-reload` instead of a restart, and Delete lease
+record removes the lease from Kea's database with `lease4-del`. Lease
+deletion also needs the lease_cmds hook:
+
+```json
+"control-socket": { "socket-type": "unix", "socket-name": "/run/kea/kea4-ctrl-socket" },
+"hooks-libraries": [ { "library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_lease_cmds.so" } ]
+```
+
+Without the socket, applies fall back to `systemctl restart`, and lease
+deletion reports that the socket can't be reached. Kea compacts its own
+lease file (`lfc-interval`), so Clean leases is ISC-only.
+
+**Logs.** By default Sandia reads the service's systemd journal
+(`journalctl -u kea-dhcp4-server`), which is where Debian's packaged config
+sends Kea's log. To use a file instead, point Kea's `output` at it and set
+`SANDIA_DHCP_LOG_PATH` to the same path. At INFO severity Kea logs offers,
+allocations (shown as DHCPACK), releases and declines. DISCOVER, REQUEST,
+failed offers and NAKs appear only with debug logging, and client
+diagnostics say so when nothing was found.
+
+**`<?include?>`.** The read views follow includes the way `kea-dhcp4` does:
+relative paths are resolved from `/`, which is the daemon's working
+directory under systemd, and nesting is limited to ten levels. The editors
+won't patch a config that uses includes, because the edit might belong in
+the included file. Change those configs on Raw Config.
+
+**Kea 2.7.9+/3.x** only load lease and log files from the compiled data
+and log directories unless `KEA_DHCP_DATA_DIR`/`KEA_LOG_FILE_DIR` are
+set. Sandia's defaults already match those directories. If you move the
+files, set both Kea's variables and Sandia's paths.
+
+### Migrating from isc-dhcp-server
+
+1. **Prepare.** Keep running Sandia with `SANDIA_DHCP_BACKEND=isc` for
+   now. Install Kea, write `/etc/kea/kea-dhcp4.conf`, and check it with
+   `kea-dhcp4 -t /etc/kea/kea-dhcp4.conf`. Don't start Kea yet, because
+   both servers would answer the same clients.
+2. **Try Sandia's Kea mode safely.** `sandia --dummy` now uses synthetic
+   Kea data and touches no system file or service.
+3. **Cut over.** Back up `/etc/dhcp/dhcpd.conf` and
+   `/var/lib/dhcp/dhcpd.leases`, then run:
+   - `systemctl disable --now isc-dhcp-server`
+   - `systemctl enable --now kea-dhcp4-server`
+
+   Remove `SANDIA_DHCP_BACKEND` (or set it to `kea`) and restart Sandia.
+   Then check that:
+   - clients get leases
+   - the Leases page and Event Log show them
+   - a harmless edit applies (it also proves rollback has a backup to use)
+4. **Roll back if needed.** Run `systemctl disable --now kea-dhcp4-server`
+   and `systemctl enable --now isc-dhcp-server`, set
+   `SANDIA_DHCP_BACKEND=isc` and restart Sandia. Nothing on the ISC side
+   was modified while Kea was active.
+
+## Trying it with dummy data (no real DHCP server, no root/sudo needed)
+
+To just look at and click through the UI - without installing Kea,
+without root, without `sudo`:
 
 ```
 uv run sandia --dummy
@@ -336,22 +446,24 @@ thing. When enabled, the app:
 - Defaults its own data directory to `~/.local/share/sandia-dummy` (instead
   of `/var/lib/sandia`, which needs root) unless you set `SANDIA_DATA_DIR`
   yourself.
-- Seeds a synthetic `dhcpd.conf` (two subnets, a handful of reservations)
-  and `dhcpd.leases` (a mix of active/free leases) under
-  `<SANDIA_DATA_DIR>/dummy/` - never at `/etc/dhcp/...` or any path you
+- Seeds a synthetic `kea-dhcp4.conf` (two subnets, a handful of
+  reservations), `kea-leases4.csv` (a mix of active/free leases) and a Kea
+  log under
+  `<SANDIA_DATA_DIR>/dummy/` - never at `/etc/kea/...` or any path you
   passed via `DHCPD_CONF_PATH`/`DHCPD_LEASES_PATH`, so it can never
   overwrite a real config by accident. Seeding only happens if those files
   don't already exist yet, so edits you make through the UI in one session
   are still there the next time you start it.
 - "Apply" writes straight to the sandboxed dummy config file (still taking
   a timestamped backup first), and service restart/enable/disable/status
-  are simulated in-process instead of calling `systemctl` - none of it
-  needs `dhcpd` or `isc-dhcp-server` to actually be installed.
+  are simulated in-process instead of calling `systemctl` or the Kea
+  control socket - none of it needs Kea to actually be installed.
+  (`SANDIA_DHCP_BACKEND=isc sandia --dummy` seeds the legacy ISC demo.)
 - Everything else - auth, RBAC, the parser, the leases page, backups,
   audit log - behaves exactly as it would against a real config.
 
 This is also the fastest way to sanity-check a fresh install or a port to
-another machine (see below) before wiring it up to a real `dhcpd.conf`.
+another machine (see below) before wiring it up to a real `kea-dhcp4.conf`.
 
 ## Changing a password
 
@@ -408,7 +520,9 @@ uv run pytest
 uv run ruff check .
 ```
 
-380+ tests cover the `dhcpd.conf` parser/serializer (round-trip and
+470+ tests cover the Kea backend (config projection and comment-preserving
+write-back, lease CSV and log parsing, control socket, journal, every
+editor end to end), the `dhcpd.conf` parser/serializer (round-trip and
 idempotence), the leases file parser, the stage/validate/apply pipeline,
 TLS certificate generation, dummy mode, the CLI flags (including
 `--set-password`), MAC vendor lookup (including the OUI cache fallback
@@ -480,13 +594,13 @@ dependencies there, run it.
 
    If the dashboard loads and shows the seeded subnet/leases, the port is
    good. Then run it for real - `uv run sandia`, or `sudo .venv/bin/sandia`
-   once you're ready to point it at a real `dhcpd.conf` and restart the
+   once you're ready to point it at a real `kea-dhcp4.conf` and restart the
    real service.
 
 4. **State that does *not* travel with the code**, and is specific to each
    machine: `SANDIA_DATA_DIR` (its SQLite DB, session secret, and TLS
    cert/key - a new machine should generate its own, not reuse another
    machine's), `SANDIA_BACKUP_DIR`, and of course that machine's own
-   `dhcpd.conf`/`dhcpd.leases`. If you do want to carry users/audit history
+   `kea-dhcp4.conf` and lease file. If you do want to carry users/audit history
    over, copy `<SANDIA_DATA_DIR>/sandia.db` explicitly; don't copy the
    TLS cert/key (regenerate them; a cert also embeds the old hostname/IP).

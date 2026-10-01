@@ -4,6 +4,30 @@ from pathlib import Path
 
 from fastapi import Request
 
+# Per-backend defaults for the settings whose sensible value depends on which
+# DHCP server is managed; an explicit env var or constructor arg always wins.
+# Kea values match Debian's kea-dhcp4-server package (systemd unit, AppArmor
+# profile). Its packaged config logs to stdout, so the Kea log source
+# defaults to the systemd journal (see diagnostics/dhcp_log.py).
+_BACKEND_DEFAULTS = {
+    "isc": {
+        "dhcpd_conf_path": ("DHCPD_CONF_PATH", "/etc/dhcp/dhcpd.conf"),
+        "leases_path": ("DHCPD_LEASES_PATH", "/var/lib/dhcp/dhcpd.leases"),
+        "dhcp_log_path": ("SANDIA_DHCP_LOG_PATH", "/var/log/syslog"),
+        "service_name": ("SANDIA_SERVICE_NAME", "isc-dhcp-server"),
+    },
+    "kea": {
+        "dhcpd_conf_path": ("DHCPD_CONF_PATH", "/etc/kea/kea-dhcp4.conf"),
+        "leases_path": ("DHCPD_LEASES_PATH", "/var/lib/kea/kea-leases4.csv"),
+        "dhcp_log_path": ("SANDIA_DHCP_LOG_PATH", "journal"),
+        "service_name": ("SANDIA_SERVICE_NAME", "kea-dhcp4-server"),
+    },
+}
+
+
+# SANDIA_DHCP_LOG_PATH value meaning "read the service's systemd journal".
+JOURNAL = Path("journal")
+
 
 @dataclass
 class Settings:
@@ -13,21 +37,35 @@ class Settings:
     # already known - that keeps the "dummy mode needs no special access"
     # guarantee consistent regardless of how Settings was constructed.
     data_dir: Path | None = None
-    dhcpd_conf_path: Path = field(default_factory=lambda: Path(os.environ.get("DHCPD_CONF_PATH", "/etc/dhcp/dhcpd.conf")))
-    leases_path: Path = field(default_factory=lambda: Path(os.environ.get("DHCPD_LEASES_PATH", "/var/lib/dhcp/dhcpd.leases")))
-    dhcp_log_path: Path = field(default_factory=lambda: Path(os.environ.get("SANDIA_DHCP_LOG_PATH", "/var/log/syslog")))
+    # These and service_name default per backend (see _BACKEND_DEFAULTS), resolved in
+    # __post_init__ for the same reason as data_dir.
+    dhcpd_conf_path: Path | None = None
+    leases_path: Path | None = None
+    dhcp_log_path: Path | None = None
     interfaces_conf_path: Path = field(
         default_factory=lambda: Path(os.environ.get("SANDIA_INTERFACES_CONF", "/etc/default/isc-dhcp-server"))
     )
     backup_dir: Path = field(default_factory=lambda: Path(os.environ.get("SANDIA_BACKUP_DIR", "/var/backups/sandia")))
-    service_name: str = field(default_factory=lambda: os.environ.get("SANDIA_SERVICE_NAME", "isc-dhcp-server"))
+    service_name: str | None = None
     # None resolves in __post_init__: all interfaces with HTTPS, loopback only with plain HTTP.
     host: str | None = field(default_factory=lambda: os.environ.get("SANDIA_HOST"))
     port: int = field(default_factory=lambda: int(os.environ.get("SANDIA_PORT", "7001")))
     enable_https: bool = field(default_factory=lambda: os.environ.get("SANDIA_HTTPS", "1") != "0")
     dummy_data: bool = field(default_factory=lambda: os.environ.get("SANDIA_DUMMY_DATA", "0") != "0")
+    kea_control_socket: Path = field(
+        default_factory=lambda: Path(os.environ.get("SANDIA_KEA_CONTROL_SOCKET", "/run/kea/kea4-ctrl-socket"))
+    )
+    # "kea" (default, supported) or "isc" (legacy); see dhcpd/backend.py.
+    dhcp_backend: str = field(default_factory=lambda: os.environ.get("SANDIA_DHCP_BACKEND", "kea"))
 
     def __post_init__(self) -> None:
+        if self.dhcp_backend not in _BACKEND_DEFAULTS:
+            raise ValueError(f"SANDIA_DHCP_BACKEND must be one of {', '.join(_BACKEND_DEFAULTS)}, got {self.dhcp_backend!r}")
+        for name, (env_var, default) in _BACKEND_DEFAULTS[self.dhcp_backend].items():
+            if getattr(self, name) is None:
+                value = os.environ.get(env_var, default)
+                setattr(self, name, value if name == "service_name" else Path(value))
+
         if self.host is None:
             self.host = "0.0.0.0" if self.enable_https else "127.0.0.1"
 
@@ -48,11 +86,17 @@ class Settings:
             # Testing-only mode: never touch real system paths, regardless
             # of DHCPD_CONF_PATH/DHCPD_LEASES_PATH - always use a sandboxed
             # location under the data dir.
-            self.dhcpd_conf_path = self.data_dir / "dummy" / "dhcpd.conf"
-            self.leases_path = self.data_dir / "dummy" / "dhcpd.leases"
-            self.backup_dir = self.data_dir / "dummy" / "backups"
-            self.interfaces_conf_path = self.data_dir / "dummy" / "isc-dhcp-server-defaults"
-            self.dhcp_log_path = self.data_dir / "dummy" / "dhcpd.log"
+            dummy = self.data_dir / "dummy"
+            if self.dhcp_backend == "kea":
+                self.dhcpd_conf_path = dummy / "kea-dhcp4.conf"
+                self.leases_path = dummy / "kea-leases4.csv"
+                self.dhcp_log_path = dummy / "kea-dhcp4.log"
+            else:
+                self.dhcpd_conf_path = dummy / "dhcpd.conf"
+                self.leases_path = dummy / "dhcpd.leases"
+                self.dhcp_log_path = dummy / "dhcpd.log"
+            self.backup_dir = dummy / "backups"
+            self.interfaces_conf_path = dummy / "isc-dhcp-server-defaults"
 
     @property
     def db_path(self) -> Path:

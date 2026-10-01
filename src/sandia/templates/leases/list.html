@@ -4,7 +4,7 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-xl font-semibold">{{ _("Leases") }}</h1>
   <div class="flex items-center gap-4">
-    {% if user.role in ('admin', 'operator') %}
+    {% if user.role in ('admin', 'operator') and dhcp_backend.lease_file_cleanup %}
     <form method="post" action="/leases/clean" onsubmit="return confirm({{ _("Clean the leases file? This keeps the current state of every lease and only removes superseded renewal history. A backup is taken first.") | tojson | forceescape }});">{{ csrf_input() }}
       <button type="submit" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-100">{{ icon('trash', 'w-4 h-4') }} {{ _("Clean leases") }}</button>
     </form>

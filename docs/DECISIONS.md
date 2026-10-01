@@ -267,3 +267,60 @@ CSV headers, the AI assistant's data snapshot, and the terms lease,
 subnet, pool, host and gateway (as Spanish-speaking sysadmins say them).
 The tagline stays English because it is the SANDIA backronym.
 
+## Kea is the supported backend; ISC is legacy
+
+From 1.4.5, Kea DHCPv4 is the default (`SANDIA_DHCP_BACKEND=kea`) and the
+only supported server. ISC DHCP reached end of maintenance upstream in 2022.
+The ISC backend stays selectable (`isc`) so existing installs can migrate
+on their own schedule, but it gets no new work. Where a change can't serve
+both, Kea's behavior wins.
+
+The backend is read once at startup, like every other setting. The paths
+and service name it changes are resolved in `Settings.__post_init__`, so an
+explicit env var or argument still wins. It isn't stored in the DB or
+editable in the UI, because switching live would mean re-resolving paths
+and services mid-flight.
+
+Everything that differs is a field of `dhcpd/backend.py:Backend`: validator,
+config parse/render, lease and log parsers, lease deletion, listening
+interfaces. Callers ask the backend instead of branching on its name.
+
+## Kea editing: one config model, patched back into the JSON
+
+The editors keep working on the existing config model (`dhcpd/ast.py`).
+`kea.parse_kea_config` projects `kea-dhcp4.conf` into it, field by field,
+for everything with an exact Kea equivalent. `kea.render_kea_config` maps
+the edited model back onto the original JSON, and `kea_edit.patch_json`
+rewrites only the values that changed. So comments, formatting and every
+key Sandia doesn't model survive an edit, and the diff of an applied change
+is as small as the change itself.
+
+A dedicated Kea data model and per-form JSON writers would have meant a
+second copy of every editor. One projection keeps the map, devices,
+diagnostics and every editor shared.
+
+Content with no Kea equivalent is refused with a message, never dropped:
+an extra-options statement that isn't an `option`, or Deny when a
+hand-written `DROP` class exists. Configs with `<?include?>` are read by
+following the includes (as `kea-dhcp4` does, relative to `/`) but not
+patched, because the edit might belong in the included file.
+
+Deny uses the `DROP` client class with a `pkt4.mac == 0x...` test (documented
+in Kea's classification chapter: a packet in DROP is dropped). That is used
+instead of host reservations, which would also need
+`early-global-reservations-lookup`.
+
+## Kea runtime operations go through the control socket
+
+Lease deletion is `lease4-del` and config activation is `config-reload`,
+both over `control-socket`, the supported way to change a running Kea.
+Sandia never edits `kea-leases4.csv`. Without a socket, applies use
+`systemctl restart` (explicitly reported as such), and lease deletion fails
+with the connection error rather than silently doing nothing. Kea compacts
+its own lease file, so there's no Clean leases for Kea.
+
+Debian's packaged Kea logs to stdout, so the default Kea log source is the
+service's journal (`journalctl -u`). Log lines are normalized into the same
+`DhcpEvent` shape, with syslog-style timestamps, so the Event Log and Wall of
+Shame don't know the source. Fields Kea doesn't log (hostname, interface)
+stay `None`.

@@ -1,7 +1,7 @@
 """Read-only AI assistant backed by a local Ollama server.
 
 The assistant never gets tools or write access: every question is answered
-from a plain-text snapshot of Sandia's own data (service status, dhcpd.conf,
+from a plain-text snapshot of Sandia's own data (service status, DHCP config,
 leases, DHCP log tail) built server-side and sent as the system prompt.
 """
 
@@ -16,12 +16,10 @@ import httpx
 from sqlmodel import Session
 
 from .config import Settings
-from .config_store import load_live_config
-from .dhcpd import serialize
 from .dhcpd.apply import service_status
-from .diagnostics import load_dhcp_events
+from .dhcpd.backend import get_backend, live_config_text, load_current_leases
+from .diagnostics import load_dhcp_events, log_source_label
 from .i18n import _, current_language
-from .leases import load_leases
 from .models import AiSettings
 
 DEFAULT_OLLAMA_PORT = 11434
@@ -33,8 +31,8 @@ MAX_LOG_LINES = 150
 MAX_HISTORY_MESSAGES = 20
 
 SYSTEM_PROMPT = """\
-You are the assistant built into Sandia, a web console for an ISC \
-isc-dhcp-server. Answer questions about the DHCP configuration, leases, \
+You are the assistant built into Sandia, a web console for {server}. \
+Answer questions about the DHCP configuration, leases, \
 logs and troubleshooting using only the Sandia data below. If the data \
 does not show something, say so instead of guessing. You cannot make \
 changes: when a change is needed, explain it and point the user to the \
@@ -42,9 +40,9 @@ relevant Sandia page (Subnets, Reservations, Leases, Devices, Advanced \
 Settings > Raw Config, Diagnostics). Be concise."""
 
 
-def system_prompt() -> str:
+def system_prompt(server: str) -> str:
     # The data snapshot stays in English; only the reply language follows the UI.
-    return SYSTEM_PROMPT + (" Reply in Spanish." if current_language() == "es" else "")
+    return SYSTEM_PROMPT.format(server=server) + (" Reply in Spanish." if current_language() == "es" else "")
 
 
 def load_ai_settings(session: Session) -> AiSettings:
@@ -84,9 +82,10 @@ def _truncate(text: str, limit: int) -> str:
 
 async def build_context(settings: Settings) -> str:
     status = await service_status(settings)
-    config_text = serialize(load_live_config(settings)).strip() or "(empty or missing)"
+    backend = get_backend(settings)
+    config_text = backend.raw_text(live_config_text(settings) or "").strip() or "(empty or missing)"
 
-    leases = load_leases(settings.leases_path)
+    leases = load_current_leases(settings)
     counts = Counter(lease.binding_state or "unknown" for lease in leases)
     active = [lease for lease in leases if lease.is_active]
     lease_lines = [
@@ -97,17 +96,17 @@ async def build_context(settings: Settings) -> str:
         lease_lines.append(f"... ({len(active) - MAX_CONTEXT_LEASES} more active leases not shown)")
 
     events, log_unavailable = load_dhcp_events(settings)
-    log_text = log_unavailable or "\n".join(event.raw for event in events[-MAX_LOG_LINES:]) or "(no dhcpd lines)"
+    log_text = log_unavailable or "\n".join(event.raw for event in events[-MAX_LOG_LINES:]) or "(no DHCP server lines)"
 
     return "\n\n".join(
         [
             f"## Service\n{settings.service_name}: {status}",
-            f"## dhcpd.conf ({settings.dhcpd_conf_path})\n{_truncate(config_text, MAX_CONFIG_CHARS)}",
+            f"## {backend.backup_prefix} ({settings.dhcpd_conf_path})\n{_truncate(config_text, MAX_CONFIG_CHARS)}",
             "## Leases\n"
             + (", ".join(f"{state}: {n}" for state, n in sorted(counts.items())) or "no leases")
             + "\nActive leases (IP MAC hostname end-time):\n"
             + ("\n".join(lease_lines) or "(none)"),
-            f"## DHCP log (last {MAX_LOG_LINES} dhcpd lines from {settings.dhcp_log_path})\n{log_text}",
+            f"## DHCP log (last {MAX_LOG_LINES} DHCP server lines from {log_source_label(settings)})\n{log_text}",
         ]
     )
 

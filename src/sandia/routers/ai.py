@@ -16,6 +16,7 @@ from ..ai import (
 from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
+from ..dhcpd.backend import get_backend
 from ..i18n import _
 from ..models import User
 from ..rendering import render, set_flash
@@ -100,5 +101,5 @@ async def ai_chat(
         return PlainTextResponse(_("No question to answer."), status_code=400)
 
     context = await build_context(settings)
-    messages = [{"role": "system", "content": f"{system_prompt()}\n\n{context}"}, *history]
+    messages = [{"role": "system", "content": f"{system_prompt(get_backend(settings).label)}\n\n{context}"}, *history]
     return StreamingResponse(chat_stream(ai.ollama_url, ai.model, messages), media_type="text/plain; charset=utf-8")

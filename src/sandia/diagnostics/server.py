@@ -1,10 +1,13 @@
-"""Server-level checks: is isc-dhcp-server actually able to run at all."""
+"""Server-level checks: is the DHCP server actually able to run at all."""
 
 from __future__ import annotations
 
 from ..config import Settings
 from ..config_store import load_live_config
 from ..dhcpd import apply as apply_module
+from ..dhcpd import kea
+from ..dhcpd.backend import get_backend, live_config_text
+from ..dhcpd.parser import ParseError
 from ..i18n import _
 from ..interfaces_conf import read_configured_interfaces
 from . import dhcp_log
@@ -17,7 +20,7 @@ async def _service_finding(settings: Settings) -> Finding | None:
         return None
     return Finding(
         status=Status.CRITICAL,
-        problem=_("isc-dhcp-server is not running"),
+        problem=_("{service} is not running", service=get_backend(settings).label),
         root_cause=_("systemctl reports the service as '{status}'.", status=status),
         confidence=Confidence.CONFIRMED,
         evidence=[Evidence(_("Service status"), status), Evidence(_("Service name"), settings.service_name)],
@@ -30,23 +33,24 @@ async def _config_finding(settings: Settings) -> Finding | None:
     result = await apply_module.check_live_config(settings)
     if result.ok:
         return None
+    validator = get_backend(settings).validator
     if result.command_missing:
         return Finding(
             status=Status.WARNING,
             problem=_("Could not validate the live configuration"),
-            root_cause=_("The `dhcpd` command could not be run ({stderr}), so config validity is unknown.", stderr=result.stderr),
+            root_cause=_("The `{validator}` command could not be run ({stderr}), so config validity is unknown.", validator=validator, stderr=result.stderr),
             confidence=Confidence.UNKNOWN,
-            evidence=[Evidence(_("dhcpd -t error"), result.stderr)],
+            evidence=[Evidence(_("{validator} -t error", validator=validator), result.stderr)],
             impact=_("Configuration correctness cannot currently be confirmed by this check."),
             actions=[Action(_("View raw config"), "/config/raw")],
         )
     return Finding(
         status=Status.CRITICAL,
         problem=_("Live configuration is invalid"),
-        root_cause=_("`dhcpd -t` failed against the configuration file currently on disk."),
+        root_cause=_("`{validator} -t` failed against the configuration file currently on disk.", validator=validator),
         confidence=Confidence.CONFIRMED,
-        evidence=[Evidence(_("dhcpd -t output"), (result.stderr or result.stdout).strip())],
-        impact=_("dhcpd is either running on a stale configuration or will fail to start/restart."),
+        evidence=[Evidence(_("{validator} -t output", validator=validator), (result.stderr or result.stdout).strip())],
+        impact=_("{validator} is either running on a stale configuration or will fail to start/restart.", validator=validator),
         actions=[Action(_("View raw config"), "/config/raw"), Action(_("View backups"), "/backups")],
     )
 
@@ -59,7 +63,7 @@ def _leases_finding(settings: Settings) -> Finding | None:
             root_cause=_("No file exists at {leases_path}.", leases_path=settings.leases_path),
             confidence=Confidence.CONFIRMED,
             evidence=[Evidence(_("Leases path"), str(settings.leases_path))],
-            impact=_("Sandia cannot show current leases until the file exists (dhcpd creates it on first run)."),
+            impact=_("Sandia cannot show current leases until the file exists ({daemon} creates it on first run).", daemon=get_backend(settings).validator),
             actions=[],
         )
     try:
@@ -77,7 +81,27 @@ def _leases_finding(settings: Settings) -> Finding | None:
     return None
 
 
+def _kea_interfaces_finding(settings: Settings) -> Finding | None:
+    try:
+        interfaces = kea.configured_interfaces(live_config_text(settings) or "{}")
+    except ParseError:
+        return None  # an unreadable config is already reported by the validation check
+    if interfaces:
+        return None
+    return Finding(
+        status=Status.WARNING,
+        problem=_("No interfaces configured"),
+        root_cause=_("Dhcp4.interfaces-config.interfaces in {path} is empty.", path=settings.dhcpd_conf_path),
+        confidence=Confidence.CONFIRMED,
+        evidence=[Evidence("interfaces-config", "(empty)")],
+        impact=_("Kea does not listen on any interface until at least one is listed (or \"*\" for all)."),
+        actions=[Action(_("View raw config"), "/config/raw")],
+    )
+
+
 def _interfaces_finding(settings: Settings) -> Finding | None:
+    if get_backend(settings).name == "kea":
+        return _kea_interfaces_finding(settings)
     interfaces = read_configured_interfaces(settings.interfaces_conf_path)
     if interfaces:
         return None
@@ -138,7 +162,7 @@ async def diagnose_server(settings: Settings) -> DiagnosticResult:
                 problem=_("DHCP log not available"),
                 root_cause=log_unavailable,
                 confidence=Confidence.CONFIRMED,
-                evidence=[Evidence(_("Configured log path"), str(settings.dhcp_log_path))],
+                evidence=[Evidence(_("Configured log path"), dhcp_log.log_source_label(settings))],
                 impact=_("Recent DHCP protocol activity (offers, NAKs, declines) cannot be checked here or in client diagnostics."),
                 actions=[],
             )

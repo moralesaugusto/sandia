@@ -60,7 +60,7 @@
     <input type="checkbox" id="select-all" class="rounded bg-slate-800 border-slate-700" onchange="document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = this.checked)">
     {{ _("Select all") }}
   </label>
-  <button type="submit" formaction="/devices/bulk-delete-lease" onclick="return confirm({{ _("Delete the current lease record for every selected device? This only removes Sandia's copy of the lease file entry - if a device is still active, dhcpd will write a new one on its next renewal.") | tojson | forceescape }});" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease records for selected") }}</button>
+  <button type="submit" formaction="/devices/bulk-delete-lease" onclick="return confirm({{ (_("Delete the current lease of every selected device in Kea? Clients keep using their addresses until they next renew, then get new leases.") if dhcp_backend.name == 'kea' else _("Delete the current lease record for every selected device? This only removes Sandia's copy of the lease file entry - if a device is still active, dhcpd will write a new one on its next renewal.")) | tojson | forceescape }});" class="flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300">{{ icon('trash', 'w-4 h-4') }} {{ _("Delete lease records for selected") }}</button>
 </div>
 {% endif %}
 <div id="devices-table">

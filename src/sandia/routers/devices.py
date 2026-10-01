@@ -1,5 +1,3 @@
-import shutil
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -17,11 +15,10 @@ from ..devices import (
     find_device,
     sort_devices,
 )
+from ..dhcpd.backend import get_backend, load_current_leases, load_lease_records
 from ..diagnostics import diagnose_client, load_dhcp_events
 from ..i18n import N_, _
 from ..ip_map import build_subnet_map, denied_macs, next_available_ip
-from ..leases import load_lease_history, load_leases
-from ..leases_cleanup import delete_lease_records
 from ..models import User
 from ..rendering import render, set_flash
 from ..security import require_login, require_role
@@ -33,8 +30,8 @@ STATUS_OPTIONS = [("", N_("All statuses"))] + [(status.value, label) for status,
 
 def _load_devices(settings: Settings):
     config = load_live_config(settings)
-    current_leases = load_leases(settings.leases_path)
-    lease_history = load_lease_history(settings.leases_path)
+    current_leases = load_current_leases(settings)
+    lease_history = load_lease_records(settings)
     events, log_unavailable = load_dhcp_events(settings)
     devices = build_devices(config, current_leases, lease_history, events)
     return config, devices, current_leases, events, log_unavailable
@@ -163,7 +160,9 @@ async def device_detail(
         return RedirectResponse("/devices", status_code=303)
 
     activity = [event for event in events if event.kind != "OTHER" and event.mac == device.mac] if not log_unavailable else []
-    diagnosis = diagnose_client(config, current_leases, events, log_unavailable, mac=device.mac, ip=device.current_ip)
+    diagnosis = diagnose_client(
+        config, current_leases, events, log_unavailable, mac=device.mac, ip=device.current_ip, logs_requests=get_backend(settings).logs_requests
+    )
 
     return render(
         request,
@@ -215,6 +214,12 @@ async def device_lease_form(
     )
 
 
+def _deleted_message(settings: Settings, removed: int, ip: str) -> str:
+    if get_backend(settings).name == "kea":
+        return _("Kea deleted the lease for {ip}. If the device is still using the address, it gets a new lease when it next renews.", ip=ip)
+    return _("Deleted {removed} lease record(s) for {ip}. This is Sandia's copy only - if the device is still active, dhcpd will write a new record on its next renewal.", removed=removed, ip=ip)
+
+
 @router.post("/devices/{mac}/delete-lease")
 async def delete_device_lease(
     mac: str,
@@ -230,28 +235,17 @@ async def delete_device_lease(
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
     ip = device.current_lease.ip
-    if not settings.leases_path.exists():
-        set_flash(request, _("No leases file found."), kind="error")
+    removed, error = await get_backend(settings).delete_leases(settings, [ip])
+    if error:
+        log_action(session, request, user, "device_lease_delete_failed", error, success=False)
+        set_flash(request, _("Failed to delete lease record: {exc}", exc=error), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
-
-    text = settings.leases_path.read_text()
-    cleaned, removed = delete_lease_records(text, ip)
     if removed == 0:
         set_flash(request, _("No lease record found for that address."), kind="error")
         return RedirectResponse(f"/devices/{mac}", status_code=303)
 
-    try:
-        settings.backup_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
-        shutil.copyfile(settings.leases_path, settings.backup_dir / f"dhcpd.leases.{stamp}")
-        settings.leases_path.write_text(cleaned)
-    except OSError as exc:
-        log_action(session, request, user, "device_lease_delete_failed", str(exc), success=False)
-        set_flash(request, _("Failed to delete lease record: {exc}", exc=exc), kind="error")
-        return RedirectResponse(f"/devices/{mac}", status_code=303)
-
     log_action(session, request, user, "device_lease_delete", f"{device.mac} ({ip}), {removed} record(s)")
-    set_flash(request, _("Deleted {removed} lease record(s) for {ip}. This is Sandia's copy only - if the device is still active, dhcpd will write a new record on its next renewal.", removed=removed, ip=ip))
+    set_flash(request, _deleted_message(settings, removed, ip))
     return RedirectResponse(f"/devices/{mac}", status_code=303)
 
 
@@ -268,31 +262,21 @@ async def bulk_delete_device_leases(
         return RedirectResponse("/devices", status_code=303)
 
     _config, devices, _leases, _history, _log = _load_devices(settings)
-    if not settings.leases_path.exists():
-        set_flash(request, _("No leases file found."), kind="error")
-        return RedirectResponse("/devices", status_code=303)
-
-    text = settings.leases_path.read_text()
-    removed_total = 0
-    affected = []
+    targets = {}
     for raw_mac in macs:
         device = find_device(devices, raw_mac)
-        if device is None or device.current_lease is None:
-            continue
-        text, removed = delete_lease_records(text, device.current_lease.ip)
-        if removed:
-            removed_total += removed
-            affected.append(device.mac)
+        if device is not None and device.current_lease is not None:
+            targets[device.mac] = device.current_lease.ip
 
+    removed_total, error = await get_backend(settings).delete_leases(settings, list(targets.values()))
+    if error:
+        log_action(session, request, user, "device_bulk_lease_delete_failed", error, success=False)
+        set_flash(request, _("Failed to delete lease record: {exc}", exc=error), kind="error")
+        return RedirectResponse("/devices", status_code=303)
     if removed_total == 0:
         set_flash(request, _("None of the selected devices had a current lease record to delete."), kind="error")
         return RedirectResponse("/devices", status_code=303)
 
-    settings.backup_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
-    shutil.copyfile(settings.leases_path, settings.backup_dir / f"dhcpd.leases.{stamp}")
-    settings.leases_path.write_text(text)
-
-    log_action(session, request, user, "device_bulk_lease_delete", f"{len(affected)} device(s): {', '.join(affected)}")
-    set_flash(request, _("Deleted {removed_total} lease record(s) across {value} device(s).", removed_total=removed_total, value=len(affected)))
+    log_action(session, request, user, "device_bulk_lease_delete", f"{len(targets)} device(s): {', '.join(targets)}")
+    set_flash(request, _("Deleted {removed_total} lease record(s) across {value} device(s).", removed_total=removed_total, value=len(targets)))
     return RedirectResponse("/devices", status_code=303)

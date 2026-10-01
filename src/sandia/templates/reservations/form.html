@@ -49,7 +49,7 @@
         </div>
       </div>
       <div>
-        <label class="block text-sm text-slate-400 mb-1">{{ _("Extra options") }} <span class="text-slate-600">{{ _('(one dhcpd statement per line, e.g. Webmin-style "client options")') }}</span></label>
+        <label class="block text-sm text-slate-400 mb-1">{{ _("Extra options") }} <span class="text-slate-600">{{ _('(one "option name value;" per line - each becomes a Kea option-data entry)') if dhcp_backend.name == 'kea' else _('(one dhcpd statement per line, e.g. Webmin-style "client options")') }}</span></label>
         <textarea name="extra_options" rows="4" class="w-full font-mono text-sm rounded-md bg-slate-800 border border-slate-700 px-3 py-2" placeholder='option domain-name-servers 1.1.1.1;&#10;ddns-hostname &quot;printer&quot;;'>{{ prefill.extra_options }}</textarea>
       </div>
     </div>

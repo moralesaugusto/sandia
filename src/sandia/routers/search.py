@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request
 from ..config import Settings, get_settings
 from ..config_store import load_live_config
 from ..device_icons import device_icon_for
-from ..leases import load_leases
+from ..dhcpd.backend import load_current_leases
 from ..models import User
 from ..rendering import render
 from ..security import require_login
@@ -35,7 +35,7 @@ async def search_suggest(
 
     leases = [
         lease
-        for lease in load_leases(settings.leases_path)
+        for lease in load_current_leases(settings)
         if needle in lease.ip.lower() or needle in (lease.mac or "").lower() or needle in (lease.hostname or "").lower()
     ][:MAX_RESULTS_PER_SECTION]
 

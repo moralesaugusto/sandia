@@ -12,10 +12,11 @@
     (_('Platform'), info.platform),
     ('FastAPI', info.fastapi_version),
     ('Uvicorn', info.uvicorn_version),
+    (_('DHCP backend'), dhcp_backend.label + ' (SANDIA_DHCP_BACKEND=' + dhcp_backend.name + ')'),
     (_('DHCP service'), info.service_name),
     (_('Dummy mode'), _('enabled') if info.dummy_mode else _('disabled')),
     ('HTTPS', _('enabled') if info.https_enabled else _('disabled')),
-    (_('dhcpd.conf path'), info.dhcpd_conf_path),
+    (dhcp_backend.backup_prefix, info.dhcpd_conf_path),
     (_('leases path'), info.leases_path),
     (_('Data directory'), info.data_dir),
   ] %}
@@ -27,7 +28,7 @@
 </div>
 
 <p class="text-sm text-slate-500 mt-6">
-  {{ _('Sandia is a standalone web UI for managing an ISC isc-dhcp-server instance.') }}
+  {{ _('Sandia is a standalone web UI for managing a Kea DHCPv4 server.') }}
   {{ _('See INSTRUCTIONS.md in the project directory for setup and usage.') }}
 </p>
 
@@ -37,7 +38,7 @@
   {% for label, value, note in [
     (_('DHCP configuration'), info.dhcpd_conf_path, _('read live on every page')),
     (_('Leases'), info.leases_path, _('read live on every page')),
-    (_('DHCP events'), data_sources.dhcp_log_path, _('found ({size} MB)', size='{:.1f}'.format(data_sources.dhcp_log_size_mb)) if data_sources.dhcp_log_size_mb is not none else _('not found')),
+    (_('DHCP events'), data_sources.dhcp_log_path, _('read with journalctl') if data_sources.dhcp_log_journal else (_('found ({size} MB)', size='{:.1f}'.format(data_sources.dhcp_log_size_mb)) if data_sources.dhcp_log_size_mb is not none else _('not found'))),
     (_('Events read per request'), _('last {mb} MB of the log', mb=window), _('parsed fresh each time')),
     (_('Sandia database'), data_sources.db_path, _('users, audit log, AI settings')),
   ] %}
@@ -51,7 +52,7 @@
   {% endfor %}
 </div>
 <p class="text-sm text-slate-500 mt-3">
-  {{ _('DHCP events (DISCOVER, OFFER, REQUEST, ACK, NAK, ...) are not stored in a database. Each time a page needs them, Sandia reads the last {mb} MB of the DHCP log and parses it. History therefore only reaches back as far as that window and whatever syslog rotation has not yet removed - often a few days to a few weeks, depending on traffic and what else writes to the log. This limits the Event Log, the "All available" range of the Wall of Shame, device activity on Device 360, and the log lines the AI assistant sees. Leases and configuration have no such limit: they come straight from the files dhcpd itself maintains.', mb=window) }}
+  {{ _('DHCP events (DISCOVER, OFFER, REQUEST, ACK, NAK, ...) are not stored in a database. Each time a page needs them, Sandia reads the last {mb} MB of the DHCP log and parses it. History therefore only reaches back as far as that window and whatever syslog rotation has not yet removed - often a few days to a few weeks, depending on traffic and what else writes to the log. This limits the Event Log, the "All available" range of the Wall of Shame, device activity on Device 360, and the log lines the AI assistant sees. Leases and configuration have no such limit: they come straight from the files the DHCP server itself maintains.', mb=window) }}
 </p>
 
 <h2 class="text-lg font-semibold mt-8 mb-3 flex items-center gap-2">{{ icon('database', 'w-5 h-5 text-slate-500') }} {{ _('OUI vendor database') }}</h2>

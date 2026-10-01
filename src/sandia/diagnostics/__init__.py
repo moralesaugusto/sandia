@@ -1,5 +1,5 @@
 from .client import diagnose_client, normalize_mac
-from .dhcp_log import load_dhcp_events
+from .dhcp_log import load_dhcp_events, log_source_label
 from .models import (
     Action,
     Confidence,
@@ -24,5 +24,6 @@ __all__ = [
     "diagnose_server",
     "diagnose_subnet",
     "load_dhcp_events",
+    "log_source_label",
     "normalize_mac",
 ]
