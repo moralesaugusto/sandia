@@ -1,6 +1,6 @@
 # Current State
 
-Snapshot as of 1.4.5 (2026-09-30). See
+Snapshot as of 1.4.6 (2026-09-30). See
 `INSTRUCTIONS.md` for full user-facing docs, `CHANGELOG.md` for release history
 and `SECURITY_STATUS.md` for open security findings.
 
