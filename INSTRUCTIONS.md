@@ -242,11 +242,15 @@ No sudoers file, no privileged helper script, no service account - the app
 just does the work directly, so it needs to actually be running with
 enough privilege at the time:
 
-- **Applying a config change**: writes the new config to a staging file,
-  runs `kea-dhcp4 -t <staging file>` (legacy ISC: `dhcpd -t -cf`) to
-  validate it, backs up the current config file with a timestamp, then
-  installs the staged file (copied alongside and renamed over it, so a
-  crash can't leave a half-written config). Kea then loads it with
+- **Applying a config change**: writes the new config to a private staging
+  file with a random name next to the live config, runs
+  `kea-dhcp4 -t <staging file>` (legacy ISC: `dhcpd -t -cf`) to validate
+  it, backs up the current config file with a timestamp, then renames that
+  same validated file over the live config (so a crash can't leave a
+  half-written config). Only one apply, restore or rollback runs at a time.
+  Sandia refuses to write into the config directory or `SANDIA_BACKUP_DIR`
+  if either is writable by group or others, or owned by an account other
+  than root or Sandia's own. Kea then loads the new config with
   `config-reload` over the control socket when one is configured, or
   `systemctl restart` otherwise, and `systemctl is-active` confirms the
   service is up. If anything fails, the backup just taken is put back and

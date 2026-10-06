@@ -6,7 +6,7 @@ from ..audit import log_action
 from ..config import Settings, get_settings
 from ..db import get_session
 from ..dhcpd import ParseError
-from ..dhcpd.apply import apply_new_config, check_config, stage
+from ..dhcpd.apply import apply_new_config, config_lock, validate_text
 from ..dhcpd.backend import (
     get_backend,
     live_config_sha,
@@ -45,8 +45,7 @@ async def review_page(
     backend = get_backend(settings)
     live_text = live_config_text(settings) or ""
 
-    await stage(settings, change.text)
-    checked = await check_config(settings)
+    checked = await validate_text(settings, change.text)
 
     impact, parse_error = None, None
     try:
@@ -78,19 +77,22 @@ async def review_apply(
 ):
     change = _pending(settings, token, user)
     discard(settings, token)
-    if live_config_sha(settings) != change.base_sha:
-        set_flash(request, _("The configuration changed after this edit was prepared, so it was not applied. Make the edit again."), kind="error")
-        return RedirectResponse(change.return_url, status_code=303)
+    # Held from the stale check to record_apply, so no other apply or
+    # rollback can change the config in between (SEC-2026-02, fixed).
+    async with config_lock:
+        if live_config_sha(settings) != change.base_sha:
+            set_flash(request, _("The configuration changed after this edit was prepared, so it was not applied. Make the edit again."), kind="error")
+            return RedirectResponse(change.return_url, status_code=303)
 
-    result = await apply_new_config(settings, change.text)
-    if not result.ok:
-        log_action(session, request, user, f"{change.action}_failed", result.output, success=False)
-        set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse(change.return_url, status_code=303)
+        result = await apply_new_config(settings, change.text)
+        if not result.ok:
+            log_action(session, request, user, f"{change.action}_failed", result.output, success=False)
+            set_flash(request, _("Apply failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
+            return RedirectResponse(change.return_url, status_code=303)
 
+        if result.backup is not None:
+            record_apply(settings, result.backup.name, user.username, change.action)
     log_action(session, request, user, change.action, change.detail)
-    if result.backup is not None:
-        record_apply(settings, result.backup.name, user.username, change.action)
     set_flash(request, change.success_message)
     return RedirectResponse(change.return_url, status_code=303)
 
@@ -116,18 +118,21 @@ async def rollback_last_apply(
     settings: Settings = Depends(get_settings),
     next_url: str = Form("/"),
 ):
-    offer = rollback_offer(settings)
-    if offer is None:
-        set_flash(request, _("There is no recent change to roll back."), kind="error")
-        return RedirectResponse(_local_url(next_url), status_code=303)
+    # The offer is checked and consumed under the lock, so two rollbacks (or
+    # a rollback racing an apply) can't both act on it (SEC-2026-02, fixed).
+    async with config_lock:
+        offer = rollback_offer(settings)
+        if offer is None:
+            set_flash(request, _("There is no recent change to roll back."), kind="error")
+            return RedirectResponse(_local_url(next_url), status_code=303)
 
-    result = await apply_new_config(settings, (settings.backup_dir / offer.backup).read_text())
-    if not result.ok:
-        log_action(session, request, user, "config_rollback_failed", result.output, success=False)
-        set_flash(request, _("Rollback failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
-        return RedirectResponse(_local_url(next_url), status_code=303)
+        result = await apply_new_config(settings, (settings.backup_dir / offer.backup).read_text())
+        if not result.ok:
+            log_action(session, request, user, "config_rollback_failed", result.output, success=False)
+            set_flash(request, _("Rollback failed ({stage}): {output}", stage=result.stage, output=result.output), kind="error")
+            return RedirectResponse(_local_url(next_url), status_code=303)
 
-    clear_apply(settings)
+        clear_apply(settings)
     log_action(session, request, user, "config_rollback", f"{offer.action} -> {offer.backup}")
     set_flash(request, _("Rolled back to the configuration before the last change ({backup}).", backup=offer.backup))
     return RedirectResponse(_local_url(next_url), status_code=303)

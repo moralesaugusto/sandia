@@ -167,13 +167,9 @@ def get_backend(settings: Settings) -> Backend:
 
 
 def live_config_text(settings: Settings) -> str | None:
-    """The live config file, falling back to the last staged draft when no
-    live file exists yet (e.g. the server not installed on this box during
-    development)."""
-    for path in (settings.dhcpd_conf_path, settings.staging_path):
-        if path.exists():
-            return path.read_text()
-    return None
+    """The live config file, or None when there is none yet."""
+    path = settings.dhcpd_conf_path
+    return path.read_text() if path.exists() else None
 
 
 def live_config_sha(settings: Settings) -> str:

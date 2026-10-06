@@ -1,3 +1,6 @@
+import asyncio
+from pathlib import Path
+
 import pytest
 
 from sandia.config import Settings
@@ -25,13 +28,16 @@ async def test_apply_new_config_success(settings, monkeypatch):
     result = await apply_module.apply_new_config(settings, "authoritative;\n")
 
     assert result.ok
-    assert settings.staging_path.read_text() == "authoritative;\n"
     assert settings.dhcpd_conf_path.read_text() == "authoritative;\n"
-    assert calls == [
-        ("dhcpd", "-t", "-cf", str(settings.staging_path)),
+    check, *rest = calls
+    assert check[:3] == ("dhcpd", "-t", "-cf")
+    assert Path(check[3]).parent == settings.staging_dir
+    assert Path(check[3]).name.startswith(".sandia-staged-")
+    assert rest == [
         ("systemctl", "restart", settings.service_name),
         ("systemctl", "is-active", settings.service_name),
     ]
+    assert not list(settings.staging_dir.glob(".sandia-staged-*"))  # staged file was installed, not left behind
 
 
 async def test_apply_new_config_stops_when_check_fails(settings, monkeypatch):
@@ -78,7 +84,7 @@ async def test_install_is_atomic_and_preserves_file_mode(settings, monkeypatch):
 
     assert result.ok
     assert settings.dhcpd_conf_path.stat().st_mode & 0o777 == 0o640
-    assert not list(settings.dhcpd_conf_path.parent.glob("*.sandia-tmp"))
+    assert not list(settings.staging_dir.glob(".sandia-*"))
 
 
 def _fake_systemctl(restart_results: list[bool], status: str = "active"):
@@ -140,10 +146,10 @@ async def test_apply_new_config_reports_install_failure_cleanly(settings, monkey
 
     monkeypatch.setattr(apply_module, "_run", fake_run)
 
-    def fake_copyfile(*args, **kwargs):
+    def fake_replace(*args, **kwargs):
         raise PermissionError("[Errno 13] Permission denied")
 
-    monkeypatch.setattr(apply_module.shutil, "copyfile", fake_copyfile)
+    monkeypatch.setattr(apply_module.os, "replace", fake_replace)
 
     result = await apply_module.apply_new_config(settings, "authoritative;\n")
 
@@ -197,3 +203,83 @@ async def test_check_live_config_skips_validation_in_dummy_mode(tmp_path):
     dummy_settings = Settings(data_dir=tmp_path / "data", dummy_data=True)
     result = await apply_module.check_live_config(dummy_settings)
     assert result.ok
+
+
+# --- SEC-2026-02: serialized, private staging ------------------------------
+
+
+async def test_validate_text_uses_a_private_staging_file_and_removes_it(settings, monkeypatch):
+    seen = []
+
+    async def fake_run(*args):
+        path = Path(args[-1])
+        seen.append((path, path.read_text(), path.stat().st_mode & 0o777))
+        return apply_module.CommandResult(ok=True, stdout="", stderr="")
+
+    monkeypatch.setattr(apply_module, "_run", fake_run)
+
+    first, second = await asyncio.gather(
+        apply_module.validate_text(settings, "one;\n"),
+        apply_module.validate_text(settings, "two;\n"),
+    )
+
+    assert first.ok and second.ok
+    assert seen[0][0] != seen[1][0]
+    assert sorted(text for _, text, _ in seen) == ["one;\n", "two;\n"]
+    assert all(mode == 0o600 for *_, mode in seen)
+    assert not list(settings.staging_dir.glob(".sandia-staged-*"))
+
+
+async def test_validated_file_is_the_one_installed(settings, monkeypatch):
+    # Overwriting the old fixed staging path mid-validation used to change
+    # what got installed. Now nothing else can reach the staged file.
+    async def fake_run(*args):
+        if args[0] == "dhcpd":
+            (settings.staging_dir / ".sandia-staged.conf").write_text("planted;\n")
+        return apply_module.CommandResult(ok=True, stdout="active", stderr="")
+
+    monkeypatch.setattr(apply_module, "_run", fake_run)
+
+    result = await apply_module.apply_new_config(settings, "validated;\n")
+
+    assert result.ok
+    assert settings.dhcpd_conf_path.read_text() == "validated;\n"
+
+
+async def test_refuses_a_config_directory_writable_by_others(settings, monkeypatch):
+    monkeypatch.setattr(apply_module, "_run", _fake_systemctl([True]))
+    settings.staging_dir.chmod(0o777)
+    try:
+        result = await apply_module.apply_new_config(settings, "new config\n")
+        checked = await apply_module.validate_text(settings, "new config\n")
+    finally:
+        settings.staging_dir.chmod(0o700)
+
+    assert (result.ok, result.stage) == (False, "apply")
+    assert "not writable by group or others" in result.output
+    assert not checked.ok and "not writable by group or others" in checked.stderr
+    assert not settings.dhcpd_conf_path.exists()
+
+
+async def test_backup_never_follows_a_planted_symlink(settings, monkeypatch, tmp_path):
+    settings.dhcpd_conf_path.write_text("old config\n")
+    settings.backup_dir.mkdir()
+    victim = tmp_path / "victim"
+    victim.write_text("untouched\n")
+
+    class FixedTime:
+        @staticmethod
+        def now():
+            from datetime import datetime
+
+            return datetime(2026, 10, 6, 12, 0, 0)
+
+    monkeypatch.setattr(apply_module, "datetime", FixedTime)
+    (settings.backup_dir / "dhcpd.conf.20261006-120000000000").symlink_to(victim)
+    monkeypatch.setattr(apply_module, "_run", _fake_systemctl([True]))
+
+    result = await apply_module.apply_new_config(settings, "new config\n")
+
+    assert (result.ok, result.stage) == (False, "apply")
+    assert victim.read_text() == "untouched\n"
+    assert settings.dhcpd_conf_path.read_text() == "old config\n"

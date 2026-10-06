@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Form, Request
 
 from ..config import Settings, get_settings
-from ..dhcpd.apply import check_config, stage
+from ..dhcpd.apply import validate_text
 from ..dhcpd.backend import get_backend, live_config_text
 from ..diff import unified_diff_lines
 from ..i18n import _
@@ -33,8 +33,7 @@ async def raw_config_validate(
     settings: Settings = Depends(get_settings),
     text: str = Form(...),
 ):
-    await stage(settings, text)
-    result = await check_config(settings)
+    result = await validate_text(settings, text)
     return render(
         request,
         "raw_config/_validate_result.html",

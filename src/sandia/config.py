@@ -103,15 +103,16 @@ class Settings:
         return self.data_dir / "sandia.db"
 
     @property
-    def staging_path(self) -> Path:
-        # Deliberately colocated with dhcpd_conf_path (typically /etc/dhcp/),
+    def staging_dir(self) -> Path:
+        # Where proposed configs are staged for validation. Deliberately
+        # colocated with dhcpd_conf_path (typically /etc/dhcp/),
         # not under data_dir: the isc-dhcp-server AppArmor profile Debian/
         # Ubuntu ship (/etc/apparmor.d/usr.sbin.dhcpd) grants dhcpd read
         # access to /etc/dhcp/** but nothing under /var/lib/sandia/. Staging
         # there made `dhcpd -t` fail with a permission error - enforced by
         # AppArmor's mandatory access control, which root does not bypass -
         # even when Sandia itself runs as root.
-        return self.dhcpd_conf_path.parent / ".sandia-staged.conf"
+        return self.dhcpd_conf_path.parent
 
     @property
     def initial_password_path(self) -> Path:

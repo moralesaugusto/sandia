@@ -3,6 +3,9 @@ from __future__ import annotations
 import asyncio
 import os
 import shutil
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -46,60 +49,89 @@ async def _run(*args: str) -> CommandResult:
     return CommandResult(ok=proc.returncode == 0, stdout=stdout.decode(), stderr=stderr.decode())
 
 
-async def stage(settings: Settings, new_text: str) -> None:
-    settings.staging_path.parent.mkdir(parents=True, exist_ok=True)
-    settings.staging_path.write_text(new_text)
+# SEC-2026-02 (fixed): apply, restore and rollback each read the live
+# config, install a new one and record what they did. Interleaved, two of
+# them could validate one file and install another or record the wrong
+# rollback target, so the routes hold this lock for the whole operation.
+# Sandia runs as a single uvicorn process, so an in-process lock is enough.
+config_lock = asyncio.Lock()
 
 
-async def check_config(settings: Settings) -> CommandResult:
+def _check_dir(settings: Settings, directory: Path) -> None:
+    """Refuse to write the DHCP config or its backups into a directory
+    another local account could swap files in - such an account could
+    replace a validated file before it is installed (SEC-2026-02). Dummy
+    mode's paths are a per-user sandbox, so it is exempt."""
+    directory.mkdir(parents=True, exist_ok=True, mode=0o755)
+    if settings.dummy_data:
+        return
+    st = directory.stat()
+    if st.st_uid not in (0, os.geteuid()) or st.st_mode & 0o022:
+        raise OSError(f"refusing to write in {directory}: it must be owned by root or the Sandia user and not writable by group or others")
+
+
+@contextmanager
+def _staged(settings: Settings, text: str) -> Iterator[Path]:
+    """A private staging file next to the live config (see
+    Settings.staging_dir), deleted afterwards. Each operation gets its own
+    exclusively created file with a random name, so concurrent requests
+    never share one and nothing can be planted at a predictable path
+    (SEC-2026-02, fixed)."""
+    directory = settings.staging_dir
+    _check_dir(settings, directory)
+    fd, name = tempfile.mkstemp(prefix=".sandia-staged-", suffix=".conf", dir=directory)
+    path = Path(name)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        yield path
+    finally:
+        path.unlink(missing_ok=True)
+
+
+async def _check(settings: Settings, path: Path) -> CommandResult:
     backend = get_backend(settings)
     if settings.dummy_data:
         return CommandResult(ok=True, stdout=f"dummy mode: skipping {backend.validator} -t", stderr="")
-    return await _run(*backend.check_args(settings.staging_path))
+    return await _run(*backend.check_args(path))
+
+
+async def validate_text(settings: Settings, text: str) -> CommandResult:
+    """Validate a proposed config without installing it."""
+    try:
+        with _staged(settings, text) as path:
+            return await _check(settings, path)
+    except OSError as exc:
+        return CommandResult(ok=False, stdout="", stderr=str(exc))
 
 
 async def check_live_config(settings: Settings) -> CommandResult:
-    """Validate the config file actually on disk, read-only - unlike
-    check_config(), this never touches the staging file, so it's safe to
-    call from diagnostics without disturbing an in-progress raw-config
-    edit the user may have staged but not applied yet."""
-    backend = get_backend(settings)
-    if settings.dummy_data:
-        return CommandResult(ok=True, stdout=f"dummy mode: skipping {backend.validator} -t", stderr="")
-    if not settings.dhcpd_conf_path.exists():
+    """Validate the config file actually on disk, read-only."""
+    if not settings.dummy_data and not settings.dhcpd_conf_path.exists():
         return CommandResult(ok=False, stdout="", stderr=f"{settings.dhcpd_conf_path} does not exist")
-    return await _run(*backend.check_args(settings.dhcpd_conf_path))
+    return await _check(settings, settings.dhcpd_conf_path)
 
 
-def _replace_atomically(source: Path, target: Path) -> None:
-    # Copy next to the target, then rename over it: a crash mid-copy leaves
+def _install(staged: Path, target: Path) -> None:
+    # Rename the validated file itself over the target: what was checked is
+    # exactly what gets installed (SEC-2026-02), and a crash mid-way leaves
     # the live config intact instead of truncated.
-    tmp = target.with_name(target.name + ".sandia-tmp")
-    shutil.copyfile(source, tmp)
-    if target.exists():
-        shutil.copymode(target, tmp)
-    os.replace(tmp, target)
+    staged.chmod(target.stat().st_mode & 0o7777 if target.exists() else 0o644)
+    os.replace(staged, target)
 
 
-async def install_config(settings: Settings) -> tuple[CommandResult, Path | None]:
-    """Back up the live config, then atomically install the staged one.
-    Returns the result and the backup path (None if there was no previous
-    config to back up). Runs whether or not dummy mode is on - dummy mode's
-    paths are already sandboxed by Settings, so this is plain file I/O
-    against a real path either way. If the target isn't writable (not
-    running as root/sudo), this fails cleanly instead of raising."""
-    backup = None
-    try:
-        settings.backup_dir.mkdir(parents=True, exist_ok=True)
-        if settings.dhcpd_conf_path.exists():
-            stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
-            backup = settings.backup_dir / f"{get_backend(settings).backup_prefix}.{stamp}"
-            shutil.copyfile(settings.dhcpd_conf_path, backup)
-        settings.dhcpd_conf_path.parent.mkdir(parents=True, exist_ok=True)
-        _replace_atomically(settings.staging_path, settings.dhcpd_conf_path)
-    except OSError as exc:
-        return CommandResult(ok=False, stdout="", stderr=str(exc)), backup
-    return CommandResult(ok=True, stdout="installed", stderr=""), backup
+def _backup(settings: Settings) -> Path | None:
+    """Copy the live config into a new backup file (None if there is no live
+    config). "x" mode creates the file exclusively and never follows a
+    symlink planted at its name."""
+    if not settings.dhcpd_conf_path.exists():
+        return None
+    _check_dir(settings, settings.backup_dir)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
+    backup = settings.backup_dir / f"{get_backend(settings).backup_prefix}.{stamp}"
+    with settings.dhcpd_conf_path.open("rb") as src, backup.open("xb") as dst:
+        shutil.copyfileobj(src, dst)
+    return backup
 
 
 def _can_reload(settings: Settings) -> bool:
@@ -136,16 +168,16 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
     """Stage -> validate -> install -> restart -> verify. The live config is
     only ever touched after validation succeeds; if the service doesn't come
     back up on the new config, the previous one is restored and the service
-    restarted on it."""
-    await stage(settings, new_text)
-
-    checked = await check_config(settings)
-    if not checked.ok:
-        return ApplyResult(ok=False, stage="check", output=checked.stderr or checked.stdout)
-
-    installed, backup = await install_config(settings)
-    if not installed.ok:
-        return ApplyResult(ok=False, stage="apply", output=installed.stderr or installed.stdout)
+    restarted on it. Callers hold config_lock."""
+    try:
+        with _staged(settings, new_text) as staged:
+            checked = await _check(settings, staged)
+            if not checked.ok:
+                return ApplyResult(ok=False, stage="check", output=checked.stderr or checked.stdout)
+            backup = _backup(settings)
+            _install(staged, settings.dhcpd_conf_path)
+    except OSError as exc:
+        return ApplyResult(ok=False, stage="apply", output=str(exc))
 
     reloaded = _can_reload(settings)
     failure = await _restart_and_verify(settings)
@@ -160,7 +192,8 @@ async def apply_new_config(settings: Settings, new_text: str) -> ApplyResult:
             output=f"{failure}\nThere was no previous config to roll back to; the new config is still installed.",
         )
     try:
-        _replace_atomically(backup, settings.dhcpd_conf_path)
+        with _staged(settings, backup.read_text()) as staged:
+            _install(staged, settings.dhcpd_conf_path)
     except OSError as exc:
         return ApplyResult(ok=False, stage="restart", output=f"{failure}\nRollback failed: {exc}")
     rollback_failure = await _restart_and_verify(settings)

@@ -68,7 +68,7 @@ def test_backend_defaults_to_kea(clean_env):
     assert settings.dhcp_backend == "kea"
     assert get_backend(settings) is KEA
     assert settings.dhcpd_conf_path == Path("/etc/kea/kea-dhcp4.conf")
-    assert settings.staging_path == Path("/etc/kea/.sandia-staged.conf")
+    assert settings.staging_dir == Path("/etc/kea")
     assert settings.leases_path == Path("/var/lib/kea/kea-leases4.csv")
     assert settings.dhcp_log_path == JOURNAL
     assert settings.service_name == "kea-dhcp4-server"
@@ -248,8 +248,8 @@ async def test_kea_apply_validates_installs_and_restarts(settings, monkeypatch):
 
     assert result.ok, result.output
     assert settings.dhcpd_conf_path.read_text() == new_text
-    assert calls == [
-        ("kea-dhcp4", "-t", str(settings.staging_path)),
+    assert calls[0][:2] == ("kea-dhcp4", "-t") and Path(calls[0][2]).parent == settings.staging_dir
+    assert calls[1:] == [
         ("systemctl", "restart", settings.service_name),
         ("systemctl", "is-active", settings.service_name),
     ]
