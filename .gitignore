@@ -13,3 +13,7 @@ wheels/
 
 # Secrets
 .env
+
+# Internal docs (kept locally, not published)
+docs/*
+!docs/securityreview*.md

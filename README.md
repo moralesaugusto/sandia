@@ -12,7 +12,7 @@ A modern web console for **Kea DHCPv4**: see every device, every lease and every
 [![Python](https://img.shields.io/badge/python-3.13%2B-3776ab)](pyproject.toml)
 [![FastAPI](https://img.shields.io/badge/FastAPI-htmx-059669)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
-[![No build step](https://img.shields.io/badge/frontend-no%20build%20step-334155)](docs/PROJECT_VISION.md)
+![No build step](https://img.shields.io/badge/frontend-no%20build%20step-334155)
 
 <img src="screenshots/ai-assistant.png" alt="Sandia device inventory with the AI assistant answering a question about the DHCP pool" width="100%">
 
@@ -130,10 +130,10 @@ Setup, configuration (paths, port, HTTPS, log location), and porting to another 
 
 ## How it's built
 
-FastAPI and Jinja2 on the server, htmx and a little vanilla JavaScript in the browser, Tailwind for styling, SQLite for users and the audit log. There is no SPA framework and no frontend build step. The design choices behind it are in [docs/DECISIONS.md](docs/DECISIONS.md).
+FastAPI and Jinja2 on the server, htmx and a little vanilla JavaScript in the browser, Tailwind for styling, SQLite for users and the audit log. There is no SPA framework and no frontend build step.
 
 ```bash
-uv run pytest         # 409 tests
+uv run pytest         # 505 tests
 uv run ruff check .
 ```
 
@@ -141,7 +141,6 @@ uv run ruff check .
 
 - [INSTRUCTIONS.md](INSTRUCTIONS.md): setup, configuration and usage
 - [CHANGELOG.md](CHANGELOG.md): release history
-- [docs/ROADMAP.md](docs/ROADMAP.md): what's next
 
 Screenshots are from a live installation, with MAC and IP addresses masked.
 
