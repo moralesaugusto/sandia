@@ -2,10 +2,11 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 1.4.7
 
 ### Security
 - Fixed SEC-2026-02: config apply, restore and rollback now run one at a time, and each validation uses its own randomly named staging file that is removed afterwards (the Review page no longer overwrites a shared staging file). The validated file itself is installed, backups are created without following symlinks, and Sandia refuses to write into a config or backup directory that is writable by group or others.
+- Version bumped to 1.4.7.
 
 ## 1.4.6
 

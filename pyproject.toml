@@ -1,6 +1,6 @@
 [project]
 name = "sandia"
-version = "1.4.6"
+version = "1.4.7"
 description = "Web UI for managing a Kea DHCPv4 server"
 readme = "README.md"
 authors = [
