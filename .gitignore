@@ -18,5 +18,5 @@ wheels/
 docs/*
 !docs/securityreview*.md
 
-# Claude Code project instructions (local only)
+# Code project instructions (local only)
 CLAUDE.md
