@@ -245,3 +245,16 @@ async def test_chat_stream_uses_configured_timeouts(monkeypatch):
     _mock_ollama(monkeypatch, handler)
     [c async for c in ai.chat_stream("http://ollama:11434", "m", [], connect_timeout=7, reply_timeout=42)]
     assert (seen["connect"], seen["read"]) == (7, 42)
+
+
+def test_ai_settings_custom_system_prompt(admin_client, app):
+    base = {"ollama_url": "10.0.0.5", "model": "m"}
+    admin_client.post("/settings/ai", data={**base, "system_prompt": "Talk about {server} like a pirate."})
+    with Session(app.state.engine) as session:
+        saved = session.get(AiSettings, 1)
+        assert saved.system_prompt == "Talk about {server} like a pirate."
+    assert ai.system_prompt("kea", saved.system_prompt).startswith("Talk about kea like a pirate.")
+
+    admin_client.post("/settings/ai", data={**base, "system_prompt": ai.SYSTEM_PROMPT})
+    with Session(app.state.engine) as session:
+        assert session.get(AiSettings, 1).system_prompt == ""

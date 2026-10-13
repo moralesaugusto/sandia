@@ -36,6 +36,7 @@ class AiSettings(SQLModel, table=True):
     model: str = ""
     connect_timeout: int = 10  # seconds; also bounds the model-list request
     reply_timeout: int = 300  # seconds of silence from Ollama before giving up
+    system_prompt: str = ""  # empty = built-in default prompt
 
     @property
     def configured(self) -> bool:

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from ..ai import (
+    SYSTEM_PROMPT,
     build_context,
     chat_stream,
     clean_history,
@@ -31,6 +32,7 @@ router = APIRouter()
 
 MAX_CONNECT_TIMEOUT = 120
 MAX_REPLY_TIMEOUT = 3600
+MAX_PROMPT_CHARS = 8000
 
 
 class ChatRequest(BaseModel):
@@ -58,7 +60,7 @@ async def ai_settings_form(
     user: User = Depends(require_role("admin")),
     session: Session = Depends(get_session),
 ):
-    return render(request, "settings/ai.html", user=user, ai=load_ai_settings(session))
+    return render(request, "settings/ai.html", user=user, ai=load_ai_settings(session), default_prompt=SYSTEM_PROMPT)
 
 
 @router.post("/settings/ai")
@@ -70,6 +72,7 @@ async def ai_settings_submit(
     model: str = Form(""),
     connect_timeout: int = Form(10),
     reply_timeout: int = Form(300),
+    system_prompt_text: str = Form("", alias="system_prompt"),
 ):
     try:
         url = normalize_ollama_url(ollama_url)
@@ -85,15 +88,21 @@ async def ai_settings_submit(
         )
         return RedirectResponse("/settings/ai", status_code=303)
 
+    prompt = system_prompt_text.replace("\r\n", "\n").strip()
+    if len(prompt) > MAX_PROMPT_CHARS:
+        set_flash(request, _("The system prompt is limited to {n} characters.", n=MAX_PROMPT_CHARS), kind="error")
+        return RedirectResponse("/settings/ai", status_code=303)
+
     ai = load_ai_settings(session)
     ai.ollama_url = url
     ai.model = model.strip()
     ai.connect_timeout = connect_timeout
     ai.reply_timeout = reply_timeout
+    ai.system_prompt = "" if prompt in ("", SYSTEM_PROMPT.strip()) else prompt
     session.add(ai)
     session.commit()
 
-    log_action(session, request, user, "ai_settings_update", f"ollama_url={ai.ollama_url or '-'} model={ai.model or '-'} connect_timeout={ai.connect_timeout} reply_timeout={ai.reply_timeout}")
+    log_action(session, request, user, "ai_settings_update", f"ollama_url={ai.ollama_url or '-'} model={ai.model or '-'} connect_timeout={ai.connect_timeout} reply_timeout={ai.reply_timeout} custom_prompt={bool(ai.system_prompt)}")
     set_flash(request, _("AI settings saved.") if ai.configured else _("AI settings saved. The assistant stays off until both a server and a model are set."))
     return RedirectResponse("/settings/ai", status_code=303)
 
@@ -137,5 +146,5 @@ async def ai_chat(
         return PlainTextResponse(_("No question to answer."), status_code=400)
 
     context = await build_context(settings, _review_text(settings, body.review_token, user))
-    messages = [{"role": "system", "content": f"{system_prompt(get_backend(settings).label)}\n\n{context}"}, *history]
+    messages = [{"role": "system", "content": f"{system_prompt(get_backend(settings).label, ai.system_prompt)}\n\n{context}"}, *history]
     return StreamingResponse(chat_stream(ai.ollama_url, ai.model, messages, ai.connect_timeout, ai.reply_timeout), media_type="text/plain; charset=utf-8")

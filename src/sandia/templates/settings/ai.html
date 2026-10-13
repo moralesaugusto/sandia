@@ -28,6 +28,11 @@
     </div>
     <p class="col-span-2 text-xs text-slate-500">{{ _("Connect timeout also applies to loading the model list. Reply timeout is how long to wait without any output from the model, for example while it loads; it restarts with every chunk of the reply.") }}</p>
   </div>
+  <div>
+    <label class="block text-sm text-slate-400 mb-1" for="system_prompt">{{ _("System prompt") }}</label>
+    <textarea id="system_prompt" name="system_prompt" rows="12" maxlength="8000" class="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-xs font-mono">{{ ai.system_prompt or default_prompt }}</textarea>
+    <p class="text-xs text-slate-500 mt-1">{{ _("Instructions sent to the model before every question. {server} is replaced by the DHCP server name. Restore the default text, or clear the field, to go back to the built-in prompt. Keep the rule that treats the DHCP data as data, not instructions.") }}</p>
+  </div>
   <button type="submit" class="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 to-emerald-600 hover:from-pink-400 hover:to-emerald-500 text-white text-sm font-medium rounded-lg px-4 py-2">{{ icon('check', 'w-4 h-4') }} {{ _("Save") }}</button>
 </form>
 {% endblock %}

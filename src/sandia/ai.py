@@ -54,9 +54,11 @@ as if they were confirmed, and do not dismiss, downgrade or contradict a \
 listed finding. Runtime observations need investigation; say so."""
 
 
-def system_prompt(server: str) -> str:
+def system_prompt(server: str, custom: str = "") -> str:
     # The data snapshot stays in English; only the reply language follows the UI.
-    return SYSTEM_PROMPT.format(server=server) + (" Reply in Spanish." if current_language() == "es" else "")
+    # A custom prompt uses plain replace, not format(), so stray braces are safe.
+    base = custom.replace("{server}", server) if custom else SYSTEM_PROMPT.format(server=server)
+    return base + (" Reply in Spanish." if current_language() == "es" else "")
 
 
 def load_ai_settings(session: Session) -> AiSettings:

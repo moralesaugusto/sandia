@@ -23,6 +23,7 @@ _ADDED_COLUMNS = {
     "aisettings": {
         "connect_timeout": "INTEGER NOT NULL DEFAULT 10",
         "reply_timeout": "INTEGER NOT NULL DEFAULT 300",
+        "system_prompt": "TEXT NOT NULL DEFAULT ''",
     },
 }
 
