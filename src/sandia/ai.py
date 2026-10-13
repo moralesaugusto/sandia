@@ -81,8 +81,8 @@ def normalize_ollama_url(value: str) -> str:
     return value
 
 
-async def list_models(url: str) -> list[str]:
-    async with httpx.AsyncClient(timeout=10.0) as client:
+async def list_models(url: str, timeout: float = 10.0) -> list[str]:
+    async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.get(f"{url}/api/tags")
         response.raise_for_status()
     return sorted(model["name"] for model in response.json().get("models", []))
@@ -143,14 +143,16 @@ def clean_history(messages: list) -> list[dict]:
     return cleaned[-MAX_HISTORY_MESSAGES:]
 
 
-async def chat_stream(url: str, model: str, messages: list[dict]) -> AsyncIterator[str]:
+async def chat_stream(
+    url: str, model: str, messages: list[dict], connect_timeout: float = 10.0, reply_timeout: float = 300.0
+) -> AsyncIterator[str]:
     """Yield reply text chunks from Ollama's streaming /api/chat. Failures
     are yielded as a visible bracketed line so the user sees them in the
     chat window rather than an empty reply."""
     payload = {"model": model, "messages": messages, "stream": True, "options": {"num_predict": MAX_REPLY_TOKENS}}
     try:
         async with (
-            httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=300.0)) as client,
+            httpx.AsyncClient(timeout=httpx.Timeout(connect_timeout, read=reply_timeout)) as client,
             client.stream("POST", f"{url}/api/chat", json=payload) as response,
         ):
             if response.status_code != 200:

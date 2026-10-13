@@ -34,6 +34,8 @@ class AiSettings(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     ollama_url: str = ""
     model: str = ""
+    connect_timeout: int = 10  # seconds; also bounds the model-list request
+    reply_timeout: int = 300  # seconds of silence from Ollama before giving up
 
     @property
     def configured(self) -> bool:

@@ -29,6 +29,9 @@ from ..security import require_login, require_role
 
 router = APIRouter()
 
+MAX_CONNECT_TIMEOUT = 120
+MAX_REPLY_TIMEOUT = 3600
+
 
 class ChatRequest(BaseModel):
     messages: list
@@ -65,6 +68,8 @@ async def ai_settings_submit(
     session: Session = Depends(get_session),
     ollama_url: str = Form(""),
     model: str = Form(""),
+    connect_timeout: int = Form(10),
+    reply_timeout: int = Form(300),
 ):
     try:
         url = normalize_ollama_url(ollama_url)
@@ -72,13 +77,23 @@ async def ai_settings_submit(
         set_flash(request, str(exc), kind="error")
         return RedirectResponse("/settings/ai", status_code=303)
 
+    if not 1 <= connect_timeout <= MAX_CONNECT_TIMEOUT or not 1 <= reply_timeout <= MAX_REPLY_TIMEOUT:
+        set_flash(
+            request,
+            _("Timeouts must be 1-{connect} seconds (connect) and 1-{reply} seconds (reply).", connect=MAX_CONNECT_TIMEOUT, reply=MAX_REPLY_TIMEOUT),
+            kind="error",
+        )
+        return RedirectResponse("/settings/ai", status_code=303)
+
     ai = load_ai_settings(session)
     ai.ollama_url = url
     ai.model = model.strip()
+    ai.connect_timeout = connect_timeout
+    ai.reply_timeout = reply_timeout
     session.add(ai)
     session.commit()
 
-    log_action(session, request, user, "ai_settings_update", f"ollama_url={ai.ollama_url or '-'} model={ai.model or '-'}")
+    log_action(session, request, user, "ai_settings_update", f"ollama_url={ai.ollama_url or '-'} model={ai.model or '-'} connect_timeout={ai.connect_timeout} reply_timeout={ai.reply_timeout}")
     set_flash(request, _("AI settings saved.") if ai.configured else _("AI settings saved. The assistant stays off until both a server and a model are set."))
     return RedirectResponse("/settings/ai", status_code=303)
 
@@ -87,6 +102,7 @@ async def ai_settings_submit(
 async def ai_models(
     request: Request,
     user: User = Depends(require_role("admin")),
+    session: Session = Depends(get_session),
     ollama_url: str = "",
 ):
     models, error = [], None
@@ -95,7 +111,7 @@ async def ai_models(
         if not url:
             error = _("Enter the Ollama server address first.")
         else:
-            models = await list_models(url)
+            models = await list_models(url, load_ai_settings(session).connect_timeout)
             if not models:
                 error = _("Ollama at {url} has no models installed (run 'ollama pull <model>' on that host).", url=url)
     except ValueError as exc:
@@ -122,4 +138,4 @@ async def ai_chat(
 
     context = await build_context(settings, _review_text(settings, body.review_token, user))
     messages = [{"role": "system", "content": f"{system_prompt(get_backend(settings).label)}\n\n{context}"}, *history]
-    return StreamingResponse(chat_stream(ai.ollama_url, ai.model, messages), media_type="text/plain; charset=utf-8")
+    return StreamingResponse(chat_stream(ai.ollama_url, ai.model, messages, ai.connect_timeout, ai.reply_timeout), media_type="text/plain; charset=utf-8")

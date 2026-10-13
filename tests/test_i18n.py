@@ -128,7 +128,7 @@ def test_ai_reply_language_follows_ui(viewer_client, app, monkeypatch):
         session.commit()
     captured = {}
 
-    async def fake_chat_stream(url, model, messages):
+    async def fake_chat_stream(url, model, messages, *timeouts):
         captured["system"] = messages[0]["content"]
         yield "ok"
 

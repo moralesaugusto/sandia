@@ -177,7 +177,7 @@ def test_chat_streams_reply_with_server_side_context(viewer_client, app, monkeyp
     _configure(app)
     captured = {}
 
-    async def fake_chat_stream(url, model, messages):
+    async def fake_chat_stream(url, model, messages, *timeouts):
         captured.update(url=url, model=model, messages=messages)
         yield "The pool "
         yield "is fine."
@@ -218,3 +218,30 @@ def test_nav_links_to_ai_settings_and_event_log(admin_client):
     body = admin_client.get("/").text
     assert 'href="/settings/ai"' in body
     assert 'href="/diagnostics/events"' in body
+
+
+def test_ai_settings_save_timeouts(admin_client, app):
+    admin_client.post("/settings/ai", data={"ollama_url": "10.0.0.5", "model": "m", "connect_timeout": "20", "reply_timeout": "900"})
+    with Session(app.state.engine) as session:
+        saved = session.get(AiSettings, 1)
+        assert (saved.connect_timeout, saved.reply_timeout) == (20, 900)
+    assert 'name="reply_timeout" type="number" min="1" max="3600" value="900"' in admin_client.get("/settings/ai").text
+
+
+def test_ai_settings_rejects_out_of_range_timeouts(admin_client, app):
+    admin_client.post("/settings/ai", data={"ollama_url": "10.0.0.5", "model": "m", "connect_timeout": "0", "reply_timeout": "300"})
+    with Session(app.state.engine) as session:
+        assert session.get(AiSettings, 1) is None
+    assert "Timeouts must be" in admin_client.get("/settings/ai").text
+
+
+async def test_chat_stream_uses_configured_timeouts(monkeypatch):
+    seen = {}
+
+    def handler(request):
+        seen.update(request.extensions["timeout"])
+        return httpx.Response(200, text="")
+
+    _mock_ollama(monkeypatch, handler)
+    [c async for c in ai.chat_stream("http://ollama:11434", "m", [], connect_timeout=7, reply_timeout=42)]
+    assert (seen["connect"], seen["read"]) == (7, 42)

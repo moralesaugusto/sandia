@@ -177,7 +177,7 @@ def test_ai_chat_gets_the_pending_change_and_bounds(app, client, monkeypatch):
     token = location.rsplit("/", 1)[1]
     captured = {}
 
-    async def fake_chat_stream(url, model, messages):
+    async def fake_chat_stream(url, model, messages, *timeouts):
         captured["messages"] = messages
         yield "ok"
 
